@@ -19,3 +19,5 @@ Before committing, scan your file for personal names, emails, device identifiers
 Git rules: create branch docs/research-md from origin/main, commit only docs/RESEARCH.md with message "docs: RESEARCH.md synthesized from verified research". Do NOT add any session-link trailer or claude.ai URL to commit messages. Push with git push -u origin docs/research-md. Never push to main.
 
 Final message: branch, line count, the executive summary bullets, and anything still unresolved.
+
+Use ultracode: orchestrate the work with the Workflow tool (fall back to parallel Agent calls if Workflow is unavailable). Fan out independent reading, checking and writing steps to parallel agents, verify each claim or file adversarially before relying on it, and keep the final synthesis in your own hands.

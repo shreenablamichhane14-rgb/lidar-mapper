@@ -17,3 +17,5 @@ STEP 3, COMPILE. Trigger the "ios-build.yml" workflow on your branch with the Gi
 Git rules (public repo): branch design/architecture from origin/main. Commit message first line "design: architecture, module plan and Core contracts". Do NOT add any session-link trailer or claude.ai URL to commit messages; no personal names, emails or device identifiers. Push with git push -u origin design/architecture. Never push to main.
 
 Final message: branch, green build run id, the module list with build numbers, the winner and grafted ideas, and open decisions for the maintainer.
+
+Use ultracode: orchestrate the work with the Workflow tool (fall back to parallel Agent calls if Workflow is unavailable). Fan out independent reading, checking and writing steps to parallel agents, verify each claim or file adversarially before relying on it, and keep the final synthesis in your own hands.

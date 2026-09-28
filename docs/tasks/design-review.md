@@ -15,3 +15,5 @@ STEP 3, COMPILE. Trigger "ios-build.yml" on your branch (workflow_dispatch, ref 
 Git rules (public repo): branch design/review from origin/main. Commit message first line "design: adversarial review fixes". Do NOT add any session-link trailer or claude.ai URL to commit messages; no personal names, emails or device identifiers. Push with git push -u origin design/review. Never push to main.
 
 Final message: branch, green build run id, counts of findings by severity, what was fixed, what was rejected and why, and whether the design is ready for parallel implementation.
+
+Use ultracode: orchestrate the work with the Workflow tool (fall back to parallel Agent calls if Workflow is unavailable). Fan out independent reading, checking and writing steps to parallel agents, verify each claim or file adversarially before relying on it, and keep the final synthesis in your own hands.
