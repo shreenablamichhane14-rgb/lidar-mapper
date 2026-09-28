@@ -106,6 +106,10 @@ enum PipelineStepExecutor {
         var budget: UInt64
         /// `reducedMemoryBudgetBytes`.
         var reducedBudget: UInt64?
+        /// A marker left by a death in another step or subject. There is one marker file, so
+        /// this step's own marker replaces it while it runs; it is put back afterwards so the
+        /// death still counts when that other step runs.
+        var foreign: PipelineAttempt?
     }
 
     /// Result of `prepare`.
@@ -181,7 +185,8 @@ enum PipelineStepExecutor {
             if markerMatches { PipelineAttempt.remove(from: package) }
             return .fresh
         }
-        let previous = markerMatches ? marker : nil
+        let previous: PipelineAttempt? = markerMatches ? marker : nil
+        let foreign: PipelineAttempt? = markerMatches ? nil : marker
         let reduced = box.step.reducedMemoryBudgetBytes
         let decision = PipelineAttempt.decision(previous: previous, hasReducedVariant: reduced != nil)
         if decision == .giveUp {
@@ -189,7 +194,7 @@ enum PipelineStepExecutor {
             return .giveUp(count: previous?.count ?? 0)
         }
         let plan = Plan(manifest: manifest, inputHash: hash, decision: decision, previous: previous,
-                        budget: box.step.memoryBudgetBytes, reducedBudget: reduced)
+                        budget: box.step.memoryBudgetBytes, reducedBudget: reduced, foreign: foreign)
         return .needsRun(plan)
     }
 
@@ -243,10 +248,11 @@ enum PipelineStepExecutor {
         }
     }
 
-    /// Records the step's stamp in `derived/index.json` (atomic) and deletes the marker.
-    /// Returns false when the index could not be written (the step then reruns next time).
+    /// Records the step's stamp in `derived/index.json` (atomic) and ends the attempt (see
+    /// `endAttempt`). Returns false when the index could not be written (the step then reruns
+    /// next time).
     static func recordSuccess(stepID: PipelineStepID, subject: UUID?, inputHash: String,
-                              package: ProjectPackage, now: Date) -> Bool {
+                              package: ProjectPackage, now: Date, restoring foreign: PipelineAttempt? = nil) -> Bool {
         guard packageExists(package) else { return false }
         var index = readIndex(package)
         index.record(DerivedStamp(step: stepID, subject: subject, pipelineVersion: ProjectManifest.currentPipelineVersion,
@@ -258,13 +264,28 @@ enum PipelineStepExecutor {
             written = false
             LogStore.shared.write("index not written after \(stepID.rawValue): \(error)", category: "pipeline")
         }
-        PipelineAttempt.remove(from: package)
+        endAttempt(package: package, restoring: foreign)
         return written
     }
 
-    /// After a failure or an interruption: deletes the marker (the app did not die).
-    static func recordFailure(package: ProjectPackage) {
-        PipelineAttempt.remove(from: package)
+    /// After a failure or an interruption: ends the attempt (the app did not die).
+    static func recordFailure(package: ProjectPackage, restoring foreign: PipelineAttempt? = nil) {
+        endAttempt(package: package, restoring: foreign)
+    }
+
+    /// Deletes the marker of the step that just ended, or puts back `foreign` (the marker of
+    /// another step that died earlier, `Plan.foreign`) so the crash-loop guard still sees it.
+    static func endAttempt(package: ProjectPackage, restoring foreign: PipelineAttempt?) {
+        guard let foreign else {
+            PipelineAttempt.remove(from: package)
+            return
+        }
+        guard packageExists(package) else { return }
+        do {
+            try PipelineAttempt.save(foreign, to: package)
+        } catch {
+            LogStore.shared.write("attempt marker of \(foreign.step.rawValue) not restored: \(error)", category: "pipeline")
+        }
     }
 
     // MARK: - Helpers

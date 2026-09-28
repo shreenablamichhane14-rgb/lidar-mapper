@@ -32,8 +32,8 @@ struct PipelineAttempt: Codable, Equatable, Sendable {
     /// When the latest attempt started.
     var startedAt: Date
 
-    /// Creates a marker.
-    init(step: PipelineStepID, subject: UUID?, variant: String, count: Int, startedAt: Date) {
+    /// Creates a marker (same shape as the memberwise initializer, `subject` defaults to nil).
+    init(step: PipelineStepID, subject: UUID? = nil, variant: String, count: Int, startedAt: Date) {
         self.step = step
         self.subject = subject
         self.variant = variant

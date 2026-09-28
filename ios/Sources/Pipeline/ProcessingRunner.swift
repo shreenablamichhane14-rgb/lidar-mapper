@@ -259,6 +259,7 @@ import Combine
         case .needsRun(let value):
             plan = value
         }
+        let foreign: PipelineAttempt? = plan.foreign
         if flag.isSet { return .interrupted }
         apply(.started(stepID), to: projectID)
 
@@ -280,7 +281,7 @@ import Combine
         }
         if flag.isSet {
             await Task.detached(priority: .userInitiated) {
-                PipelineStepExecutor.recordFailure(package: package)
+                PipelineStepExecutor.recordFailure(package: package, restoring: foreign)
             }.value
             return .interrupted
         }
@@ -294,14 +295,15 @@ import Combine
             let hash = launch.inputHash
             let now = Date()
             let written = await Task.detached(priority: .userInitiated) {
-                PipelineStepExecutor.recordSuccess(stepID: stepID, subject: subject, inputHash: hash, package: package, now: now)
+                PipelineStepExecutor.recordSuccess(stepID: stepID, subject: subject, inputHash: hash, package: package,
+                                                   now: now, restoring: foreign)
             }.value
             apply(.stepCompleted(stepID), to: projectID)
             log("step done: \(name) in \(secondsText(elapsed)), available \(ProcessingGuards.megabytes(launch.measuredMemory)) -> \(ProcessingGuards.megabytes(memoryAfter))\(written ? "" : ", stamp not written")")
             return .completed
         case .failure(let error, let detail, let elapsed, let memoryAfter):
             await Task.detached(priority: .userInitiated) {
-                PipelineStepExecutor.recordFailure(package: package)
+                PipelineStepExecutor.recordFailure(package: package, restoring: foreign)
             }.value
             if flag.isSet {
                 log("step interrupted: \(name) after \(secondsText(elapsed)), available \(ProcessingGuards.megabytes(memoryAfter))")

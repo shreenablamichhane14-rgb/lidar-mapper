@@ -1,5 +1,6 @@
 import Foundation
 
+/// File checks of the Pipeline self-test (temporary package, removed afterwards).
 extension PipelineSelfTest {
     /// The executor's file work on a temporary package under `temporaryDirectory` (removed
     /// afterwards): the index, the attempt marker and the decisions of `prepare`.
@@ -19,6 +20,7 @@ extension PipelineSelfTest {
         r.check("files.missingIndexIsEmpty", PipelineStepExecutor.readIndex(package).stamps.isEmpty)
         checkStampFlow(r, package: package, flag: flag)
         checkMarkerFlow(r, package: package, flag: flag)
+        checkForeignMarker(r, package: package, flag: flag)
         checkMissingPackage(r, folder: folder, flag: flag)
     }
 
@@ -92,6 +94,28 @@ extension PipelineSelfTest {
         } catch {
             r.check("files.corruptMarkerIgnored", false, "\(error)")
         }
+    }
+
+    /// A marker left by a death in another step survives a run of this step: `prepare` carries
+    /// it and the end of the attempt puts it back; without one the marker is deleted.
+    static func checkForeignMarker(_ r: Recorder, package: ProjectPackage, flag: PipelineCancelFlag) {
+        let died = PipelineAttempt(step: .consolidateMesh, subject: roomB, variant: PipelineAttempt.fullVariant,
+                                   count: 1, startedAt: fixedDate)
+        save(died, package, r)
+        let qualityBox = PipelineStepBox(PipelineSelfTestStep(.quality, hash: "quality"))
+        let prepared = PipelineStepExecutor.prepare(box: qualityBox, stepID: .quality, subject: roomA, package: package, flag: flag)
+        let carried: PipelineAttempt? = plan(of: prepared)?.foreign
+        let carriedDecision: AttemptDecision? = plan(of: prepared)?.decision
+        let carriedOK: Bool = carried == died && carriedDecision == AttemptDecision.run
+        r.check("files.foreignMarkerCarried", carriedOK, describe(prepared))
+        let own = PipelineAttempt.next(after: nil, step: .quality, subject: roomA, variant: .full, now: fixedDate)
+        save(own, package, r)
+        let stamped = PipelineStepExecutor.recordSuccess(stepID: .quality, subject: roomA, inputHash: "quality",
+                                                         package: package, now: fixedDate, restoring: carried)
+        let restored: PipelineAttempt? = PipelineAttempt.load(from: package)
+        r.check("files.foreignMarkerRestored", stamped && restored == died)
+        PipelineStepExecutor.recordFailure(package: package)
+        r.check("files.endWithoutForeignRemoves", PipelineAttempt.load(from: package) == nil)
     }
 
     /// A deleted package is reported and never recreated.
