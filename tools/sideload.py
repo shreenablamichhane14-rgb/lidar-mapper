@@ -80,7 +80,7 @@ CLICKS: dict[str, tuple[int, int]] = {
     "apple_id": (350, 128),
     "start": (320, 185),
 }
-FILE_DIALOG_TITLES = ("open", "öffnen")
+FILE_DIALOG_TITLES = ("open", "öffnen", "choose ipa file")  # Sideloadly 0.60 titles its picker "Choose IPA File"
 AUTH_TITLES = ("apple id", "authentication", "password", "2fa", "two-factor")
 
 LOG_NAME = "sideloadlydaemon.log"
@@ -350,11 +350,29 @@ def restore_quietly(win: Any) -> None:
 
 # --- actions -----------------------------------------------------------------
 
+# Screenshots cover only the area around Sideloadly (set once its window is known), never
+# the whole desktop, so unrelated windows are not captured.
+_SHOT_REGION: tuple[int, int, int, int] | None = None
+SHOT_MARGIN = 320
+
+
+def set_shot_region(win: Any) -> None:
+    global _SHOT_REGION
+    screen_w, screen_h = pyautogui.size()
+    left = max(win.left - SHOT_MARGIN, 0)
+    top = max(win.top - SHOT_MARGIN, 0)
+    right = min(win.left + win.width + SHOT_MARGIN, screen_w)
+    bottom = min(win.top + win.height + SHOT_MARGIN, screen_h)
+    _SHOT_REGION = (left, top, max(right - left, 1), max(bottom - top, 1))
+
+
 def shot(step: str) -> Path | None:
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     path = ARTIFACTS / f"sideload-{step}.png"
+    if _SHOT_REGION is None:
+        return None  # no full-desktop captures
     try:
-        pyautogui.screenshot(str(path))
+        pyautogui.screenshot(str(path), region=_SHOT_REGION)
     except Exception as exc:  # screen locked, Pillow missing, ...
         say(f"screenshot {path.name} failed: {exc}")
         return None
@@ -593,7 +611,12 @@ def main() -> int:
             check_geometry(win)  # after the report, so a resized window still gets its rectangle printed
             say("geometry OK")
             return 0
+        if win.isMinimized:
+            win.restore()  # geometry and clicks need the real window, not the 160x28 minimized stub
+            time.sleep(1.0)
+            win = find_sideloadly() or win
         check_geometry(win)
+        set_shot_region(win)
         ok, detail = install(win, ipa, args.apple_id)
     except SideloadError as exc:
         say(f"FAILED: {exc}")
