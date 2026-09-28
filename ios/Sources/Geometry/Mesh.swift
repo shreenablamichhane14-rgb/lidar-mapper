@@ -169,7 +169,7 @@ struct TriangleMesh: Equatable {
         let toleranceSquared = cellSize * cellSize
         let limit = Float(Int32.max / 2)
         func cell(_ p: SIMD3<Float>) -> Cell {
-            let q = simd_clamp(simd_floor(p / cellSize), SIMD3<Float>(repeating: -limit), SIMD3<Float>(repeating: limit))
+            let q = simd_clamp((p / cellSize).rounded(.down), SIMD3<Float>(repeating: -limit), SIMD3<Float>(repeating: limit))
             return Cell(x: Int32(q.x), y: Int32(q.y), z: Int32(q.z))
         }
 
