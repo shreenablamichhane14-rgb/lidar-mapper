@@ -1,47 +1,25 @@
 import Foundation
 import simd
 
-// Coverage grid: accumulates how well each part of the scanned surface has been seen.
+// Coverage grid: per-face evidence in one contiguous array (indexed like the caller's faces) and
+// per-voxel evidence in a sparse hash map keyed by SIMD3<Int32> (10 cm default), used for
+// "was anything seen near this point" (red detection). Quality = distance * incidence *
+// confidence terms. Good >= 0.5, excellent >= 0.85; green = 3 good or 1 excellent; yellow = any
+// observation with quality > 0; red = expected voxel still gray; gray = unknown. With nil depth
+// confidence (0.8) green needs 3 good observations; faces only seen below 0.5 stay yellow.
 //
-// Evidence is kept twice:
-// - per face, in one contiguous array indexed like the caller's `[CoverageFace]` (fast, drives
-//   the face colors and the texture percentage);
-// - per voxel, in a sparse hash map keyed by `SIMD3<Int32>` voxel coordinates (10 cm default),
-//   used to ask "was anything seen near this point" for expected-surface (red) detection.
+// COST (numpy prototype plus a C scalar benchmark of this loop, 200k faces): about 25 flops per
+// face (squared range, depth, projection, facing); C -O2 2.6 ms on a 2.1 GHz core. A15 Swift -O
+// estimate 1.5 to 3 ms per call (3 to 9 ms/s at 2 to 3 Hz) plus about 1 ms to score up to 60k
+// faces; Debug is 20 to 50 times slower. The frustum test walks ALL faces from a round-robin
+// cursor and stops once maxFacesPerIntegrate faces are scored; the next call resumes after the
+// last face tested (`truncated` reports the early stop).
 //
-// Observation quality = distance term * incidence term * confidence term (see
-// `observationQuality`). Thresholds (see `state(for:)`):
-// - an observation is good at quality >= 0.5 and excellent at >= 0.85;
-// - green: at least 3 good observations, or one excellent observation;
-// - yellow: at least one observation with quality > 0 (includes 1 to 2 good ones);
-// - red: a voxel marked as expected surface (`markExpected`) that is still gray;
-// - gray: nothing known.
-// With no depth confidence (nil -> 0.8) the best reachable quality is 0.8, so green then needs
-// 3 good observations. Faces only ever seen with quality below 0.5 stay yellow forever.
-//
-// COST ESTIMATE (numpy prototype plus a C scalar benchmark of the same loop, 200k faces):
-// - The per-face frustum test is about 25 flops in the order used below (squared range,
-//   depth, projection, facing). A C scalar loop ran it in 2.6 ms at -O2 on a 2.1 GHz core.
-// - Estimate on A15 with Swift -O: 1.5 to 3 ms per call, so 3 to 9 ms per second at 2 to 3 Hz,
-//   plus about 1 ms to score the at most 60k faces that pass. A Debug build is 20 to 50 times
-//   slower, which is fine for tests but not for live use.
-// - Work cap: the frustum test walks ALL faces, starting at a round-robin cursor, and stops as
-//   soon as `maxFacesPerIntegrate` faces have been scored. The next call resumes at the face
-//   after the last one tested, so every face is eventually reached even when the view holds
-//   more than the cap. `CoverageIntegrateResult.truncated` reports an early stop.
-//
-// Voxel accounting: each voxel is updated at most once per integrate call, with the best face
-// that fell into it. Counting once per face would turn voxels in a dense mesh green after a
-// single frame.
-//
-// Large triangles: a face larger than a voxel also marks voxels on a voxel-spaced grid inside a
-// disk of radius sqrt(area / pi) in the face plane (at most 25 points), so a fully seen wall
-// meshed with 0.3 to 0.4 m triangles does not report false holes. At 0.2 m triangles this
-// changes nothing.
-//
-// Known limit: a voxel next to a seen surface counts as observed for a sample on the adjoining,
-// unseen surface within the lookup radius, so missing clusters stop 0.2 to 0.3 m short of room
-// corners. This is accepted; a per-voxel normal check could reduce it later.
+// Each voxel is updated at most once per call with its best face (counting per face would turn
+// dense-mesh voxels green after one frame). Faces larger than a voxel also mark voxel-spaced
+// points inside their equal-area disk (at most 25) so 0.3 to 0.4 m triangles leave no false
+// holes. Known limit: voxels of a seen surface count for adjoining unseen surfaces within the
+// lookup radius, so missing clusters stop 0.2 to 0.3 m short of room corners.
 
 /// Per-voxel or per-face accumulated evidence.
 struct CoverageStats: Equatable {
@@ -379,25 +357,14 @@ struct CoverageGrid {
             }
             return false
         }
-        var z = lo.z
-        while z <= hi.z {
-            var y = lo.y
-            while y <= hi.y {
-                var x = lo.x
-                while x <= hi.x {
-                    let k = SIMD3<Int32>(x, y, z)
+        for z in Int(lo.z)...Int(hi.z) {
+            for y in Int(lo.y)...Int(hi.y) {
+                for x in Int(lo.x)...Int(hi.x) {
+                    let k = SIMD3<Int32>(Int32(x), Int32(y), Int32(z))
                     if let s = voxels[k], s.observationCount > 0,
-                       simd_length_squared(center(of: k) - point) <= r2 {
-                        return true
-                    }
-                    if x == Int32.max { break }
-                    x += 1
+                       simd_length_squared(center(of: k) - point) <= r2 { return true }
                 }
-                if y == Int32.max { break }
-                y += 1
             }
-            if z == Int32.max { break }
-            z += 1
         }
         return false
     }
