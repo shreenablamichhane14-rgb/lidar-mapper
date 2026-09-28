@@ -657,6 +657,8 @@ Build 4 policy:
 
 ### 4.4 Skeleton (Mapper's own code, not Apple's)
 
+> **Superseded.** This sketch predates the build 4 contracts. Where it differs from them, `docs/MODULES.md` 3.11 CaptureCore and 3.21 RoomCapture are binding; use their API, not this code. In particular: the hub has no `override init()` that sets the delegate (it is created with `init(profile:)`, and `install()` sets `session.delegate` and `delegateQueue` before any RoomPlan object exists), and `captureSession(_:didStartWith:)` never re-applies the configuration (it marks the scan start and logs; only the hub watchdog calls `reapplyConfiguration(reason:)`, when depth or mesh is missing). This also overrides the re-apply in `didStartWith` described in 4.1 step 7 and 4.2 build 4 policy item 1.
+
 A starting point for CaptureCore and RoomCapture agents. It follows the declarations above; compile it through CI before relying on it.
 
 ```swift

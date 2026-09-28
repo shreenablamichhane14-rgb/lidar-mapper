@@ -407,9 +407,45 @@ Menu title is the object's name, e.g. **Table**.
 | deleteNote | This removes it from the clean model only. Your original scan is kept. |
 | guessedLabel | Mapper thinks this is a {category}. Tap to correct it. |
 
-Categories: Table, Chair, Door, Window, Sink, Toilet, Bathtub, Cabinet, Counter, Refrigerator,
-Oven, Stove, Dishwasher, Washer, Dryer, Fireplace, Bed, Sofa, Desk, TV, Appliance, Stairs,
-Column, Wall, Floor, Ceiling, Other.
+### Object categories
+
+One display name per `ObjectCategory` case in Core (`ios/Sources/Core/CleanModel.swift`): the
+16 RoomPlan categories, then the SPEC categories RoomPlan lacks. The Swift source is
+`Copy.FloorPlan.categoryName(_:)`, an exhaustive switch in the FloorPlan module
+(`docs/MODULES.md` 3.16), used for plan fixture labels, the object card and exports, and for
+`{category}` above. Display code uses it, not the older unkeyed `Copy.ObjectMenu.categories`
+array. Core's `copyKey` (the raw value) is for logs and JSON only.
+
+| Case | Text |
+|---|---|
+| bathtub | Bathtub |
+| bed | Bed |
+| chair | Chair |
+| dishwasher | Dishwasher |
+| fireplace | Fireplace |
+| oven | Oven |
+| refrigerator | Refrigerator |
+| sink | Sink |
+| sofa | Sofa |
+| stairs | Stairs |
+| storage | Storage |
+| stove | Stove |
+| table | Table |
+| television | TV |
+| toilet | Toilet |
+| washerDryer | Washer or Dryer |
+| desk | Desk |
+| cabinet | Cabinet |
+| shelf | Shelf |
+| lamp | Lamp |
+| plant | Plant |
+| appliance | Appliance |
+| vehicle | Vehicle |
+| other | Object |
+
+Door, Window, Wall, Floor and Ceiling are not object categories: they are walls, openings and
+surfaces with their own names. Counter and Column are not categories either; counters and
+columns come from mesh refinement in build 8. Washer and Dryer are one RoomPlan category.
 
 ## 11. Wall menu (tap a wall)
 
