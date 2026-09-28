@@ -1,12 +1,84 @@
 # Mapper research reference
 
-Work in progress. All ten subsystem sections have passed declaration and fidelity checks. Executive summary, risk register, do-not-do list, open questions and sources follow.
+This is the single verified reference for the Mapper architecture and for every implementation agent. It is synthesized from `docs/research/raw/*.json` (first research pass, with first-pass verifier verdicts) and `docs/research/verify/*.json` (second pass, tie-breaker rulings and open-question answers). Each subsystem section was drafted from those files, then checked twice: once by re-fetching Apple's documentation JSON for every declaration and availability version, and once against the input files for refuted claims, missing facts and rulings.
 
-## ARKit mesh and depth
+Platform facts that every section assumes:
+
+- Test device: iPhone 13 Pro Max (A15, 6 GB RAM, LiDAR) on iOS 18.3.2. A second device on iOS 26 comes later.
+- Deployment target: iOS 18.0. Anything introduced after 18.0 needs `if #available`.
+- Toolchain: GitHub Actions, Xcode 26.6, iOS 26 SDK, XcodeGen, Swift 5.9 language mode. No Mac and no local compiler, so every compile is a CI round trip.
+- Signing: free Apple ID through Sideloadly. No paid entitlements.
+- Native Apple frameworks only. No Swift packages.
+
+How to read the API tables: "iOS" is the version where Apple's documentation JSON says the symbol was introduced. Declarations are copied from that JSON. Where a Swift page does not exist (only an Objective-C page), the section says so. Items marked unverified must be confirmed by a CI compile before anything depends on them.
+
+## Contents
+
+1. Executive summary
+2. Cross-section rulings
+3. Subsystems
+   - 3.1 ARKit mesh and depth
+   - 3.2 RoomPlan
+   - 3.3 Object Capture
+   - 3.4 Texturing pipeline
+   - 3.5 Rendering and viewer
+   - 3.6 Floor plan and CAD output
+   - 3.7 3D export formats
+   - 3.8 Scan quality, coverage and measurement confidence
+   - 3.9 Storage, deployment and concurrency
+   - 3.10 UX patterns
+4. Risk register
+5. Do not do
+6. Answers to open questions
+7. Sources
+
+## 1. Executive summary
+
+- **Deployment target stays iOS 18.0.** Every API the core app needs (ARKit scene reconstruction and depth, RoomPlan including `RoomCaptureSession(arSession:)` and `StructureBuilder`, Object Capture, RealityKit `LowLevelMesh` and `LowLevelTexture`, `MDLUtility.convert(toUSDZ:writeTo:)`) is available at 18.0 or earlier. iOS 26-only APIs (`captureHighResolutionFrame(using:)`, `BGContinuedProcessingTask`) are optional extras behind `#available`. iOS 27-only APIs (all `viewRotationAngle` variants, some `LowLevelMesh.Descriptor` members) do not exist in the iOS 26 SDK and must not be used.
+- **No entitlement is needed for any scan mode.** RoomPlan, ARKit and Object Capture need only `NSCameraUsageDescription`, so free Apple ID sideloading covers the whole product. Do not depend on `increased-memory-limit` or any background GPU entitlement.
+- **Room and house mode use RoomPlan for the parametric model and ARKit for everything else, on one app-owned `ARSession`.** Mapper creates the session, sets its delegate first, and passes it to `RoomCaptureSession(arSession:)` (iOS 17.0). The raw mesh, depth, texture keyframes and `CapturedRoom` then share one world frame.
+- **RoomPlan replaces the session configuration when it runs.** In practice `sceneDepth` disappears. Mapper re-runs its own `ARWorldTrackingConfiguration` (`.meshWithClassification`, `.sceneDepth`) with empty run options inside `captureSession(_:didStartWith:)` for every room, with a watchdog that logs depth and mesh arrival. Never pass `.resetTracking`, `.removeExistingAnchors` or `.resetSceneReconstruction` there. This is "likely" until the first device build confirms it; a separate ARKit mesh pass is the fallback.
+- **Setting `arSession.delegate` yourself is allowed** (tie-breaker ruling). A delegate multiplexer is only a fallback if an identity check after `didStartWith` shows RoomPlan replaced it.
+- **Room scanning is headless.** The spec requires a live green, yellow, red and gray coverage overlay, which `RoomCaptureView` cannot host. Mapper drives `RoomCaptureSession` directly, draws its own SwiftUI UI and a RealityKit `ARView` (`.ar`) overlay. `RoomCaptureView(frame:arSession:)`, whose doc says it preserves the session's settings, is the fallback path.
+- **Whole-house scans keep one `ARSession` alive** with `stop(pauseARSession: false)` between rooms and merge with `StructureBuilder(options: [.beautifyObjects])`. Rooms scanned in unrelated frames merge silently into stacked rooms, and the merge can crash on some inputs. So every room is saved as Codable JSON (plus an `ARWorldMap`) before merging, and the app offers a manual "Arrange rooms" fallback.
+- **`ARWorldMap` never stores mesh anchors.** Mapper persists its own world-space mesh store keyed by anchor identifier (positions, normals, UInt32 indices, per-face classification). That store is also the raw LiDAR mesh output.
+- **Object mode uses Apple Object Capture:** `ObjectCaptureSession` plus `ObjectCaptureView` for guided capture, then on-device `PhotogrammetrySession`. On iOS the only detail level is `.reduced` (under about 50k triangles, 2048 x 2048 textures). `.preview`, `.medium`, `.full`, `.raw` and `.custom` are macOS or Mac Catalyst only and fail to compile. Image limits are read at runtime; the "1000 images" figure was refuted.
+- **No Apple API textures an ARKit mesh.** Mapper builds its own pipeline: motion-gated keyframes with per-keyframe pose, intrinsics and depth; best-view face selection with a depth-pass occlusion test; charting and atlas packing; seam gain correction; a Metal bake. Projection uses `camera.transform.inverse` and intrinsics directly, never the orientation or display helpers.
+- **Texture stills:** the 60 fps capture stream (default 1920 x 1440) is the v1 source. `captureHighResolutionFrame(completion:)` (iOS 16.0) gives 12 MP stills only on a format flagged for high-resolution capture, and whether its intrinsics and depth line up needs a device test, so hi-res stills are a later option.
+- **Rendering stack is RealityKit.** SceneKit, `SceneView` and `ARSCNView` are deprecated in the iOS 26 SDK. The viewer hosts `ARView` (`.nonAR`, 3-argument init) with Mapper's own orbit, pan and pinch camera. Geometry lives in `LowLevelMesh` chunks with one interleaved layout. Textured, solid, wireframe (`triangleFillMode = .lines`) and classification views need no custom shader. Per-vertex color needs `ShaderGraphMaterial` or `CustomMaterial` and a device spike.
+- **Picking and measuring** use a static-mesh `CollisionComponent` per chunk plus `Scene.raycast`, which returns `triangleHit.faceIndex` (iOS 18.0). `pixelCast` covers taps before collision shapes exist. `MTKView` is the escape hatch if about 1M triangles is too slow on the A15.
+- **The floor plan is Mapper's own model**, built from `CapturedRoom` surfaces. Area and perimeter come from the closed wall loop, not `floors[].polygonCorners` (which was a bounding rectangle on real data, about 13 percent too large). Wall thickness, door swing and custom room names do not exist in RoomPlan; they are editable fields in Mapper's model.
+- **One Core Graphics `PlanRenderer`** draws the SwiftUI `Canvas`, the vector PDF (`UIGraphicsPDFRenderer`) and PNG. SVG and DXF are hand-written text. DXF is R12 (AC1009) in millimeters, with units stated in a note and the filename because `$INSUNITS` is an R2000 variable.
+- **Native export writers are few.** Native: RoomPlan USDZ (`CapturedRoom.export(to:metadataURL:modelProvider:exportOptions:)`), Object Capture USDZ, `MDLUtility.convert(toUSDZ:writeTo:)` (packages a USD layer, iOS 18.0), ModelIO OBJ and STL (import-quality only), PDF and PNG. Hand-written: OBJ plus MTL, PLY, STL, GLB, textured usda, SVG, DXF, and a stored-zip USDZ fallback. ModelIO cannot write usable USD, and SceneKit's `write(to:)` is only a contained last resort.
+- **Sharing and packaging are native:** zip folders with `NSFileCoordinator` `.forUploading` (there is no public ZIP writer), share with a `UIActivityViewController` wrapper or `ShareLink`, preview with `.quickLookPreview`, and expose projects in Files through `UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace` (already set).
+- **Scan quality is computed by Mapper, not Apple.** It combines RoomPlan's six `Instruction` cases, per-surface `completedEdges` and confidence as soft hints, and a 10 cm world-space voxel hash of mesh faces gated by depth confidence, distance and view angle. Coverage is keyed by position, never by mesh face index, because anchors re-mesh.
+- **Measurements carry a documented error model** (depth by range and confidence, pose drift, pick source), shown as plus or minus 2 sigma, floored at 1 cm, with a "Low confidence" badge above 4 cm. RoomPlan-derived lengths are never shown better than plus or minus 3 cm. Apple publishes no accuracy figure, so constants are calibrated with the `docs/TEST_PLAN.md` tape protocol.
+- **Concurrency:** stay in Swift 5 language mode with no default MainActor isolation. ARKit and RoomPlan delegates run nonisolated on a serial queue and hand Sendable copies to the main actor. Never retain `ARFrame` or its pixel buffers past the callback; deep-copy what is needed.
+- **Heavy processing runs in the foreground** with the idle timer off and resumable checkpoints. iOS 18 has no usable background path, and no iPhone gets background GPU even on iOS 26.
+- **Storage:** each project is a directory package in Documents with a `raw/` folder excluded from backup (roughly 200 to 350 MB per room, estimate) and a backed-up `derived/` folder. Records are Codable JSON; mesh and depth are headered binary blobs; simd matrices are not Codable and need wrappers.
+- **Memory budget is about 2.5 GB peak.** The real jetsam ceiling on this phone is unknown (community folklore 2.8 to 3.0 GB). Measure with `os_proc_available_memory` on device.
+- **Deferred or impossible:** Object Capture detail above `.reduced` on the phone, background GPU processing, UVs on RoomPlan geometry, a public ZIP writer, `viewRotationAngle` APIs, and any accuracy claim of survey grade.
+- **The first device builds must close the open questions** in one round trip each: RoomPlan plus depth and mesh coexistence, texture and UV orientation self-tests, vertex-color material spike, USDZ packaging self-test, runtime limits (`maximumNumberOfInputImages`, `PhotogrammetrySession.limits`, available memory), and thermal timeline.
+
+## 2. Cross-section rulings
+
+The subsystem sections were drafted independently. Where two sections disagreed, this is the ruling that the architecture must follow.
+
+1. **Room capture UI: headless `RoomCaptureSession` versus `RoomCaptureView`.** The RoomPlan section recommends a headless session with Mapper's own UI. The UX section recommends `RoomCaptureView` for v1 because it gives coaching and outlines for free. Evidence: the spec requires a live green, yellow, red and gray coverage overlay and custom guidance messages, which `RoomCaptureView` cannot host. Its built-in coaching also cannot be hidden while instructions still arrive. On the other side, Apple's doc for `RoomCaptureView.init(frame:arSession:)` (iOS 17.0) says "If you pass an ARSession instance, RoomPlan preserves all of the AR session's settings" (re-fetched for this synthesis), while field reports say a bare `RoomCaptureSession` drops `sceneDepth`. Ruling: the headless session is the target, because only it meets the spec. `RoomCaptureView(frame:arSession:)` is the fallback if the first device build shows that depth and mesh cannot be kept alive on the headless path. The UX section's `RoomCaptureView` guidance applies to that fallback.
+2. **Textured USDZ writer.** The export section recommended `SCNScene.write(to:)` first. The texturing section carries a tie-breaker ruling: own usda, then `MDLUtility.convert(toUSDZ:writeTo:)` (iOS 18.0, not deprecated), with an own stored-zip writer as fallback, and no reliance on `SCNScene.write`. The tie-breaker had the stronger evidence (doc JSON and SDK headers, and SceneKit is deprecated at 26.0). Ruling: follow the tie-breaker. SceneKit stays only as a contained last resort in one file. The export section's recommended approach has been updated to match.
+3. **DXF details.** The export section lists a TABLES/LAYER block. The floor plan section, which had the verifier rulings on DXF, says R12 needs only HEADER plus ENTITIES, with `$INSUNITS` written as a hint, a units TEXT note, a `_mm` filename suffix and no DIMENSION entities. Ruling: the floor plan section governs DXF. A minimal LAYER table is allowed but not required.
+4. **RoomPlan length accuracy cap.** Earlier drafts used plus or minus 2.5 cm (practitioner reports of about 1 inch). The quality section uses plus or minus 3 cm, the RoomPlan wall voxel size from Apple's ML research, growing with wall length. Ruling: 3 cm, because it is stricter and has the better source.
+5. **Hi-res texture stills.** The ARKit section recommends `captureHighResolutionFrame(completion:)` keyframes. The texturing section keeps hi-res frames off in v1 because intrinsic rescaling and depth alignment are unverified. Ruling: v1 textures from the capture stream. Hi-res stills are an experiment for a later build, logged against the stream frame first.
+6. **SceneKit.** Several sections mention SceneKit bridges. Ruling: no new SceneKit code for display. SceneKit is deprecated at 26.0 on the iOS 26 SDK; it still compiles and runs, and warnings must stay non-fatal in CI.
+7. **RealityKit resource initializers.** Checkers disagreed on which overloads are async. Re-checked in the doc JSON during synthesis: `TextureResource(image:withName:options:)` has both an `async throws` and a sync `throws` overload (iOS 18.0); both documented pages of `MeshResource(from: LowLevelMesh)` are `async throws` (iOS 18.0), and the sync mesh form appears only in sample and community code. Ruling: always `try await MeshResource(from:)`; either texture overload is fine.
+
+## 3. Subsystems
+
+### 3.1 ARKit mesh and depth
 
 Scope: ARKit scene reconstruction (ARMeshAnchor), LiDAR scene depth, ARFrame and ARCamera, high-resolution stills, ARWorldMap, raycasting, session lifecycle and thermal limits. Everything here is iOS and iPadOS only. Nothing in this section needs more than iOS 17, so the iOS 18.0 deployment target is safe. The only iOS 26+ symbols are listed separately and need `#available(iOS 26, *)`.
 
-### Verified API
+#### Verified API
 
 All declarations below come from Apple's documentation JSON (checked by the verifiers, and the key ones re-fetched for this section). None is deprecated on the iOS 26 SDK unless stated.
 
@@ -157,7 +229,7 @@ func trackedRaycast(_ query: ARRaycastQuery, updateHandler: @escaping ([ARRaycas
 
 **Thermal**: `ProcessInfo.processInfo.thermalState` (`.nominal`, `.fair`, `.serious`, `.critical`), `ProcessInfo.thermalStateDidChangeNotification`, `isLowPowerModeEnabled`, and `UIApplication.shared.isIdleTimerDisabled`. All iOS 11 or earlier.
 
-### Gotchas
+#### Gotchas
 
 1. Mesh vertices are in the anchor's local space. Multiply by `anchor.transform` for world space (Apple DTS, forum 682585). Forgetting this piles every chunk at the origin.
 2. Mesh buffers belong to ARKit and are refreshed on the next update of that anchor. Copy bytes inside the callback, honoring `offset` and `stride` (stride can exceed 12). Never wrap the MTLBuffer by reference in SceneKit or RealityKit objects.
@@ -183,7 +255,7 @@ func trackedRaycast(_ query: ARRaycastQuery, updateHandler: @escaping ([ARRaycas
 22. SceneKit (including `SCNGeometrySource(buffer:...)`) is deprecated at iOS 26.0. It still compiles for an iOS 18 target but warns. Prefer RealityKit or Metal for display and ModelIO or hand-written writers for export.
 23. The still is a fast sensor grab (quality prioritization `.speed`, no Deep Fusion). With the iOS 26 `using:` variant, `defaultPhotoSettings` works, but bracket settings and `.quality` prioritization fail with `highResolutionFrameCaptureFailed` rather than an exception (one iPad report, iPadOS 26). The same report measured 61 to 68 ms per still with mesh running.
 
-### Recommended approach
+#### Recommended approach
 
 1. **One app-owned ARSession.** Create `ARSession()` yourself. If an ARView is used for preview, set `automaticallyConfigureSession = false`. Hand the same session to `RoomCaptureSession(arSession:)` so mesh, depth, stills and CapturedRoom share one world frame.
 2. **Scan configuration**, guarded by `supportsSceneReconstruction(.meshWithClassification)` (fall back to `.mesh`) and `supportsFrameSemantics(.sceneDepth)`:
@@ -202,7 +274,7 @@ func trackedRaycast(_ query: ARRaycastQuery, updateHandler: @escaping ([ARRaycas
 10. **Thermal policy.** Read `thermalState` once, then observe the notification. At `.serious`: drop smoothed depth, pause stills, lower render rate to 30 fps, pause mesh post-processing. At `.critical`: pause the session and tell the user. Keep the idle timer disabled during scans.
 11. **First-device-run log checklist** (no local Mac): depthMap size and format; `supportedVideoFormats`; chosen format and whether the still is 4032 x 3024; `arSession.configuration` before RoomPlan, after `didStartWith`, and after the re-apply; `sceneDepth != nil` rate with RoomPlan running; sceneDepth presence and size on hi-res frames; anchor count, faces per anchor and update cadence; anchor remove/re-add churn; world map byte size and relocalization time.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 1. **Your ARWorldTrackingConfiguration stays in effect after `RoomCaptureSession.run(configuration:)`.**
    Researcher: yes, per WWDC23 10192 ("any custom ARSession ... will be honored"). Both first-pass verifiers: refuted. RoomPlan re-runs the session with its own configuration and sceneDepth disappears; four independent repos re-apply their configuration. Stronger side: verifiers. Apple forum 763400 states the symptom directly and its accepted answer is the re-apply fix. Threads 808834 and 710134 agree. "Honored" only means RoomPlan uses your session object. The RoomCaptureView doc line "RoomPlan preserves all of the AR session's settings" is scoped to `RoomCaptureView.init(frame:arSession:)` and is contradicted for the headless session. Thread 728601 reports different behavior for RoomCaptureView and a bare RoomCaptureSession, which fits both readings. One repo (straylite) re-applies with `.resetSceneReconstruction`; do not copy that, it discards the mesh. Tie-breaker: upheld the verifiers. **Final ruling: refuted as stated. Share one session, but re-apply your configuration with empty run options in `captureSession(_:didStartWith:)` after every room start, plus a sceneDepth watchdog.** Still log on device whether `videoFormat` is also replaced.
@@ -226,11 +298,11 @@ func trackedRaycast(_ query: ARRaycastQuery, updateHandler: @escaping ([ARRaycas
 
 9. **Still unsure, needs device measurement:** mesh chunk size (community: about 1 m squares), vertex spacing and update cadence; typical world map size and relocalization success on iOS 18.3; anchor remove/re-add churn on the iPhone 13 Pro Max; the "buffers are reallocated on update" detail (copying is the safe practice regardless); whether RealityKit's automatic session disables classification (irrelevant once you run your own configuration).
 
-## RoomPlan
+### 3.2 RoomPlan
 
 RoomPlan gives Mapper the parametric room: walls, doors, windows, openings, floors, furniture boxes, room-type sections, and a multi-room merge. It does not give the detailed mesh or textures (see ARKit mesh and depth, and the texturing pipeline). Every RoomPlan symbol was introduced in iOS 16.0 or iOS 17.0. Crawls of the current (iOS 26 SDK) doc set found about 150 declared symbols at 16.0 and 122 at 17.0, none at 18.x or 26.x, and no deprecated or beta flags. With deployment target iOS 18.0 the whole API is usable without any `#available` check. Nothing in RoomPlan needs `#available(iOS 26, *)`. The framework is iOS, iPadOS and Mac Catalyst only (Mac Catalyst ignores all capture calls). It needs a LiDAR device and a camera. No entitlement is required, so free Apple ID sideloading works.
 
-### Verified API
+#### Verified API
 
 All declarations below were checked against Apple doc JSON (declaration tokens and `metadata.platforms`). "18.0 OK" means usable at the iOS 18.0 deployment target with no availability guard.
 
@@ -380,7 +452,7 @@ var initialWorldMap: ARWorldMap? { get set }                   // ARWorldTrackin
 
 **Stated operating limits** (Apple sources): single room about 30 x 30 ft (9 x 9 m) recommended (WWDC22); Apple ML Research says the pipeline handles up to 15 x 15 m and ceilings up to 3.6 m. Keep each scan under 5 minutes (battery and thermal advice). At least 50 lux of light. Multi-room works best for single-floor homes with 1 to 4 bedrooms plus living, kitchen and dining, total area up to 2,000 sq ft (about 186 m2) (WWDC23). No documented room-count limit. Supported on all LiDAR iPhone and iPad Pro models, so the iPhone 13 Pro Max qualifies. Accuracy (Apple ML Research): walls and windows about 95 percent precision and recall, doors about 90 percent, objects about 91 / 90 percent averaged over 16 categories (chairs worst, 83 / 87 percent). Apple publishes no centimeter accuracy figure.
 
-### Gotchas
+#### Gotchas
 
 1. `RoomCaptureSession.Configuration` has only `isCoachingEnabled`. `beautifyObjects` is a `RoomBuilder`/`StructureBuilder` option. Writing `config.beautifyObjects` will not compile.
 2. Delegate signatures must match exactly. A near miss silently falls back to the default empty implementation, and the compiler only warns "nearly matches defaulted requirement". Copy the declarations above.
@@ -404,7 +476,7 @@ var initialWorldMap: ARWorldMap? { get set }                   // ARWorldTrackin
 20. `CaptureError.invalidARConfiguration` means the ARKit session runs an unsupported configuration (doc abstract). Its discussion also ties it to setting `arSession`. Only run `ARWorldTrackingConfiguration` on a session handed to RoomPlan, including the depth and mesh re-apply in Recommended step 4.
 21. RoomPlan does not run in the Simulator. Check `RoomCaptureSession.isSupported` at launch. Info.plist needs `NSCameraUsageDescription` (already in `ios/project.yml`).
 
-### Recommended approach
+#### Recommended approach
 
 1. **Deployment target stays iOS 18.0.** The full RoomPlan API (17.0) is available without guards. Nothing new exists at 18 or 26, so no `#available` branches are needed for RoomPlan.
 2. **Headless session, own UI.** Use `RoomCaptureSession` directly, not `RoomCaptureView`, so the SwiftUI screens, live wireframe, coaching copy (from `Copy.swift`) and multi-room flow are Mapper's. Create Mapper's own `ARSession`, set its `delegate` (and optionally `delegateQueue`) before handing it over, then `RoomCaptureSession(arSession:)`, then `run(configuration: .init())`. Bind an `ARView` (or `ARSCNView`) to the same session for the camera preview. Draw the live wireframe from `captureSession(_:didUpdate:)`.
@@ -419,7 +491,7 @@ var initialWorldMap: ARWorldMap? { get set }                   // ARWorldTrackin
 11. **Measurement confidence.** Show RoomPlan lengths with a tolerance from the Units module. Offer an optional per-room or per-structure reference-length correction (one tape-measured length gives a uniform scale factor), stored in the project file so it can be undone.
 12. **First CI build for this module** should log: `isSupported`, delegate identity after `didStartWith`, depth and mesh availability per second, `didUpdate` counts, and `didEndWith` errors, so every open device question gets answered in one on-device run.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 1. **Does RoomPlan own `arSession.delegate`, so that replacing it breaks the scan?**
    Researcher: likely yes. RoomPlan installs its own ARSessionDelegate; overriding it blacks out the preview or stops SLAM; use a multiplexer or ARSCNViewDelegate callbacks.
@@ -454,15 +526,15 @@ var initialWorldMap: ARWorldMap? { get set }                   // ARWorldTrackin
 
 8. **Metric accuracy.** No Apple centimeter figure. Field reports range from 1 to 5 cm per wall up to a 37 cm error on a 6.45 m wall. Ruling (unsure): ship the optional reference-length correction and measure per `docs/TEST_PLAN.md` (short and long walls, single room and after merge).
 
-## Object Capture
+### 3.3 Object Capture
 
 Object Capture is Apple's guided photo capture (`ObjectCaptureSession` + `ObjectCaptureView`) followed by on-device photogrammetry (`PhotogrammetrySession`). Both live in RealityKit. It needs a LiDAR device with an A14 chip or later, so the iPhone 13 Pro Max (A15, LiDAR) qualifies. The Simulator is not supported. No entitlement is needed, only `NSCameraUsageDescription`, so it works with a free Apple ID sideload. No Object Capture or photogrammetry symbol is deprecated in the iOS 26 SDK (only the SceneKit loaders mentioned below are). Almost everything is iOS 17.0 or iOS 18.0 (one enum case, `Feedback.objectNotDetected`, is iOS 17.4), so with the iOS 18.0 deployment target no `#available` checks are needed. The one exception is `PhotogrammetrySample.orientation`, which is iOS 26.0 and needs `if #available(iOS 26.0, *)`; Mapper does not need it.
 
-### Verified API
+#### Verified API
 
 All declarations were read from Apple's documentation JSON. "OK at 18.0" means usable with the iOS 18.0 deployment target without an availability check.
 
-#### Capture session (`ObjectCaptureSession`)
+##### Capture session (`ObjectCaptureSession`)
 
 | Declaration | iOS | OK at 18.0 |
 |---|---|---|
@@ -520,7 +592,7 @@ struct ObjectCaptureSession.Updates<Element> where Element : Sendable   // Async
 
 State flow: `.initializing -> .ready -> (.detecting) -> .capturing -> .finishing -> .completed`, or `.failed(Error)` at any time. A session is over at `.completed` or `.failed`. There is no capture-mode enum in the API: "area mode" is only a call pattern (see Recommended approach).
 
-#### Capture views (SwiftUI)
+##### Capture views (SwiftUI)
 
 | Declaration | iOS | OK at 18.0 |
 |---|---|---|
@@ -534,7 +606,7 @@ State flow: `.initializing -> .ready -> (.detecting) -> .capturing -> .finishing
 
 `ObjectCaptureView` draws the camera feed, reticle, bounding box handles, capture dial and ARKit coaching overlay. These cannot be restyled, only overlaid. Doc text: if the view is removed, "creating a new ObjectCaptureView from the original view's ObjectCaptureSession resumes the in-progress capture session". Presenting `ObjectCapturePointCloudView` pauses capture.
 
-#### Reconstruction (`PhotogrammetrySession`)
+##### Reconstruction (`PhotogrammetrySession`)
 
 ```swift
 class PhotogrammetrySession                                     // iOS 17.0, macOS 12.0
@@ -618,7 +690,7 @@ Detail levels on iOS:
 
 Doc text: "On iOS, only one detail level, .reduced, is currently supported." `modelFile(url:)` doc: "saves a USDZ file if the url ends with .usdz. If url refers to a directory, the request saves an OBJ object and every texture map there."
 
-#### Samples (`PhotogrammetrySample`)
+##### Samples (`PhotogrammetrySample`)
 
 ```swift
 struct PhotogrammetrySample {
@@ -640,7 +712,7 @@ struct PhotogrammetrySample {
 }
 ```
 
-#### Reading the finished model (dimensions, export)
+##### Reading the finished model (dimensions, export)
 
 | Declaration | Framework | iOS | OK at 18.0 |
 |---|---|---|---|
@@ -656,7 +728,7 @@ struct PhotogrammetrySample {
 
 SceneKit `SCNScene(url:options:)` and `SCNBoundingVolume.boundingBox` also load USDZ but are deprecated in the iOS 26 SDK. No framework computes volume.
 
-### Gotchas
+#### Gotchas
 
 1. `ObjectCaptureSession.isSupported` must be checked before `init()`. Doc: "If false, attempting to create an ObjectCaptureSession will result in a runtime error." Gate the feature on both `ObjectCaptureSession.isSupported` and `PhotogrammetrySession.isSupported`.
 2. `start(imagesDirectory:configuration:)` is valid only once per new session. It does not throw. The images directory and checkpoint directory must be empty and writable, otherwise the session goes to `.failed` (for example `directoryNotEmpty(URL)`). Use a fresh timestamped folder per scan.
@@ -677,7 +749,7 @@ SceneKit `SCNScene(url:options:)` and `SCNBoundingVolume.boundingBox` also load 
 17. Storage: each HEIC is 3024x4032 with an embedded 192x256 depth map, roughly 2 to 4 MB. A few hundred images plus checkpoint and model reach 1 to 4 GB. Low space appears only as `insufficientStorage(requiredBytes:)`, with no documented threshold. Delete `Checkpoint/` after success and the whole capture folder on cancel.
 18. Keep the app in the foreground and set `UIApplication.shared.isIdleTimerDisabled = true` during capture and reconstruction.
 
-### Recommended approach
+#### Recommended approach
 
 1. **Gate.** Show Object mode only when `ObjectCaptureSession.isSupported && PhotogrammetrySession.isSupported`. On first run, log `ObjectCaptureSession.maximumNumberOfInputImages` (needs a live session instance) and `PhotogrammetrySession.limits.maximumNumberOfInputImages` / `.maximumInputImageDimension`. Drive the shot budget UI from those values, never from a hard-coded 1000.
 2. **Follow Apple's sample structure** ("Scanning objects using Object Capture", targets iOS 18.0). A `@MainActor @Observable` model owns `ObjectCaptureSession?` and `PhotogrammetrySession?`. A folder manager creates `Documents/<scan id>/Images/`, `Checkpoint/` and `Models/`. Observe `stateUpdates`, `feedbackUpdates`, `cameraTrackingUpdates` and `userCompletedScanPassUpdates` with `for await` Tasks. Host the session in `ObjectCaptureView(session:cameraFeedOverlay:)` with Mapper's SwiftUI controls as ZStack siblings and `.id(session.id)`. All button text comes from `Copy.swift`; map each `Feedback` case to a Copy string. `.objectNotDetected` means detection failed and a default box is shown for manual adjustment. `.environmentTooDark` stops auto-capture.
@@ -691,7 +763,7 @@ SceneKit `SCNScene(url:options:)` and `SCNBoundingVolume.boundingBox` also load 
 10. **Viewing.** Show the USDZ in Mapper's own viewer (see the rendering section); Apple's sample uses `QLPreviewController`, which is a quick fallback. Do not use SceneKit loaders (deprecated in the iOS 26 SDK).
 11. **Crop.** The SPEC asks for manual cropping. `Request.Geometry(bounds:transform:)` or `init(orientedBounds:transform:)` passed to `.modelFile` crops at reconstruction time. Cropping after the fact is Mapper's own mesh processing.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 1. **Are non-`.reduced` detail levels a compile error or a runtime error on iOS?** Researcher and the official-docs verifier: compile-time, because the per-case doc platforms for `.preview`, `.medium`, `.full`, `.raw` and `.custom` list only macOS and Mac Catalyst. One reality verifier wrote "All Detail cases compile on iOS" and cited community apps that fall back at runtime. Stronger evidence: compile-time. The per-case metadata was re-fetched for this section (`.medium`: Mac Catalyst 15.0, macOS 12.0, no iOS), and an iOS 26 project (Lidar4Free) states the cases are `@available(iOS, unavailable)`. Other iOS projects wrap them in `#if os(macOS)`, and none references them in iOS code. The "compiles" side cited runtime fallbacks, which do not prove the cases compile. No tie-breaker. Ruling: never reference any case other than `.reduced` in iOS code. The practical rule is the same either way.
 2. **OBJ output through a directory URL on iOS.** Researcher: documented, confirmed only by a forum thread. Tie-breaker (second pass, both lenses): the claim stands, but the forum thread (742077) never names a platform, so it is not an iOS report. Better evidence is an iOS 26 app that writes OBJ, MTL and textures (plus USDA) into a pre-created directory. WWDC21 (10076) shows the same directory output on macOS. No iOS 18 report exists. Ruling: likely works; verify on device; keep the ModelIO fallback.
@@ -706,11 +778,11 @@ SceneKit `SCNScene(url:options:)` and `SCNBoundingVolume.boundingBox` also load 
 11. **`Entity.visualBounds(relativeTo:)` declaration.** Researcher could not resolve the page. Resolved in the second pass: it is documented on `HasTransform` with the declaration in the table above, iOS 13.0.
 12. **`PhotogrammetrySession.Error.processError`.** An undocumented internal error with cv3dapi codes seen in one forum thread (a macOS reconstruction of iOS area captures). Ruling: not an API; log `localizedDescription` for any unknown error.
 
-## Texturing pipeline
+### 3.4 Texturing pipeline
 
 Scope: turn the LiDAR mesh into the "realistic model" (SPEC, Representation B and "Image / texture capture") by projecting selected camera keyframes onto a frozen snapshot of the ARKit mesh, on device, with Swift and Metal only. No first-party API textures an ARKit mesh for us. Object Capture (PhotogrammetrySession) is a separate path for objects; it cannot take our LiDAR mesh as input.
 
-### Verified API
+#### Verified API
 
 All symbols below were read from Apple documentation JSON by the researcher, a verifier, or during this synthesis. "OK at 18.0" means usable at the iOS 18.0 deployment target with no `#available` check.
 
@@ -846,7 +918,7 @@ SceneKit as a whole (including SCNGeometrySource, SCNGeometryElement, SCNScene.w
 
 `viewMatrix(for:)`, `projectPoint(_:orientation:viewportSize:)`, `projectionMatrix(for:viewportSize:zNear:zFar:)`, `unprojectPoint(_:ontoPlane:orientation:viewportSize:)` (ARCamera) and `displayTransform(for:viewportSize:)` (ARFrame) are iOS 11.0 (`unprojectPoint` is iOS 12.0), deprecated at 27.0. Apple's current docs show the first four under their Objective-C names (for example `viewMatrixForOrientation:`); the Swift spellings above are the standard imports. Their `viewRotationAngle:` replacements are iOS 27.0+ only and need `#available` on our target. The verifiers found them not yet deprecated in the iOS 26 SDK; any warning under Xcode 26.6 would only be a warning.
 
-### Gotchas
+#### Gotchas
 
 1. One sign or flip error ruins every texture, and each compile is a CI round trip. Ship two self-tests in the first texturing build: (a) project a few mesh vertices with the formula and draw dots over the live `capturedImage` in landscape; (b) render a numbered 2x2 test atlas on a quad and check that tile "1" is top-left.
 2. `capturedImage` is landscape even when the phone is held in portrait. Never apply the display transform or a portrait/swapped-viewport trick to texturing math (MetalWorldTextureScan does this and depends on deprecated overloads).
@@ -862,11 +934,11 @@ SceneKit as a whole (including SCNGeometrySource, SCNGeometryElement, SCNScene.w
 12. Seam-based gain solving needs overlap. Gate keyframes on motion, not time, so each triangle is seen by 3 or more keyframes.
 13. `captureHighResolutionFrame`: one request in flight, fails if called right after `run()`, needs a format with `isRecommendedForHighResolutionFrameCapturing`, its `sceneDepth` alignment with the 12 MP image is unknown, and custom photo settings with depth delivery crash (Apple engineer answer). Hi-res frame buffers are allocated per capture, not from the live pool.
 14. 4K streaming is 16:9 (3840x2160 at 30 fps) and crops the 4:3 LiDAR field of view. Stay on the default 4:3 format (1920x1440 up to 60 fps per WWDC22). Enumerate `supportedVideoFormats` at runtime rather than hardcoding; RoomPlan may run its own format.
-15. `MeshResource(from:)` and `TextureResource(image:withName:options:)` are `@MainActor`, and each has a documented async overload and a sync `throws` overload (iOS 18.0). Inside an async function the async overload is chosen, so write `try await`; in sync `@MainActor` code write `try`.
+15. `MeshResource(from:)` and `TextureResource(image:withName:options:)` are `@MainActor` (iOS 18.0). `TextureResource(image:withName:options:)` has a documented `async throws` overload and a documented sync `throws` overload (doc slug `-1pzep`). For `MeshResource(from: LowLevelMesh)` both documented pages (`init(from:)` and `init(from:)-1i7c9`) are `async throws`; a sync form appears only in community code and Apple sample code, not in the doc JSON (re-checked during synthesis). Write `try await MeshResource(from:)` everywhere; for textures, `try await` in async code and `try` in sync `@MainActor` code.
 16. `MDLUtility.convert(toUSDZ:writeTo:)` reports no errors. Check the output exists, is non-empty and starts with the bytes "PK". Its input must be a USD layer (or a SceneKit-written scene), not OBJ and not .reality. It wraps Pixar's ARKit usdz packager, so the atlas JPEGs must sit beside the usda and be referenced by relative path. Our fallback writer must follow the usdz spec: stored (uncompressed) zip, default layer as the first entry, every payload 64-byte aligned, CRC32 per entry.
 17. Multi-page atlases mean one submesh (LowLevelMesh part, OBJ `usemtl`, USD GeomSubset or mesh) per page. Vertices shared by triangles in different charts must be duplicated, which inflates vertex count about 2 to 3 times.
 
-### Recommended approach
+#### Recommended approach
 
 Target: iPhone 13 Pro Max (A15, Apple8 GPU, 6 GB), about 200k to 1M triangles and 200 to 400 keyframes per room. All first-party, one Metal library, no Metal 3 or 4 features needed.
 
@@ -883,9 +955,9 @@ Target: iPhone 13 Pro Max (A15, Apple8 GPU, 6 GB), about 200k to 1M triangles an
 11. **Runtime assertion.** Per keyframe, unproject a few LiDAR depth pixels to world and reproject; log an error if the round trip exceeds 0.5 px.
 12. **Later.** `captureHighResolutionFrame` for object mode only, after the intrinsics question below is answered on device. The "SOLID COLOR" and "RAW MESH" view modes need no texturing; "TEXTURED" can fall back to per-vertex colours (weighted average of projections, seconds to compute but blurry at 3 to 8 cm vertex spacing) if the atlas bake fails.
 
-### Disputed or unsure
+#### Disputed or unsure
 
-1. **RealityKit display API signatures (tie-breaker ruling: refuted as written, headline upheld).** Researcher listed `LowLevelMesh.replaceIndices(_ closure:)`, a sync `MeshResource(from:)` and `TextureResource(image:)` at iOS 13. Official-docs verifier: the closure `replaceIndices` does not exist, `MeshResource(from:)` is async and must be awaited, the CGImage init is iOS 18.0. Reality verifier: agreed on the first and third, but showed Apple's own LowLevelMesh sample and many compiling repos calling `try MeshResource(from:)` synchronously. Settled by the docs: Apple documents both an `async throws` and a sync `throws` overload of `MeshResource(from:)`, `TextureResource(from:)` and `TextureResource(image:withName:options:)`, all iOS 18.0. Ruling: use `withUnsafeMutableIndices` / `replaceUnsafeMutableIndices` (CPU) or `replaceIndices(using:)` (GPU); in sync `@MainActor` code write `try MeshResource(from: mesh)`, in async code `try await`; the same rule applies to `TextureResource(image:withName:options:)` (iOS 18.0). Avoid the deprecated `generate(from:withName:options:)`. SceneKit deprecation at 26.0 stands.
+1. **RealityKit display API signatures (tie-breaker ruling: refuted as written, headline upheld).** Researcher listed `LowLevelMesh.replaceIndices(_ closure:)`, a sync `MeshResource(from:)` and `TextureResource(image:)` at iOS 13. Official-docs verifier: the closure `replaceIndices` does not exist, `MeshResource(from:)` is async and must be awaited, the CGImage init is iOS 18.0. Reality verifier: agreed on the first and third, but showed Apple's own LowLevelMesh sample and many compiling repos calling `try MeshResource(from:)` synchronously. Synthesis re-check of the doc JSON: `TextureResource(image:withName:options:)` has both an `async throws` and a sync `throws` overload (iOS 18.0), but both documented `MeshResource(from: LowLevelMesh)` pages are `async throws`; the sync mesh form rests only on sample and community code. Ruling: use `withUnsafeMutableIndices` / `replaceUnsafeMutableIndices` (CPU) or `replaceIndices(using:)` (GPU); always write `try await MeshResource(from: mesh)`; for textures either overload is fine. Avoid the deprecated `generate(from:withName:options:)`. SceneKit deprecation at 26.0 stands.
 2. **ModelIO export and USDZ path (tie-breaker ruling: refuted as written).** Researcher: ModelIO cannot write usdz, USD export drops all materials, OBJ export writes Kd scalars, use SCNScene.write or a hand-rolled zip for USDZ. Verifier: omitted the official `MDLUtility.convert(toUSDZ:writeTo:)` (iOS 18.0, not deprecated, wraps Pixar's ARKit usdz packager); USD export keeps scalar UsdPreviewSurface inputs but drops URL texture properties; OBJ Kd is reported dropped or written as white; the cited forum thread is from 2018 and never tested usdz. The verifier has the stronger evidence (doc JSON plus SDK headers). Ruling: own usda, then MDLUtility, with the own stored-zip writer as fallback; do not rely on SCNScene.write; own OBJ plus MTL writer. Unproven: no third-party app was found calling MDLUtility on a device, so test once.
 3. **RealityKit UV V-origin.** Community only (RealityGeometries issue #3, textures mirrored until UVs were flipped). Likely bottom-left. Ruling: flip `v` for RealityKit, OBJ and USD, and confirm with the numbered-atlas self-test.
 4. **Frame pool numbers.** Researcher: warning above 10 retained frames, drops at 15 to 20, warning since iOS 15. Verifiers: the >10 warning is confirmed in the wild, but degradation was seen at 11 to 13 and the behaviour predates iOS 15. Ruling: 10 is the hard budget; design for zero.
@@ -897,13 +969,13 @@ Target: iPhone 13 Pro Max (A15, Apple8 GPU, 6 GB), about 200k to 1M triangles an
 10. **Hi-res frame intrinsics.** Unknown whether `camera.intrinsics` is rescaled to 12 MP (forum thread from May 2026 has no reply). Safe rule: scale K by pixel-buffer size over `imageResolution` before projecting.
 11. **Timing numbers** (JPEG encode 10 to 30 ms, decode 15 to 25 ms, 1 to 3 ms depth passes, 15 to 30 s total) are estimates with no published source. Measure in the first texturing build.
 
-## Rendering and viewer
+### 3.5 Rendering and viewer
 
 Scope: the post-scan 3D viewer and editor (textured, solid, wireframe, vertex color and classification modes, picking, measuring, labeled object boxes) and the live LiDAR coverage overlay shown while scanning. Declarations below were checked against Apple's documentation JSON on the iOS 26 SDK, except where marked UNVERIFIED or community-only. Every API listed is usable at the iOS 18.0 deployment target unless marked otherwise. Nothing in this section needs iOS 26, so no `#available(iOS 26, *)` guards are required.
 
-### Verified API
+#### Verified API
 
-#### Framework status
+##### Framework status
 
 | API | Introduced (iOS) | Status on iOS 26 SDK | Usable at 18.0 |
 |---|---|---|---|
@@ -917,7 +989,7 @@ Scope: the post-scan 3D viewer and editor (textured, solid, wireframe, vertex co
 
 Apple's SceneKit deprecation note: "SceneKit is deprecated, use RealityKit instead." WWDC25 session 288: "This is a soft deprecation, meaning that existing applications that use SceneKit will continue to work". It also says "Apple will only fix critical bugs", "if you're planning a new app or a significant update, SceneKit is not recommended", and "there's no plan to hard deprecate SceneKit". Xcode 26 release notes confirm it. It still compiles with warnings.
 
-#### ARView host (viewer in `.nonAR`, live scan in `.ar`)
+##### ARView host (viewer in `.nonAR`, live scan in `.ar`)
 
 ```swift
 @MainActor @preconcurrency init(frame frameRect: CGRect, cameraMode: ARView.CameraMode, automaticallyConfigureSession: Bool) // iOS 13.0, use this one
@@ -942,7 +1014,7 @@ static let showSceneUnderstanding: ARView.DebugOptions                          
 var sceneUnderstanding: ARView.Environment.SceneUnderstanding { mutating get set }   // member of ARView.Environment (arView.environment.sceneUnderstanding.options); options: .occlusion, .collision, .physics, .receivesLighting; iOS 13.4
 ```
 
-#### RealityView host (alternative, all iOS 18.0)
+##### RealityView host (alternative, all iOS 18.0)
 
 ```swift
 nonisolated init(make: @escaping @MainActor @Sendable (inout RealityViewCameraContent) async -> Void,
@@ -963,7 +1035,7 @@ func entity(at point: CGPoint, in space: some CoordinateSpaceProtocol) -> Entity
 
 Not on iOS: `RealityViewAttachments` and `init(make:update:attachments:)` (visionOS only), `RealityViewContent` (visionOS only), `RealityCoordinateSpaceConverting` (visionOS only).
 
-#### LowLevelMesh (scan chunks; all iOS 18.0; the class and its methods are `@MainActor`, the nested Descriptor/Attribute/Layout/Part structs are not)
+##### LowLevelMesh (scan chunks; all iOS 18.0; the class and its methods are `@MainActor`, the nested Descriptor/Attribute/Layout/Part structs are not)
 
 ```swift
 @MainActor class LowLevelMesh
@@ -984,7 +1056,7 @@ var lowLevelMesh: LowLevelMesh? { get }                                         
 
 NOT available at iOS 18 and will not compile on the iOS 26 SDK: `Descriptor.allowsPrimitiveRestart`, `instanceCapacity`, the 6-argument Descriptor init and `Layout.init(bufferIndex:bufferOffset:bufferStride:stepFunction:stepRate:)` (all iOS 27.0).
 
-#### MeshDescriptor path (small static helpers only)
+##### MeshDescriptor path (small static helpers only)
 
 ```swift
 struct MeshDescriptor   // iOS 15.0: init(name:), primitives, materials; buffers via MeshBufferContainer: positions, normals, tangents, bitangents, textureCoordinates, textureCoordinates1..7, uv2..uv7; no color buffer
@@ -996,7 +1068,7 @@ enum MeshDescriptor.Materials { case allFaces(UInt32); case perFace([UInt32]) } 
 @MainActor @preconcurrency static func generateText(_ string: String, extrusionDepth: Float = 0.25, font: MeshResource.Font = .systemFont(ofSize: defaultTextFontSize), containerFrame: CGRect = CGRect.zero, alignment: CTTextAlignment = .left, lineBreakMode: CTLineBreakMode = .byTruncatingTail) -> MeshResource
 ```
 
-#### Materials and textures
+##### Materials and textures
 
 | Declaration | iOS | Notes |
 |---|---|---|
@@ -1005,14 +1077,14 @@ enum MeshDescriptor.Materials { case allFaces(UInt32); case perFace([UInt32]) } 
 | `var color: UnlitMaterial.BaseColor { get set }` | 15.0 | Use instead of deprecated `baseColor` / `tintColor`. |
 | `init(texture: TextureResource)` (UnlitMaterial) | 18.0 | Textured atlas mode. |
 | `var blending: UnlitMaterial.Blending` = `PhysicallyBasedMaterial.Blending`, `case transparent(opacity: PhysicallyBasedMaterial.Opacity)` | 15.0 | Semi-transparent coverage overlay. |
-| `@MainActor @preconcurrency convenience init(image cgImage: CGImage, withName resourceName: String? = nil, options: TextureResource.CreateOptions) async throws` | 18.0 | TextureResource from atlas CGImage. |
+| `@MainActor @preconcurrency convenience init(image cgImage: CGImage, withName resourceName: String? = nil, options: TextureResource.CreateOptions) async throws`, plus a documented sync `throws` overload with the same parameters (doc slug `-1pzep`) | 18.0 | TextureResource from atlas CGImage. |
 | `init(semantic: TextureResource.Semantic?, mipmapsMode: TextureResource.MipmapsMode = .allocateAndGenerateAll)` | 15.0 | CreateOptions; use `.color` for the atlas. |
 | `init(surfaceShader: CustomMaterial.SurfaceShader, geometryModifier: CustomMaterial.GeometryModifier? = nil, lightingModel: CustomMaterial.LightingModel) throws` | 15.0 | No default for `lightingModel`. `LightingModel`: lit, clearcoat, unlit. Not on visionOS. |
 | `init(materialXLabel: String, data: Data) async throws` (ShaderGraphMaterial) | 18.0 | Loads an inline MaterialX document, no Reality Composer Pro, no .metal file. Also `init(named:from:in:)`. An Occlusion Surface output fails to load on iOS 18 (`LoadError.invalidTypeFound`, forum 763404); PBR Surface loads. |
 
 Metal side of CustomMaterial (from `#include <RealityKit/RealityKit.h>`): `[[visible]] void shader(realitykit::surface_parameters params)`, `params.geometry().color()` ("Returns the fragment's interpolated vertex color"), `uv0()`, `normal()`, `world_position()`, `params.surface().set_emissive_color(half3)`, `set_base_color(half3)`, `params.uniforms().custom_parameter()`. Under `.unlit` only `set_emissive_color()` is honoured. The shader must call at least one `set_*()` function or nothing renders. Library: `MTLCreateSystemDefaultDevice()!.makeDefaultLibrary()!`.
 
-#### Picking, scene graph and camera
+##### Picking, scene graph and camera
 
 ```swift
 nonisolated static func generateStaticMesh(positions: [SIMD3<Float>], faceIndices: [UInt16]) async throws -> ShapeResource  // iOS 18.0, UInt16 indices
@@ -1032,15 +1104,15 @@ init(near: Float = 0.01, far: Float = .infinity, fieldOfViewInDegrees: Float = 6
 struct BillboardComponent                                                   // iOS 18.0, keeps text labels facing the camera
 ```
 
-#### ARKit mesh input for the live overlay (see the ARKit mesh section for details)
+##### ARKit mesh input for the live overlay (see the ARKit mesh section for details)
 
 `ARMeshAnchor.geometry: ARMeshGeometry` with `vertices`, `normals` (`ARGeometrySource`: buffer, count, format, stride, offset), `faces` (`ARGeometryElement`, Int32 triples, bytesPerIndex 4) and optional `classification` (one UInt8 per face, `ARMeshClassification` none, wall, floor, ceiling, table, seat, window, door). Enabled by `ARWorldTrackingConfiguration.sceneReconstruction = .meshWithClassification` after `supportsSceneReconstruction(_:)`. All iOS 13.4.
 
-#### Metal escape hatch
+##### Metal escape hatch
 
 `MTKView` (iOS 9.0), `MTKViewDelegate`, `MTLRenderCommandEncoder.setTriangleFillMode(_:)` with `MTLTriangleFillMode.lines`, `drawIndexedPrimitives(type:indexCount:indexType:indexBuffer:indexBufferOffset:)`. None deprecated.
 
-### Gotchas
+#### Gotchas
 
 - Do not build on SceneKit, `SceneView` or `ARSCNView`. They compile with warnings and run on iOS 18 and 26, but Apple has frozen them. Their conveniences (built-in orbit camera, `hitTest` with `faceIndex`, `.color` geometry source) are tempting only for throwaway prototypes. SceneKit also gets unresponsive at around 750 to 2,000 nodes on an iPad 10 (forum report).
 - `ARView(frame:cameraMode:)` (2 arguments) is deprecated. Use the 3-argument init. Calling the old one only warns.
@@ -1063,13 +1135,13 @@ struct BillboardComponent                                                   // i
 - Apple publishes no triangle budget for RealityKit (DTS, forum 751764: measure and iterate). The old 100k triangle QuickLook figure is a content guideline, not an engine limit. Regenerating a `MeshResource` from `MeshDescriptor` runs the mesh optimizer each time, so never do it per frame.
 - One community app notes that CustomMaterial crashed when combined with AR video compositing (wisescan-ios comment). Keep CustomMaterial out of the live `.ar` overlay; it is only needed in the post-scan viewer.
 
-### Recommended approach
+#### Recommended approach
 
 1. Viewer host: `ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)` in a `UIViewRepresentable`. Set `environment.background = .color(...)`. Add a `PerspectiveCamera` under `AnchorEntity(world: .zero)` and drive it from your own UIKit pan, two-finger pan and pinch recognizers (yaw, pitch, distance around a target point). ARView gives `project(_:)` for SwiftUI label overlays, `ray(through:)`, `hitTest`, `snapshot` and `debugOptions`. RealityView is an acceptable alternative if a pure SwiftUI host is preferred, but it saves nothing on gestures.
 2. Live scan host: the same ARView class in `.ar` mode, `automaticallyConfigureSession = false`, your own `ARWorldTrackingConfiguration` with `.meshWithClassification`, and an `ARSessionDelegate` on `arView.session`.
 3. Data model: one Entity per chunk (post-scan) or per `ARMeshAnchor` (live), each with a `LowLevelMesh`. Interleaved vertex: position `.float3`, normal `.float3`, uv0 `.float2`, color `.uchar4Normalized_bgra`; `UInt32` indices. Keep this layout identical to what a future MTKView renderer and the exporters would read.
 4. View modes by swapping `ModelComponent.materials`, all with `faceCulling = .none`:
-   - Textured: `UnlitMaterial(texture:)` from `try await TextureResource(image:withName:options:)` (the init is `async throws`) with semantic `.color`.
+   - Textured: `UnlitMaterial(texture:)` from `try await TextureResource(image:withName:options:)` (use the `async throws` overload from async code; a sync `throws` overload also exists) with semantic `.color`.
    - Solid: `UnlitMaterial` with `color` set (or `PhysicallyBasedMaterial` for a lit look).
    - Wireframe: the same material with `triangleFillMode = .lines`.
    - Classification and coverage: parts split by class or state, one `UnlitMaterial` per color.
@@ -1081,7 +1153,7 @@ struct BillboardComponent                                                   // i
 9. Escape hatch: if RealityKit is too slow at about 1M triangles on the A15, move the same chunk buffers to an `MTKView` renderer (`setTriangleFillMode(.lines)`, GPU id buffer or CPU BVH picking). Do not start there.
 10. First CI spike: ARView `.nonAR` plus PerspectiveCamera, one LowLevelMesh chunk with a `.color` attribute, a `.lines` material, a ShaderGraphMaterial and a CustomMaterial reading vertex color, `generateStaticMesh(from:)` plus raycast logging `triangleHit?.faceIndex`, and one `pixelCast`. Log results through LogStore and check on the device.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 1. RealityView on iOS lacks projection and raycast helpers. Researcher: yes, so ARView is required. Both verifiers: false, `RealityViewCameraContent` conforms to `RealityCoordinateSpaceProjecting` (iOS 18.0) with project, unproject, ray, hitTest and entity(at:in:). Verifiers have stronger evidence (direct doc JSON, re-fetched here). Tie-breaker: upheld the verifiers. Final ruling: refuted. RealityView is a viable host. The case for ARView rests on custom UIKit gesture control, ARSession access, `raycast(from:allowing:alignment:)` against ARKit geometry, `snapshot`, `debugOptions` and `installGestures(_:for:)`. RealityView on iOS still lacks attachments.
 2. `ARView(frame:cameraMode:)` is deprecated. Researcher: yes. Reality verifier: no, `deprecatedAt` is null. Tie-breaker: the doc JSON has `deprecated=true` with `renamed` pointing to the 3-argument init, which is how DocC encodes an unversioned deprecation. Re-checked here: `deprecated: True`. Final ruling: deprecated, use the 3-argument init.
@@ -1096,11 +1168,11 @@ struct BillboardComponent                                                   // i
 11. Forum 825543 reports that changing `cameraTarget` during an active orbit drag gives a wrong orbit. The verifier could not fetch it (HTTP 403), so it is unverified. It only matters if RealityView camera controls are used.
 12. Frame rate at about 1M triangles in 200 to 400 LowLevelMesh entities on the A15, and whether the iOS 26 RealityKit renderer changes CustomMaterial or `triangleFillMode` behavior: no public data. Needs device tests on both phones.
 
-## Floor plan and CAD output
+### 3.6 Floor plan and CAD output
 
 Scope: turn RoomPlan output (CapturedRoom, CapturedStructure) into an editable 2D architectural plan with units, dimensions and symbols, then export it as vector PDF, SVG and DXF. Covers single room, multi-room and multi-floor. Everything below works at iOS 17.0 or earlier, so it is usable at our iOS 18.0 target. Nothing here needs iOS 26 or `#available`.
 
-### Verified API
+#### Verified API
 
 Declarations were checked against Apple's documentation JSON (iOS 26 SDK era). None of the RoomPlan members below is deprecated.
 
@@ -1220,7 +1292,7 @@ There is no Apple API that writes SVG or DXF. Both are hand-written text.
 - Rectangular walls have `polygonCorners == []`. Only non-uniform walls carry corners.
 - All lengths are meters.
 
-### Gotchas
+#### Gotchas
 
 - `polygonCorners` are local to the surface plane. Always multiply by the full 4x4 transform, then drop world Y. Do not use Euler angles on floors: with local Z mapped to world up, the common Euler extraction hits gimbal lock and yaw looks like 0.
 - The floor polygon is not a reliable room outline. In a real L-shaped, multi-section capture the single floor polygon was the 4-corner bounding rectangle and overstated area by about 13 percent. That sample had one floor per CapturedRoom, not one per section.
@@ -1244,7 +1316,7 @@ There is no Apple API that writes SVG or DXF. Both are hand-written text.
 - DXF: `$INSUNITS` is an R2000+ header variable, not R12. Numbers must use a "." decimal separator (use `Locale(identifier: "en_US_POSIX")` or a POSIX-safe formatter).
 - `ImageRenderer` PDF output keeps SwiftUI-drawn shapes and text as vectors, but views composited by Core Animation become a placeholder image. Draw the plan directly in Core Graphics.
 
-### Recommended approach
+#### Recommended approach
 
 1. **Own plan model.** Build a pure-Swift value-type `PlanModel` in meters, plan XY = world (x, z). Derive it once from CapturedRoom or CapturedStructure and never mutate RoomPlan types. Suggested shape:
    - Room: id, name, outline polygon, level id, rigid 2D alignment (translation + yaw).
@@ -1272,7 +1344,7 @@ There is no Apple API that writes SVG or DXF. Both are hand-written text.
 14. **Multi-floor.** RoomPlan has no level, stair-link or floor-height API. Group rooms by floor world Y (cluster gap about 1.2 m), using `story` only as a hint. Let the user rename and reorder levels. Align levels by the stairs footprint (`Object.Category.stairs`) and exterior walls, user-adjustable. One plan page per level, with UP on the lower level and DN at the same plan XY above.
 15. **Testing without a Mac.** Encode a real CapturedRoom on the test device, pull it over USB, and add it as a JSON fixture. Unit-test geometry, SVG and DXF writers in CI (`xcodebuild test` on the macOS runner), and validate DXF output with an `ezdxf` audit in a CI Python step. This catches axis and winding bugs without a device round trip.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 1. **Floor polygon as the area source.**
    Claim: `floors[].polygonCorners` is the correct source for room area and perimeter.
@@ -1311,15 +1383,15 @@ There is no Apple API that writes SVG or DXF. Both are hand-written text.
 
 9. **Unsure, to check on device:** local axes of `polygonCorners` for non-uniform walls (likely (x, y, 0), no real sample seen); how `story` is assigned; the numeric scene size limit; whether AutoCAD reads `$INSUNITS` from an AC1009 file (LibreCAD and ezdxf do; SketchUp Pro has a user-set import unit option, so it probably ignores it; QCAD untested).
 
-## 3D export formats
+### 3.7 3D export formats
 
-Scope: every file the app hands to the user (textured model, raw LiDAR mesh, clean architectural model, object model, 2D plan, CAD files), plus zipping, sharing, Files app visibility and on-device preview. The short version: RoomPlan and SceneKit are the only native USDZ writers on iOS. ModelIO is reliable for import and for OBJ/STL, nothing else. Everything else (OBJ+MTL, PLY, STL, GLB, SVG, DXF) is small enough to write ourselves in pure Foundation.
+Scope: every file the app hands to the user (textured model, raw LiDAR mesh, clean architectural model, object model, 2D plan, CAD files), plus zipping, sharing, Files app visibility and on-device preview. The short version: RoomPlan and SceneKit are the only documented full USDZ writers on iOS, and `MDLUtility.convert(toUSDZ:writeTo:)` (iOS 18.0) packages a USD layer into a usdz. ModelIO is reliable for import and for OBJ/STL, nothing else. Everything else (OBJ+MTL, PLY, STL, GLB, SVG, DXF) is small enough to write ourselves in pure Foundation.
 
-### Verified API
+#### Verified API
 
 All declarations below were checked against Apple's documentation JSON (iOS 26 SDK doc set). "Usable at 18.0" means callable with no `#available` check at our iOS 18.0 deployment target. Nothing in this subsystem requires iOS 26, so no `#available(iOS 26, *)` gates are needed.
 
-#### Native USDZ writers
+##### Native USDZ writers
 
 | Declaration | iOS | Deprecated | Usable at 18.0 |
 |---|---|---|---|
@@ -1342,7 +1414,7 @@ Notes:
 - SceneKit (the whole framework, including `SCNScene` and `SCNScene(mdlAsset:)`) is soft-deprecated at iOS 26.0. WWDC25 session 288: existing apps keep working, no hard deprecation planned, maintenance mode only.
 - `SCNScene(mdlAsset:)`: Apple's doc JSON has only the Objective-C form `+ (instancetype) sceneWithMDLAsset:(MDLAsset *) mdlAsset;` (SCNScene, iOS 8.0, deprecated 26.0). The Swift spelling `SCNScene(mdlAsset:)` and the need for `import SceneKit.ModelIO` are not in the doc JSON (unverified; confirm with the first CI build). We do not need it: our own `Mesh` goes straight to `SCNGeometry`.
 
-#### ModelIO (import, and OBJ/STL export only)
+##### ModelIO (import, and OBJ/STL export only)
 
 | Declaration | iOS | Usable at 18.0 |
 |---|---|---|
@@ -1362,7 +1434,7 @@ Notes:
 
 Other ModelIO members listed by the researcher (verified class docs): `MDLVertexDescriptor.attributes` / `layouts` are `NSMutableArray` (assign with `desc.attributes[0] = MDLVertexAttribute(...)`), attribute name constants `MDLVertexAttributePosition`, `MDLVertexAttributeNormal`, `MDLVertexAttributeTextureCoordinate`, `MDLVertexAttributeColor`, `MDLIndexBitDepth.uInt32`, `MDLGeometryType.triangles`, `MDLMaterial.setProperty(_:)`, `MDLTextureSampler.texture`, `MDLURLTexture(url:name:)` (declared `init(url URL: URL, name: String?)`). `MDLMaterial.scatteringFunction` is read-only (set only via init).
 
-#### RealityKit (no general mesh writer)
+##### RealityKit (no general mesh writer)
 
 | Declaration | iOS | Notes |
 |---|---|---|
@@ -1373,7 +1445,7 @@ Other ModelIO members listed by the researcher (verified class docs): `MDLVertex
 
 `PhotogrammetrySession.Request.Detail`: only `.reduced` exists on iOS (17.0+). `.preview`, `.medium`, `.full`, `.raw` are macOS 12 / Catalyst 15 only; `.custom` is macOS 14 / Catalyst 17 only. Referencing them in iOS code will not compile. The newer overloads are not usable at 18.0: `struct WriteOptions` is iOS 26.0+, and `func write(to url: URL, options: Entity.WriteOptions) async throws` and `static func write(_ entities: [Entity], to url: URL, options: Entity.WriteOptions = WriteOptions()) async throws` are iOS 27.0+ (both `nonisolated(nonsending)`). They still write `.reality` and are irrelevant.
 
-#### 2D output (PDF, PNG)
+##### 2D output (PDF, PNG)
 
 | Declaration | iOS | Usable at 18.0 |
 |---|---|---|
@@ -1388,7 +1460,7 @@ Other ModelIO members listed by the researcher (verified class docs): `MDLVertex
 
 PDF units are points (72 pt = 1 inch). A4 = 595.276 x 841.89 pt, US Letter = 612 x 792 pt. At 1:50, 1 m = 20 mm = 56.69 pt. There is no Apple SVG or DXF writer.
 
-#### Hand-written formats (Foundation only)
+##### Hand-written formats (Foundation only)
 
 | Declaration | iOS | Use |
 |---|---|---|
@@ -1402,7 +1474,7 @@ Binary STL: 80-byte header, uint32 triangle count, then 50 bytes per triangle (n
 
 DXF: R12 (`$ACADVER AC1009`) needs only the ENTITIES section and no handles. Use LINE, CIRCLE, ARC, TEXT and POLYLINE + VERTEX + SEQEND; layer is group 8, colour group 62. LWPOLYLINE does not exist in R12. It needs R2000 (AC1015), which then requires HEADER, CLASSES, TABLES, BLOCKS, OBJECTS and unique handles on every record.
 
-#### Zip, sharing, Files app, preview
+##### Zip, sharing, Files app, preview
 
 | Declaration | iOS | Usable at 18.0 |
 |---|---|---|
@@ -1425,7 +1497,7 @@ Info.plist keys (not entitlements, so they work with a free Apple ID): `UIFileSh
 
 There are no UTType constants for obj, ply, stl, gltf, glb or dxf.
 
-### Gotchas
+#### Gotchas
 
 1. `MDLAsset.export` never writes USDZ on iOS. `canExportFileExtension("usdz")` returns false and export produces nothing. `.usdc`/`.usda` return true but the files lose materials (forum threads 111061, 737766, 745233, 764030; no counter-example found for any iOS version).
 2. SceneKit is deprecated at 26.0 on the iOS 26 SDK. It compiles with warnings. Keep all SceneKit code in one file (for example `SceneKitUSDZWriter.swift`) behind a protocol. Default XcodeGen does not treat warnings as errors; do not turn that on.
@@ -1448,11 +1520,11 @@ There are no UTType constants for obj, ply, stl, gltf, glb or dxf.
 19. QuickLook: return `url as QLPreviewItem`. `ARQuickLookPreviewItem(fileAt:)` failed with "Unhandled item type" for a Caches file (forum 689586). A `QLPreviewController` embedded in another view controller or hosted directly as a `UIViewControllerRepresentable` (even in a `.sheet`) loses the AR/Object toggle and Share button (forums 701842, 692364). Apple: an embedded controller shows only a thumbnail.
 20. iOS 26.0/26.1 regression: AR Quick Look Share sends the `.usdz` file instead of `canonicalWebPageURL` (forum 812371). Harmless for us.
 
-### Recommended approach
+#### Recommended approach
 
 1. **Own the mesh writers.** A Foundation-only `Exporters` module that works on our own `Mesh` struct (positions, normals, UVs, colours, uint32 indices, optional texture `Data`): OBJ + MTL (with `map_Kd`), binary little-endian PLY with vertex colours, binary STL in millimetres, and GLB. Pure Swift with no UIKit dependency, so it can be unit-tested on the macOS CI runner.
 2. **Architectural model (USDZ):** `CapturedRoom.export(to:metadataURL:modelProvider:exportOptions:)` with `[.parametric, .mesh]` for one room, and `CapturedStructure.export(...)` for a merged house. Name files like `Room-<date>.usdz`, never starting with a digit. Save `CapturedRoom` / `CapturedStructure` with `JSONEncoder` in the project folder so we can re-export later.
-3. **Textured and raw-mesh USDZ:** one `SceneKitUSDZWriter` file. Build `SCNGeometry` from our `Mesh`, `SCNMaterial.diffuse.contents = UIImage`, write to a unique temp URL, check the Bool and size (reject files under a few KB), then move into `Exports/`. Evaluate `MDLUtility.convert(toUSDZ:writeTo:)` (iOS 18.0+, not deprecated) on device as a SceneKit-free alternative; switch if it works with our OBJ or usdc.
+3. **Textured and raw-mesh USDZ (synthesis ruling, see "Cross-section rulings" at the top of this document):** write our own `.usda` (UsdPreviewSurface plus UsdUVTexture, atlas JPEGs beside it by relative path) and package it with `MDLUtility.convert(toUSDZ:writeTo:)` (iOS 18.0, not deprecated, no throws, no return value). Check that the output exists, is larger than a few KB and starts with the bytes "PK". Fallback 1: our own stored (uncompressed) zip writer that follows the usdz rules (default layer first, 64-byte aligned payloads, CRC32 per entry). Fallback 2, only if both fail on device: one contained `SceneKitUSDZWriter` file (build `SCNGeometry` from our `Mesh`, `SCNMaterial.diffuse.contents = UIImage`, write to a unique temp URL, check the Bool and size, then move into `Exports/`). This follows the texturing tie-breaker ruling, which had stronger evidence (doc JSON plus SDK headers) than the researcher's SceneKit-first plan.
 4. **Object model:** Object Capture writes `.usdz` at `.reduced`. Convert to OBJ, GLB, PLY or STL by `MDLAsset(url:)` + `childObjects(of: MDLMesh.self)` into our `Mesh`, then our own writers.
 5. **ModelIO role:** import only (re-open USDZ from RoomPlan, Object Capture or our exports). Log `canExportFileExtension` results in the capability probe, but never depend on ModelIO for export.
 6. **2D plan:** one `PlanRenderer.draw(in: CGContext, scale:)` shared by `UIGraphicsPDFRenderer` (vector PDF at 1:50 or 1:100 on A4 or Letter), `UIGraphicsImageRenderer` (PNG) and the on-screen SwiftUI `Canvas`. Separate string emitters for SVG (viewBox in mm) and DXF R12 (HEADER with `$ACADVER AC1009`, `$INSUNITS 4`, `$EXTMIN`/`$EXTMAX`; TABLES/LAYER; ENTITIES with LINE, POLYLINE + VERTEX + SEQEND, TEXT, CIRCLE, ARC). Only move to AC1015 if bulged LWPOLYLINEs are demanded.
@@ -1461,7 +1533,7 @@ There are no UTType constants for obj, ply, stl, gltf, glb or dxf.
 9. **Preview:** `.quickLookPreview($previewURL)` for USDZ, PDF and PNG (presents the system viewer itself, AR mode included). If UIKit is needed, present `QLPreviewController` modally from the top view controller, never as an embedded representable. Our own RealityKit or SceneKit viewer for the other formats.
 10. **First export CI build:** add a self-test that runs every writer on a synthetic textured cube, logs `canExportFileExtension` for obj, stl, ply, usdz, usdc, usda, abc, calls `SCNScene.write` twice, tries `MDLUtility.convert(toUSDZ:writeTo:)`, and zips a folder. Read the results through the log viewer so all open device questions close in one round trip.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 No tie-breaker rulings were needed for this topic: every claim survived both verifier lenses. The items below are corrections, nuances or open device questions.
 
@@ -1486,11 +1558,11 @@ No tie-breaker rulings were needed for this topic: every claim survived both ver
 19. **MDLAsset init with vertex descriptor.** Researcher wrote `init(url: URL, vertexDescriptor:bufferAllocator:)`. Apple JSON: `init(url: URL?, vertexDescriptor: MDLVertexDescriptor?, bufferAllocator: (any MDLMeshBufferAllocator)?)`. Ruling: use Apple's form (optional URL).
 20. **Which thread calls `SCNScene.write`.** Researcher's gotcha: call it from the main thread after the scene is set up. Neither verifier checked this and the doc says nothing about threads. Ruling: unsure; start on the main thread in the first export build, measure the time, and only move it off the main thread if a device test shows it is safe.
 
-## Scan quality, coverage and measurement confidence
+### 3.8 Scan quality, coverage and measurement confidence
 
 This section covers the live quality signals Apple gives us, how to turn them into a coverage score and a "Scan quality" summary (SPEC: SCAN QUALITY SYSTEM), how to attach an honest accuracy figure to each measurement (SPEC: MEASUREMENT CONFIDENCE), snapping for manual points, and thermal and battery handling. Apple publishes no accuracy specification for LiDAR, RoomPlan or Measure. Every accuracy number below is from third-party studies or practitioners and must be calibrated on the test device.
 
-### Verified API
+#### Verified API
 
 All declarations below were read from Apple documentation JSON (the researcher, the verifiers, or a re-fetch during this synthesis). Everything here is available at iOS 18.0. Nothing in this subsystem needs an iOS 26 API. The only iOS 27 APIs mentioned are ones we must not use.
 
@@ -1607,7 +1679,7 @@ func captureHighResolutionFrame() async throws -> ARFrame            // ARSessio
 
 Apple's thermal guidance (doc text): at `.serious` "reduce the target framerate from 60 FPS to 30 FPS", reduce CPU and GPU work, lower rendered detail. At `.critical` "if possible, stop using peripherals such as the camera".
 
-### Gotchas
+#### Gotchas
 
 1. `RoomCaptureSession.Instruction` is guidance only, not a numeric quality. Apple publishes no distance, speed or lux thresholds. Its ML guidance model is about 90% accurate for lighting, distance and speed (Apple ML research).
 2. `CapturedRoom.Confidence` is certainty in the category (is this a wall), not dimensional accuracy. Never show it as accuracy.
@@ -1633,7 +1705,7 @@ Apple's thermal guidance (doc text): at `.serious` "reduce the target framerate 
 22. RoomPlan's wall voxel grid is 3 cm (Apple ML research). Practitioners report that wall thickness defaults to about 16 cm and that walls thicker than about 50 cm become two thin walls. Never claim better than about ±3 cm from RoomPlan geometry alone.
 23. When the app uses `RoomCaptureView` instead of a bare `RoomCaptureSession`, the view already draws the coaching hints. Do not show our own copy of the Instruction text on top of it.
 
-### Recommended approach
+#### Recommended approach
 
 **One shared ARSession.** The app creates the ARSession and passes it with `RoomCaptureSession(arSession:)`. In `didStartWith`, re-run it with `ARWorldTrackingConfiguration` using `sceneReconstruction = .meshWithClassification` and `frameSemantics = [.sceneDepth]`. Check both supports first. Keep a flag that falls back to a separate mesh pass if the device test shows RoomPlan stops producing walls. Device test on the first build: about 5 s after the re-run, log `arSession.configuration`, whether `frame.sceneDepth` is non-nil, the ARMeshAnchor count, and confirm RoomPlan still delivers `didUpdate` rooms and a final CapturedRoom with walls. Multi-room: `stop(pauseARSession: false)` and reuse the same session so all rooms share one world frame.
 
@@ -1672,7 +1744,7 @@ Apple's thermal guidance (doc text): at `.serious` "reduce the target framerate 
 
 **Session quality log** (stored next to the CapturedRoomData JSON, also feeds the formula): fraction of frames not `.normal`, relocalization count, time under each Instruction, min and median `ambientIntensity`, thermal timeline with elapsed seconds, battery level every 30 s, RoomPlan CaptureError, per-wall completedEdges, confidence and coverage, and a depth-confidence histogram.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 1. **ARMeshGeometry.normals per face vs per vertex.** Researcher (and the doc abstract, official-docs verifier): per face. Reality verifier: refuted, normals are per vertex; the SDK header says "Normal of each vertex", developer reports find `normals.count == vertices.count`, and working Metal renderers bind the normals buffer beside the vertex buffer for an indexed draw. The official-docs verifier itself flagged the same caveat. Stronger evidence: per vertex (header text plus working code beats a doc abstract). No tie-breaker was needed. **Ruling: per vertex. Compute face normals from vertices.**
 2. **Published accuracy figures.** Researcher: RMSE 2.05 cm (iPhone 12 Pro) and 2.06 cm (iPhone 15); "building-scale" iPhone 13 Pro scans with 69 to 83% of points within 5 cm. Both verifiers refuted parts: the 2026 Remote Sensing Letters study compared the iPhone 12 Pro Max and iPhone 15 Pro (the base iPhone 15 has no LiDAR), on small objects (0.8 to 42.5 cm) at 0.01 to 3 m, and found the 15 Pro less accurate at 3 m. The MDPI Geomatics 2023 study was one laboratory room with four apps; best app std about 7 cm, one app 44 cm mean deviation, achievable 10 to 20 cm; the 69 to 83% figure was not found. Confirmed: Luetzenburg 2021 ±1 cm for objects over 10 cm (±10 cm at 130 m cliff scale), and 3.7 cm median agreement of ARKit depth vs Faro (ARKitScenes, rerun.io). The MDPI abstract adds that no app met the U.S. Institute of Building Documentation accuracy levels, and that deviations were concentrated within 5 cm (no percentage given). The 3.7 cm median is a whole-frame figure and is likely inflated by far pixels: other studies show Apple LiDAR error roughly proportional to range, 1 to 2 cm at 1 to 3 m, rising sharply beyond about 4.5 m. Stronger evidence: verifiers (study metadata and dataset record). **Ruling: use corrected figures; room-scale consumer-app error is several cm to decimetres and dominated by tracking. "Reasonable to about 4 m" is optimistic; the formula's distance term handles this.**
@@ -1688,13 +1760,13 @@ Apple's thermal guidance (doc text): at `.serious` "reduce the target framerate 
 12. **confidenceMap format on iOS 18.** Expected `kCVPixelFormatType_OneComponent8` (four-character code L008) with values 0 to 2. **Ruling: likely; on first run log the format and a histogram of byte values, map with `ARConfidenceLevel(rawValue:)`, and treat all depth as medium if the format differs.**
 13. **Thresholds in the recommended algorithms** (ambientIntensity 300 and 600, 10 cm cells, 3 observations, sigma constants, quality factors). Engineering choices, not facts. **Ruling: keep them in one config struct and tune on device.**
 
-## Storage, deployment and concurrency
+### 3.9 Storage, deployment and concurrency
 
 This section covers Info.plist keys, free Apple ID sideloading limits, the on-disk project layout and serialization, the memory budget, background processing, and the Swift language mode and concurrency settings. All declarations below were checked against Apple documentation JSON on 2026-09-28. "Usable at 18.0" means it compiles and runs with the iOS 18.0 deployment target without an availability check.
 
-### Verified API
+#### Verified API
 
-#### Info.plist keys and entitlements
+##### Info.plist keys and entitlements
 
 | Key | Introduced | Usable at 18.0 | Notes |
 |---|---|---|---|
@@ -1715,7 +1787,7 @@ Not needed: `NSMotionUsageDescription` (ARKit IMU use does not prompt), `NSMicro
 
 Every `com.apple.developer.arkit.*` entitlement in Apple's reference is visionOS-only (listed under "Enterprise"). None applies to RoomPlan or Object Capture on iOS.
 
-#### Custom package document type
+##### Custom package document type
 
 ```xml
 <key>UTExportedTypeDeclarations</key>
@@ -1737,7 +1809,7 @@ Every `com.apple.developer.arkit.*` entitlement in Apple's reference is visionOS
 
 Swift side (UniformTypeIdentifiers, iOS 14.0+): `init(exportedAs identifier: String, conformingTo parentType: UTType? = nil)`, `static var package: UTType { get }`, and the built-in `.usdz`, `.pdf`, `.json`, `.heic`, `.jpeg`, `.png`. Do not redeclare system types such as OBJ (`public.geometry-definition-format`).
 
-#### Runtime capability gates (all usable at 18.0)
+##### Runtime capability gates (all usable at 18.0)
 
 ```swift
 static var isSupported: Bool { get }                    // RoomCaptureSession, iOS 16.0
@@ -1746,7 +1818,7 @@ class func supportsSceneReconstruction(_ sceneReconstruction: ARConfiguration.Sc
 static var isSupported: Bool { get }                    // PhotogrammetrySession, iOS 17.0
 ```
 
-#### Files, backup, protection, free space
+##### Files, backup, protection, free space
 
 ```swift
 var isExcludedFromBackup: Bool? { get set }                          // URLResourceValues, iOS 8.0
@@ -1760,7 +1832,7 @@ static let completeWhenUserInactive: URLFileProtection                // iOS 17.
 
 The default data protection class is "complete until first user authentication". Files stay readable while locked after the first unlock. No Info.plist key is needed.
 
-#### Serialization building blocks
+##### Serialization building blocks
 
 | Declaration | Availability | Note |
 |---|---|---|
@@ -1774,7 +1846,7 @@ The default data protection class is "complete until first user authentication".
 | `struct CapturedRoomData` (Decodable, Encodable, Sendable) | iOS 16.0 | Raw RoomPlan data can be saved as JSON and rebuilt later with `RoomBuilder`. |
 | `func writeHEIFRepresentation(of image: CIImage, to url: URL, format: CIFormat, colorSpace: CGColorSpace, options: [CIImageRepresentationOption : Any] = [:]) throws` | iOS 11.0 | Keyframe encoding. Also `writeJPEGRepresentation` (iOS 10), `writePNGRepresentation` (iOS 11), `CIFormat.L16 / .Lh / .Lf`. |
 
-#### Memory and thermal
+##### Memory and thermal
 
 ```swift
 extern size_t os_proc_available_memory();                // import os, iOS 13.0; returns 0 when already over the limit
@@ -1786,7 +1858,7 @@ class let thermalStateDidChangeNotification: NSNotification.Name  // ProcessInfo
 var isIdleTimerDisabled: Bool { get set }                // UIApplication, iOS 2.0
 ```
 
-#### Photogrammetry limits relevant to storage and memory
+##### Photogrammetry limits relevant to storage and memory
 
 ```swift
 static let limits: PhotogrammetrySession.Limits          // iOS 17.0
@@ -1803,7 +1875,7 @@ var checkpointDirectory: URL?                            // ObjectCaptureSession
 
 `PhotogrammetrySession.limits` holds device-specific hardware limits. Images over either limit are ignored and reported as invalid samples. `ObjectCaptureSession` stops capturing at `maximumNumberOfInputImages` unless `isOverCaptureEnabled` is true; the extra shots are then skipped for on-device reconstruction. `PhotogrammetrySession.Configuration` has no image-count field. `PhotogrammetrySession` can also take your own keyframes (with LiDAR depth and gravity) as `PhotogrammetrySample`s, so a textured room model is possible without `ObjectCaptureSession`. It is still bound by the image cap and `.reduced` output. For memory, prefer the directory-URL input.
 
-#### Background execution
+##### Background execution
 
 | Declaration | Introduced | Usable at 18.0 |
 |---|---|---|
@@ -1815,7 +1887,7 @@ var checkpointDirectory: URL?                            // ObjectCaptureSession
 | `class BGContinuedProcessingTask` (ProgressReporting) | iOS 26.0 | No. Needs `#available(iOS 26, *)`. The system shows its progress in a Live Activity; the app only reports progress. |
 | `class var supportedResources: BGContinuedProcessingTaskRequest.Resources { get }` (BGTaskScheduler) | iOS 26.0 | No. Needs `#available(iOS 26, *)`. |
 
-#### Deprecations in the iOS 26 SDK
+##### Deprecations in the iOS 26 SDK
 
 | Symbol | Status |
 |---|---|
@@ -1824,14 +1896,14 @@ var checkpointDirectory: URL?                            // ObjectCaptureSession
 | Model I/O (`MDLAsset`, `MDLMesh`, `export(to:)`, `canExportFileExtension(_:)`) | Not deprecated. |
 | RealityKit `ARView`, `ModelEntity` | Not deprecated. |
 
-#### Threading facts
+##### Threading facts
 
 - `var delegateQueue: dispatch_queue_t? { get set }` (ARSession, iOS 11.0): if nil, delegate methods run on the main queue.
 - `ObjectCaptureSession` is a `@MainActor` class; every call and state read must be on the main actor.
 - `PhotogrammetrySession` is not main-actor isolated; `outputs` is an AsyncSequence iterated in a Task.
 - In the iOS 26 SDK, `ARFrame` is marked Sendable, but `CVPixelBuffer` (a typealias of `CVBuffer`) is not. Sendable does not make retaining frames safe (see Gotcha 3). `ARMeshAnchor` is NSSecureCoding and Sendable.
 
-### Gotchas
+#### Gotchas
 
 1. Actor-isolation errors fail the build even in Swift 5 mode. Minimal checking only turns missing Sendable conformances and missing global-actor annotations into warnings. Calling a `@MainActor` function synchronously from a nonisolated context, a missing `await`, or cross-actor mutation are hard errors since Swift 5.5.
 2. Do not set `SWIFT_VERSION: 6` or `SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor`. ARKit and RoomPlan delegate protocols are nonisolated ObjC protocols. A main-actor default makes their conformances fail ("main actor-isolated instance method cannot satisfy nonisolated requirement"). Do not mark a delegate class `@MainActor` when its `delegateQueue` is a background queue; Swift 6.2 runtime isolation checks can trap.
@@ -1855,7 +1927,7 @@ var checkpointDirectory: URL?                            // ObjectCaptureSession
 20. ARKit's 256 x 192 depth size and 1920 x 1440 default camera size are not in Apple's doc JSON. Read them at runtime.
 21. Keep USD export file names starting with a letter. Before iOS 17.4 a leading digit broke RoomPlan export; not an issue on iOS 18 but cheap to respect.
 
-### Recommended approach
+#### Recommended approach
 
 **project.yml and Info.plist.** Keep the current spec: `SWIFT_VERSION: "5.9"` (Swift 5 mode), `TARGETED_DEVICE_FAMILY: "1"`, iOS 18.0 deployment target, no signing in CI. Add `SWIFT_STRICT_CONCURRENCY: targeted` for useful warnings without new errors. Do not add `SWIFT_DEFAULT_ACTOR_ISOLATION` or `SWIFT_APPROACHABLE_CONCURRENCY`. Info.plist keeps `NSCameraUsageDescription`, `UIRequiredDeviceCapabilities: [arkit]` (optionally add `arm64`, `metal`), `UIFileSharingEnabled`, `LSSupportsOpeningDocumentsInPlace`, portrait only, `UILaunchScreen: {}`, `ITSAppUsesNonExemptEncryption: false`, `NSLocalNetworkUsageDescription` for the debug server. Add the `.mapperproj` `UTExportedTypeDeclarations` and `CFBundleDocumentTypes` blocks above. `NSPhotoLibraryAddUsageDescription` is already present; keep it only if a "Save to Photos" feature ships. No entitlements file. No `UIBackgroundModes` in v1.
 
@@ -1895,7 +1967,7 @@ Build in-progress scans with temp-name-then-rename writes so the Files app never
 
 **Deployment.** Keep `com.shreehub.mapper` stable across weekly re-sideloads so the app container and `Documents/Projects` survive. Keep one app target. Document per-device Developer Mode in the runbook. A second phone under the same free Apple ID is fine.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 **1. "Actor-isolation problems are at most warnings in Swift 5 mode and will not fail CI."**
 Researcher: XcodeGen defaults to Swift 5 and minimal checking, so isolation problems are warnings only. Verifiers (both lenses): refuted. Minimal checking only downgrades missing Sendable conformances and missing global-actor annotations (SE-0337). Core isolation rules (SE-0306, Swift 5.5) are errors in every language mode. The verifiers cite the proposals and the swift.org migration guide, which is stronger than the researcher's inference. Also, this repo sets `SWIFT_VERSION: "5.9"`, not XcodeGen's `5.0` default; both are Swift 5 mode. Final ruling: refuted in part. Swift 5 mode is correct and should stay, but code must be written isolation-correct because violations fail the build. The claim that Xcode 26 only changes new templates (not XcodeGen projects) is plausible but no primary source was fetched; treat as unverified.
@@ -1927,11 +1999,11 @@ About 30 s is from Apple DTS on the forums, not the docs. Final ruling: accepted
 **10. Size estimates (keyframes 300 to 500 KB HEIC, HEIC encode 20 to 40 ms, world map 5 to 30 MB, 200 to 350 MB per room).**
 Computed from verified formats plus community photo sizes. Final ruling: likely; confirm on device.
 
-## UX patterns
+### 3.10 UX patterns
 
 Scope: how the scan, review, processing and result screens should look and behave for an amateur user, and which Apple UI building blocks provide that. Room and house scanning use RoomPlan, object scanning uses RealityKit Object Capture, raw mesh mode uses ARKit plus RealityKit. Declarations below come from the Apple documentation JSON. Nothing in this topic needs a paid entitlement. Nothing needs iOS 26. The newest APIs here are iOS 18.0, which matches our deployment target, so no `#available` checks are required for anything listed here.
 
-### Verified API
+#### Verified API
 
 **RoomPlan scan UI (UIKit, wrap in `UIViewRepresentable`)**
 
@@ -2064,7 +2136,7 @@ On-device reconstruction: `PhotogrammetrySession.Request.Detail` exists on iOS 1
 | `var measurementSystem: Locale.MeasurementSystem { get }` on `Locale` | 16.0 | yes |
 | `struct MeasurementFormatUnitUsage<UnitType> where UnitType : Dimension` (`.asProvided`, `.general`, `.personHeight`, `.road`, ...) | 15.0 | yes |
 
-### Gotchas
+#### Gotchas
 
 1. `RoomCaptureViewDelegate` inherits `NSCoding`. The SwiftUI coordinator must be `class Coordinator: NSObject, RoomCaptureViewDelegate, RoomCaptureSessionDelegate` with `func encode(with coder: NSCoder) {}` and `required init?(coder: NSCoder)`, plus a normal `init`. Without these the conformance does not compile.
 2. `RoomCaptureView.delegate` is `weak`. If nothing else holds the coordinator it disappears. SwiftUI's `context.coordinator` keeps it alive for the view's lifetime, so use that.
@@ -2091,13 +2163,15 @@ On-device reconstruction: `PhotogrammetrySession.Request.Detail` exists on iOS 1
 23. Competitor details (Polycam, Scaniverse) came from search snippets and a third-party review because their help pages returned 403. Treat exact label names as approximate.
 24. `ObjectCaptureSession` needs LiDAR plus an A14 or later chip (forum thread 734086). The A15 test device qualifies. Area mode guidance from Apple's sample: areas larger than 6 feet may lose mesh and texture quality unless processed at a higher detail level on a Mac.
 
-### Recommended approach
+#### Recommended approach
 
 **Screen map.** Home (project grid with thumbnails, one big "New scan" button) then Mode sheet (Room, House, Object, each with icon and one line) then Tips sheet, once per mode, with "Don't show again" then Capture then Review then Processing then Result. Use `NavigationStack(path:)` with a typed route enum for Home to Project to Result. Present capture as `.fullScreenCover`. This matches Apple's RoomPlan sample (Start Scanning, then capture with Cancel and Done, then Export) and what Polycam, Scaniverse and magicplan converge on.
 
 **Unsupported devices.** Check `RoomCaptureSession.isSupported` and `ObjectCaptureSession.isSupported` at launch (the capability probe already does). Hide or disable modes that fail, with a plain "This iPhone has no LiDAR" style screen from `Copy.swift`, as Apple's sample does with its UnsupportedDevice scene.
 
-**Room mode (v1).** Use `RoomCaptureView` in a `UIViewRepresentable`, not a custom session UI. It already gives outlines, coaching and the mini model users expect. App chrome: Cancel top-left, Done top-right. First Done calls `captureSession.stop()`; return `true` from `shouldPresent`, so the view animates the final room. Then show "Keep" and "Rescan". Save `CapturedRoom` as JSON in `didPresent` right away. Do not add a second guidance banner in room mode (see Gotcha 6); only show our own banner for `CaptureError` and thermal warnings. Map errors to `Copy.swift` strings: `deviceTooHot` "Phone is too hot. Let it cool for a minute.", `exceedSceneSizeLimit` "This scan got too large. Finish this room and start the next one.", `worldTrackingFailure` "Lost tracking. Point at the last wall you scanned."
+**Synthesis note.** The RoomPlan section recommends a headless `RoomCaptureSession` with Mapper's own UI, and this section recommends `RoomCaptureView`. The spec requires a live green, yellow, red and gray coverage overlay while scanning, which `RoomCaptureView` cannot host. The ruling (see "Cross-section rulings" at the top) is: headless `RoomCaptureSession` is the target; `RoomCaptureView(frame:arSession:)` is the fallback if the device test shows depth or mesh cannot be kept alive on the headless path. The guidance below still applies whenever `RoomCaptureView` is used.
+
+**Room mode (RoomCaptureView fallback).** Use `RoomCaptureView` in a `UIViewRepresentable`, not a custom session UI. It already gives outlines, coaching and the mini model users expect. App chrome: Cancel top-left, Done top-right. First Done calls `captureSession.stop()`; return `true` from `shouldPresent`, so the view animates the final room. Then show "Keep" and "Rescan". Save `CapturedRoom` as JSON in `didPresent` right away. Do not add a second guidance banner in room mode (see Gotcha 6); only show our own banner for `CaptureError` and thermal warnings. Map errors to `Copy.swift` strings: `deviceTooHot` "Phone is too hot. Let it cool for a minute.", `exceedSceneSizeLimit` "This scan got too large. Finish this room and start the next one.", `worldTrackingFailure` "Lost tracking. Point at the last wall you scanned."
 
 Room tips from WWDC22 (session 10127) for the Tips sheet. One room up to about 30 x 30 ft (9 x 9 m). Light of 50 lux or more, curtains open. Close doors to other rooms. Avoid full-height mirrors and glass, very dark surfaces and very high ceilings. Keep each scan under 5 minutes (battery and heat).
 
@@ -2123,7 +2197,7 @@ Room tips from WWDC22 (session 10127) for the Tips sheet. One room up to about 3
 
 **Sharing.** Put all sharing behind one `ShareService`. Default to a small `UIViewControllerRepresentable` around `UIActivityViewController` (Apple's sample shares a whole export folder this way). Use `ShareLink` for single files (a `URL` is `Transferable`). If folder sharing misbehaves, zip the folder with `NSFileCoordinator` and the `.forUploading` reading option (no third-party code). Export files must live in Documents or tmp.
 
-### Disputed or unsure
+#### Disputed or unsure
 
 1. **Only `.reduced` photogrammetry on iOS, even with the iOS 26 SDK.** Researcher: yes, per doc JSON, but asked for a CI compile check. Verifiers (docs and reality lenses): not refuted; `.medium` doc JSON lists only macOS and Mac Catalyst, WWDC23 10191 says reduced only on iOS; one third-party snippet saying "preview" on iOS was a paraphrase error; one 2023 blog saying medium works on iOS has no support. Verifier evidence is stronger (primary docs plus transcript). Ruling: hardcode `.reduced`; higher detail only by exporting images to a Mac. No CI round trip needed. The docs verifier and a direct fetch also cover `.custom`: macOS 14.0 and Mac Catalyst 17.0 only, so also unavailable on iOS.
 2. **Availability of `hideObjectReticle`, `showShotLocations`, `isAutoCaptureEnabled`, `shouldPlayHaptics`.** Researcher listed iOS 17.0. Verifier: iOS 18.0 from doc JSON (confirmed by a direct doc fetch). Ruling: iOS 18.0. No `#available` needed at our 18.0 target.
@@ -2139,3 +2213,873 @@ Room tips from WWDC22 (session 10127) for the Tips sheet. One room up to about 3
 12. **Competitor UI labels and coverage colors.** Researcher confidence "likely"; not independently verified (pages returned 403, facts from snippets and reviews). Ruling: use as design inspiration only, not as specification.
 13. **1/8 in default resolution.** Based on trade sources and a stated LiDAR accuracy of about 1 to 2 percent (confidence "likely"). Ruling: keep 1/8 in default with 1/16 option; confirm against the accuracy protocol in `docs/TEST_PLAN.md`.
 
+## 4. Risk register
+
+The top 12 risks to the build, merged across subsystems. Likelihood and impact are High, Medium or Low. Most "likelihood" values are judgments from the research, not measurements.
+
+| # | Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|---|
+| 1 | RoomPlan re-runs the shared `ARSession` and drops `sceneDepth` (and possibly the video format or mesh), so raw mesh, coverage and texturing cannot run in the same pass as the room scan. Re-running our configuration could also make RoomPlan stop producing walls or raise `CaptureError.invalidARConfiguration`. | High | High | Re-run an `ARWorldTrackingConfiguration` (`.meshWithClassification`, `.sceneDepth`) with empty options in `captureSession(_:didStartWith:)` for every room. Never pass `.resetTracking`, `.removeExistingAnchors` or `.resetSceneReconstruction`. Watchdog on `frame.sceneDepth == nil`. Log `arSession.configuration`, depth rate, mesh anchor count and final wall count in the first device build. Fallbacks: `RoomCaptureView(frame:arSession:)` (documented to preserve session settings), then a separate ARKit mesh pass aligned in the same session. |
+| 2 | A coordinate or UV flip error (projection signs, depth-pass projection, Core Image origin, RealityKit, OBJ or USD V origin, y-down versus y-up plan contexts, wall winding) makes textures or plans wrong, and each fix costs a CI round trip. | High | High | Ship the dot-overlay and numbered-atlas self-tests in the first texturing build. Log per-keyframe depth reprojection error (target under 0.5 px). Flip V once at output boundaries. Keep one flip convention in `PlanRenderer`, derive winding from wall connectivity, and verify with an L-shaped room. |
+| 3 | Whole-house merge goes wrong: rooms from unrelated frames merge silently into stacked rooms, `StructureBuilder` throws (`invalidRoomLocation`, `exceedSceneSizeLimit`) or crashes with `EXC_BAD_ACCESS`, and room IDs are regenerated. | High | High | One `ARSession` across rooms (`stop(pauseARSession: false)`), or relocalize with an `ARWorldMap` saved after `worldMappingStatus` reaches `.mapped`. Save every `CapturedRoom` as JSON before merging. Catch `StructureBuilder.BuildError`; after a crash, offer the merge again on next launch. Detect overlaps after merge. Offer manual "Arrange rooms". |
+| 4 | Thermal throttling during multi-minute scans causes frame drops, tracking drift, mesh errors and a late `deviceTooHot`. | High (estimate, unmeasured) | Medium to High | Thermal ladder on `ProcessInfo.thermalStateDidChangeNotification`: shed the overlay and hole computation at `.serious`, pause at `.critical`. Warn at 4 minutes per room. Encourage room-by-room scans. Log the thermal timeline on device. |
+| 5 | Jetsam kill during photogrammetry, texture baking or large mesh work. The real ceiling on this phone is unknown, and `increased-memory-limit` may not survive Sideloadly signing. | Medium | High | Budget about 2.5 GB peak. Log `os_proc_available_memory` at launch and before heavy stages. Stream mesh and keyframes to disk, bake one keyframe at a time, release `ObjectCaptureSession` before `PhotogrammetrySession`, avoid `.modelEntity`, use checkpoints to resume. |
+| 6 | Retaining `ARFrame`s or their pixel buffers, or encoding inside the delegate, starves ARKit's frame pool, so tracking and mesh integration degrade. | Medium | High | Deep-copy the Y and CbCr planes, depth and confidence inside the callback, release the frame, and encode only the copy on a bounded serial queue that drops keyframes instead of queueing. Hard ceiling well under 10 retained frames. |
+| 7 | RealityKit is too slow or heavy with about 1M triangles in 200 to 400 `LowLevelMesh` chunks on the A15. No public benchmark exists. | Medium | High | Tunable chunk count and material type, frustum-based `isEnabled`, decimated LOD copies, a decimation stage that is a no-op below about 300k faces, and a Metal-compatible vertex layout so an `MTKView` renderer can take over. |
+| 8 | CI round trips burned by compile errors: actor-isolation mistakes, iOS 27-only symbols, delegate method near-misses that compile silently as plain methods, undocumented overloads. | High | Medium | Copy declarations verbatim from this document. Nonisolated delegate classes on serial queues, value copies hopped with `Task { @MainActor in }`. Never set Swift 6 or default MainActor isolation. Log the first call of every delegate method in the device smoke test. |
+| 9 | Per-vertex color does not render: no fixed-function material (Unlit, PBR, Simple) reads `LowLevelMesh` `.color`, and `ShaderGraphMaterial` or `CustomMaterial` may not on iOS 18. | Medium | Medium | Device spike in the first rendering build with both paths. Fallbacks: per-face material parts or color packed into a UV channel. |
+| 10 | The USDZ path is unproven: `MDLUtility.convert(toUSDZ:writeTo:)` has no documented behavior and no known device usage; `SCNScene.write` can write a corrupt file on a second call. | Medium | Medium | Self-test on a synthetic textured cube in the first export build. Check output exists, is larger than a few KB and starts with "PK". Keep the own stored-zip USDZ writer as fallback and SceneKit as a contained last resort. |
+| 11 | Displayed measurements are overconfident: uncalibrated error constants, RoomPlan drift on long walls (field reports up to 37 cm on a 6.45 m wall), and room area overstated if the floor polygon is trusted. | Medium | High | Area from the closed wall loop. Error model with 1 cm floor, 3 cm RoomPlan cap growing with length, 4 cm low-confidence cutoff. Optional tape-measured scale correction. Calibrate with the `docs/TEST_PLAN.md` protocol. Never imply survey grade. |
+| 12 | Object Capture falls short on the A15: unknown runtime image limit, minutes-long reconstruction, an `ObjectCaptureView` leak of hundreds of MB per appear cycle (2023 report), and users expecting more than `.reduced` quality. | Medium | Medium | Read `maximumNumberOfInputImages` and `PhotogrammetrySession.limits` at runtime and drive the shot counter from them. Keep one `ObjectCaptureView` alive per capture and `pause()` it while hidden. Show progress and ETA, keep the app in the foreground, resume from checkpoints. Set expectations in `Copy.swift` and offer export of the image folder for Mac reconstruction. |
+
+Other risks worth tracking, below the top 12: processing interrupted when the user leaves the app (idle timer off, checkpoints, optional iOS 26 `BGContinuedProcessingTask` for CPU work); storage exhaustion for multi-room houses (pre-flight with `volumeAvailableCapacityForImportantUsage`, raw data excluded from backup, "delete raw data" action); coverage never reaching green on glass, mirrors and dark surfaces (suppress prompts near RoomPlan windows); hand-written GLB, PLY, STL and DXF files rejected by external tools (spec-based unit tests on the macOS runner, NaN sanitizing, UInt32 indices); ShareLink misbehaving with folder URLs (UIActivityViewController wrapper plus zip fallback); free Apple ID limits (7-day expiry, 3 apps, 10 App IDs per week, bundle id rewritten by Sideloadly, so never compare `Bundle.main.bundleIdentifier` to the plain id).
+
+## 5. Do not do
+
+Each item says why. Categories: macOS-only, deprecated, unavailable on iOS 18, needs an entitlement or signing support we cannot rely on, refuted by verifiers, or other (compile error or known failure).
+
+### macOS or Mac Catalyst only
+
+- `PhotogrammetrySession.Request.Detail` `.preview`, `.medium`, `.full`, `.raw` (macOS 12.0 and Mac Catalyst 15.0 only) and `.custom` with `Configuration.customDetailSpecification` (macOS 14.0 and Mac Catalyst 17.0 only). On iOS only `.reduced` exists; referencing the others breaks the build.
+- `PhotogrammetrySession.Configuration.meshPrimitive` (macOS 15.0 and Mac Catalyst 18.0 only). No quad meshes on iOS.
+- `SCNScene.write(to:)` with a `.dae` URL. Collada export is macOS only.
+- RoomPlan capture on Mac Catalyst or in the Simulator. Capture needs a LiDAR iPhone or iPad; Mac Catalyst supports only decoding, encoding and exporting `CapturedRoom` and `CapturedStructure`.
+- `ObjectCaptureSession` in the Simulator or where `isSupported` is false. Creating it there is a runtime error.
+
+### Unavailable at iOS 18 or absent from the iOS 26 SDK
+
+- Every `viewRotationAngle` API: `ARCamera.viewMatrix(viewRotationAngle:)`, `projectPoint(_:viewRotationAngle:viewportSize:)`, `projectionMatrix(viewRotationAngle:...)`, `unprojectPoint(_:ontoPlane:viewRotationAngle:...)`, `ARFrame.displayTransform(viewRotationAngle:...)`, `ARSession.viewRotationAngle`, `ARSessionObserver.session(_:didChangeViewRotationAngle:)`. All iOS 27.0; they do not compile on Xcode 26.6.
+- `LowLevelMesh.Descriptor.allowsPrimitiveRestart`, `instanceCapacity`, the 6-argument `Descriptor` init, and `LowLevelMesh.Layout.init(bufferIndex:bufferOffset:bufferStride:stepFunction:stepRate:)`. All iOS 27.0.
+- `ARSession.captureHighResolutionFrame(using:completion:)`, its async form, `VideoFormat.defaultPhotoSettings` and `defaultColorSpace` without `if #available(iOS 26.0, *)`. The test phone runs iOS 18.3.2. Use `captureHighResolutionFrame(completion:)` (iOS 16.0).
+- `BGContinuedProcessingTaskRequest`, `BGContinuedProcessingTask`, `BGTaskScheduler.supportedResources` without `#available(iOS 26.0, *)`.
+- `PhotogrammetrySample.orientation` without `#available(iOS 26.0, *)`.
+- `Entity.write(to:options:)`, static `write(_:to:options:)` (iOS 27.0) and `Entity.WriteOptions` (iOS 26.0). They also only write `.reality`, never USDZ or OBJ.
+- `RealityViewAttachments`, `RealityView` `init(make:update:attachments:)`, `RealityViewContent`, `RealityCoordinateSpaceConverting`. visionOS only.
+
+### Deprecated (compiles, but do not build on it)
+
+- SceneKit for display or new code: `SCNView`, `SCNScene`, `SceneView`, `ARSCNView`, `SCNGeometrySource(buffer:...)`, `SCNScene(url:options:)`, `SCNBoundingVolume.boundingBox`. Deprecated at iOS 26.0 ("SceneKit is deprecated, use RealityKit instead"). The only allowed SceneKit code is the contained last-resort USDZ writer.
+- `ARFrame.hitTest(_:types:)` and `ARHitTestResult` (deprecated at iOS 14.0). Use `ARSession.raycast`.
+- `ARPlaneAnchor.extent` (deprecated at iOS 16.0). Use `planeExtent`.
+- Orientation helpers for texturing math: `ARCamera.viewMatrix(for:)`, `projectPoint(_:orientation:viewportSize:)`, `projectionMatrix(for:viewportSize:zNear:zFar:)`, `ARFrame.displayTransform(for:viewportSize:)`. Marked deprecated at 27.0 in the docs (only Objective-C pages exist). They still compile on Xcode 26.6 and are fine for screen overlays, but texturing uses `camera.transform.inverse` and intrinsics directly.
+- `ARView(frame:cameraMode:)` 2-argument init. Use `init(frame:cameraMode:automaticallyConfigureSession:)`.
+- `MeshResource.generateAsync`, `replaceAsync`, `TextureResource.generate(from:withName:options:)`, `generateAsync`, `loadAsync` (deprecated at iOS 18.0) and `UnlitMaterial.baseColor`, `tintColor` (deprecated at iOS 15.0). Use `MeshResource.generate(from:)`, `replace(with:)`, `TextureResource(image:withName:options:)` and `UnlitMaterial.color`.
+- `UIImpactFeedbackGenerator.init(style:)` (marked deprecated at 27.0). Use SwiftUI `.sensoryFeedback` (iOS 17.0) or `init(style:view:)` (iOS 17.5).
+- `fileExporter(isPresented:document:contentType:defaultFilename:onCompletion:)` with `FileDocument`, `MagnificationGesture`, `RotationGesture`, and the `CoordinateSpace`-typed inits of `DragGesture` and `SpatialTapGesture` (marked deprecated at 27.2). Use the Transferable `fileExporter`, `ShareLink`, `MagnifyGesture`, `RotateGesture` and the `some CoordinateSpaceProtocol` inits (iOS 17).
+- `recommendedVideoFormatFor4KResolution` and `videoHDRAllowed` for scanning. Not deprecated, but 30 fps with higher power and heat; 16:9 hi-res formats were reported to break the mesh on iPads (community evidence, unchecked on iPhone).
+
+### Entitlements and signing we cannot rely on
+
+- `com.apple.developer.kernel.increased-memory-limit`. Xcode Personal Team and AltStore reportedly keep it, SideStore 0.7.0 drops it, and Sideloadly is unknown. A profile mismatch can fail the install. Do not depend on it.
+- `com.apple.developer.background-tasks.continued-processing.gpu`. Background GPU is supported only on M3-or-newer iPads per Apple DTS; no iPhone.
+- `SWIFT_VERSION 6`, `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, `SWIFT_APPROACHABLE_CONCURRENCY` or `SWIFT_TREAT_WARNINGS_AS_ERRORS` in `project.yml`. They break the nonisolated delegate pattern or turn deprecation warnings into build failures.
+- A `lidar` value in `UIRequiredDeviceCapabilities`. It does not exist; gate LiDAR at runtime with `supportsSceneReconstruction` and `isSupported`.
+
+### Refuted by verifiers
+
+- Assuming your `ARWorldTrackingConfiguration` survives `RoomCaptureSession.run(configuration:)`. Refuted; re-apply it in `didStartWith`.
+- Assuming RoomPlan owns `arSession.delegate` and needs a multiplexer. Refuted by the tie-breaker; setting the delegate is allowed.
+- "Apple said in 2022 you cannot capture `ARMeshAnchor`s while `RoomCaptureSession` runs." Unsourced; the thread has no Apple reply.
+- Relying on `ARWorldMap` to store `ARMeshAnchor`s. Mesh anchors are dropped from world maps.
+- Relying on `StructureBuilder.capturedStructure(from:)` to throw for rooms in unrelated frames. It merges them silently.
+- `CapturedRoom.floors[].polygonCorners` as the room area source. It was a bounding rectangle on real data.
+- `$INSUNITS` as the only unit declaration in an R12 DXF. It is an R2000 variable.
+- Hard-coding 1000 as the iOS Object Capture image limit. No verifiable source.
+- `ObjectCaptureSession.Feedback.outOfRange`. No such case; use `outOfFieldOfView`.
+- Reading `ARMeshGeometry.normals` indexed by face. Normals are per vertex in practice (count equals vertex count), despite the doc abstract.
+- `LowLevelMesh.replaceIndices(_:)` closure form. Does not exist; use `withUnsafeMutableIndices(_:)`, `replaceUnsafeMutableIndices(_:)` or `replaceIndices(using:)`.
+- `CapturedRoom.USDExportOptions.all` and `StructureBuilder(option:)`. Neither exists; the options are `.parametric`, `.mesh`, `.model` and the init is `StructureBuilder(options:)`.
+- Codable conformance on `simd_float4x4` or `simd_float3x3`. Not Codable; use a wrapper.
+- Claims that `RealityView` on iOS has no project, unproject or hit test, and that `ShaderGraphMaterial` is visionOS only. Both refuted (iOS 18.0).
+- Citing "69 to 83 percent of points within 5 cm" or "iPhone 15" LiDAR accuracy. Unconfirmed or misattributed; the study used the iPhone 15 Pro on small objects.
+- Treating 2,000 sq ft or a single floor as a hard house-mode limit. It is WWDC advice for best results.
+
+### Other (does not compile or known to fail)
+
+- `RoomCaptureSession.Configuration.beautifyObjects`. Configuration has only `isCoachingEnabled`; `beautifyObjects` belongs to the builder options.
+- `CapturedRoom.export(to:metadataURL:exportOptions:)`. No such overload; use `export(to:metadataURL:modelProvider:exportOptions:)`.
+- `let provider = CapturedRoom.ModelProvider(); provider.setModelFileURL(...)`. `setModelFileURL(_:for:)` is mutating; declare the provider with `var`.
+- `allCases` on `Surface.Category`, `Section.Label` or `Instruction`. They are not `CaseIterable`.
+- Mutating or constructing `CapturedRoom` or `CapturedStructure` in code. All properties are get-only and the only init is `init(from:)`.
+- Assigning `RoomCaptureView.captureSession` (get-only) or recreating `RoomCaptureView` in `updateUIView` (restarts the scan).
+- Relying on RoomPlan USDZ node names, re-importing its USDZ for the plan, or expecting UVs on RoomPlan geometry (no API provides them on any version).
+- RoomPlan export file names that start with a digit (fails before iOS 17.4; keep a letter prefix anyway).
+- `ARConfiguration.EnvironmentTexturing`. The type is `ARWorldTrackingConfiguration.EnvironmentTexturing`.
+- `AVCapturePhotoSettings.isDepthDataDeliveryEnabled` with high-resolution frame capture. It throws; read `frame.sceneDepth`.
+- Retaining `ARFrame`, `capturedImage`, `sceneDepth` buffers or `ARMeshGeometry` `MTLBuffer`s beyond the callback, or relying on `ARFrame.copy()` to deep-copy pixels.
+- Passing `.resetTracking`, `.removeExistingAnchors` or `.resetSceneReconstruction` when re-applying the configuration during RoomPlan.
+- Keying coverage by `ARMeshAnchor` face or vertex index, using `ARFrame.rawFeaturePoints` for coverage, or treating `CapturedRoom.Confidence` as dimensional accuracy (it is category certainty).
+- Hard-coding the 256 x 192 depth size or pixel formats. Read them at runtime.
+- `MDLAsset.export(to:)` for `.usdz`, `.usdc`, `.usda` or `.ply`, or relying on its OBJ `map_Kd` output. Community evidence says usdz is not exportable and USD loses materials; PLY is not in the documented list. Write our own.
+- `MDLAsset` import of binary PLY. ModelIO reads only ASCII PLY.
+- `AppleArchive` for `.zip` output. It writes Apple Archive only.
+- `QLPreviewController` embedded in a `UIViewControllerRepresentable`. Embedded, it shows only a thumbnail and loses AR mode and Share. Use `.quickLookPreview` or present it modally.
+- `ARQuickLookPreviewItem(fileAt:)` for sandbox files (reported "Unhandled item type"); return the URL as the preview item.
+- `URL.appending(path:)` for a `.usdz` URL passed to `SCNScene.write` (crashed on iOS 17). Use `appendingPathComponent`.
+- DXF `DIMENSION` entities, and `LWPOLYLINE` in an R12 file or without the `100/AcDbEntity` and `100/AcDbPolyline` markers in R2000.
+- `Measurement.FormatStyle` or `MeasurementFormatter` for feet and fractional inches. Use `ios/Sources/Units`.
+- `ImageRenderer` for the PDF plan (Core Animation views become placeholders) and Euler-angle yaw on floor surfaces (gimbal lock).
+- `CIContext.render(_:to:commandBuffer:bounds:colorSpace:)` into an `MTLTexture` without flipping (bottom-left origin).
+- Regenerating `MeshResource` from `MeshDescriptor` per frame, and `ARView.debugOptions` `.showSceneUnderstanding` as the user-facing coverage view.
+- Combining orbit, pan and dolly in `realityViewCameraControls`. `CameraControls` allows one mode at a time.
+- `PhotogrammetrySession` `.modelEntity` requests on the 6 GB phone, `modelFile(url:)` with a `.obj` file URL (use a directory URL), and reusing an `ObjectCaptureSession` after `.completed` or `.failed`.
+- `BGProcessingTask` for user-facing processing (runs only when idle), `URLFileProtection.complete` on scan data (writes fail when locked), and relying on catching a `StructureBuilder` crash.
+
+## 6. Answers to open questions
+
+Only questions that matter for the architecture. Confidence: verified (doc JSON or real data), likely (strong indirect evidence), unsure (needs a device test).
+
+### Capture and sessions
+
+1. **Does RoomPlan keep our scene reconstruction and scene depth on a shared session?** Likely not for a bare `RoomCaptureSession`: `run(configuration:)` replaces the configuration and `sceneDepth` disappears (several forum reports). Re-run our `ARWorldTrackingConfiguration` with empty options in `captureSession(_:didStartWith:)` for every room and read the configuration later, because changes apply asynchronously. The "preserves all of the AR session's settings" sentence is documented only for `RoomCaptureView.init(frame:arSession:)`. Confidence: likely.
+2. **Can the app set `arSession.delegate` while RoomPlan uses the session?** Yes, per the tie-breaker. Set it before handing the session over, check identity after `didStartWith`, and multiplex only if it was replaced. Confidence: likely.
+3. **Can the video format be changed on RoomPlan's session?** Undocumented. A format set before `run` is likely overwritten. Test once: re-run in `didStartWith` with `recommendedVideoFormatForHighResolutionFrameCapturing`, watch `session(_:didFailWithError:)`, log `imageResolution` and `framesPerSecond` after 3 s. Do not depend on a non-default format during RoomPlan. Confidence: unsure.
+4. **Do high-resolution frames carry `sceneDepth`, and are their intrinsics rescaled?** Apple staff say depth is present with `.sceneDepth` and default settings (the regular low-res map). Intrinsic rescaling is unknown; always scale K by pixel-buffer size over `imageResolution`. Hi-res stays off in v1. Confidence: likely for depth, unsure for intrinsics.
+5. **Mesh chunk size, update cadence and remove/re-add churn?** Undocumented (community: about 1 m chunks, 0.5 to 1 s updates). Design for any cadence: store by identifier, mark stale on remove, throttle per-anchor work to at most every 0.5 s. Confidence: unsure.
+6. **Is `ARWorldMap` relocalization reliable across launches?** Documented as supported for multi-room structures (save map and room, relaunch with `initialWorldMap`, return true from `sessionShouldAttemptRelocalization`, wait for `.normal`). Reliability and map size on iOS 18.3.2 need a device test, so treat it as best effort with a timeout. Confidence: likely supported, unsure on reliability.
+
+### Merging and floor plans
+
+7. **Does merging rooms from separate, unrelocalized sessions throw?** No. It silently stacks rooms. `invalidRoomLocation` targets rooms that are far apart. Confidence: likely.
+8. **How are stories and IDs handled after a merge?** Undocumented. Apple's sample house has story 0 for all rooms. Room and floor IDs are regenerated, while wall, door, window, opening and object IDs are kept (forum reports). Keep input rooms and match back by those IDs or by centroids. Confidence: likely.
+9. **What are the local axes of RoomPlan surfaces?** Walls, doors and windows: `columns.1` is world up, `columns.0` runs along the wall with an arbitrary sign. Floors: `columns.2` is world up and `polygonCorners` are local (x, y, 0). `dimensions.z` is always 0. Rectangular walls have empty `polygonCorners`. Always use the full 4x4 transform. Confidence: verified for floors and depth, likely for walls.
+10. **Can Mapper rely on RoomPlan USDZ node names or the metadata format?** No. Treat USDZ as output only and rebuild from Codable `CapturedRoom`. The metadata file needs an extension; pass `.plist` and sniff the format. Confidence: verified for names, likely for metadata.
+11. **Which CAD importers honor `$INSUNITS` in R12?** LibreCAD and ezdxf read it; AutoCAD and QCAD are untested; SketchUp Pro's import has its own unit option. State units in a note and the filename. Confidence: unsure.
+
+### Object Capture
+
+12. **What are the image and size limits on the iPhone 13 Pro Max?** Device-specific and unpublished. Read `ObjectCaptureSession.maximumNumberOfInputImages` and `PhotogrammetrySession.limits` (iOS 17.0) at runtime. Images over the limits are ignored and reported as invalid samples. Capture stops at the limit unless `isOverCaptureEnabled` is true. Confidence: verified API, unknown values.
+13. **Which requests work on iOS?** `.modelFile` and `.bounds` are the plan. `.poses` and `.pointCloud` are optional (log `requestError`). Avoid `.modelEntity` for memory. OBJ into a pre-created directory URL is documented and seen working on iOS 26; unconfirmed on iOS 18, so keep the ModelIO import plus own OBJ writer fallback. Confidence: likely.
+14. **How long does reconstruction take?** Only qualitative data ("one to a few minutes"). Design for 2 to 10 minutes with progress, ETA, foreground only and checkpoint resume. Confidence: unsure.
+15. **Is there a way to get more than `.reduced` on the phone?** No. The higher cases are macOS and Mac Catalyst only in the iOS 26 SDK. Export the image folder for a Mac. Confidence: verified.
+
+### Texturing, rendering and export
+
+16. **What is RealityKit's UV V origin?** Likely bottom-left, so store `v' = 1 - v` for a top-left atlas. OBJ and USD are also bottom-left, so one convention covers display and export. Confirm with the numbered-atlas test. Confidence: likely.
+17. **Does ModelIO write USDZ or textured OBJ?** Do not depend on either. Own OBJ plus MTL; own usda plus `MDLUtility.convert(toUSDZ:writeTo:)`; own stored-zip writer as fallback. Log `canExportFileExtension` for usdz, usdc, usda, obj, stl and ply in the capability probe. Confidence: likely.
+18. **Does `LowLevelMesh` `.color` reach `ShaderGraphMaterial` or `CustomMaterial` on iOS 18?** Unknown. An Apple engineer said it is exposed to Shader Graph on visionOS. Test both in the first spike, with a per-face fallback. A `ShaderGraphMaterial` with an Occlusion Surface output fails to load on iOS 18, so use the Unlit or PBR surface. Confidence: unsure.
+19. **RealityView or ARView for the viewer?** `RealityView` on iOS 18 has project, unproject, ray and hit test, but `CameraControls` allows one mode and there are no attachments on iOS. `ARView` (`.nonAR`, 3-argument init) in a `UIViewRepresentable` is the lowest-risk host. Confidence: verified.
+20. **What does `triangleHit.faceIndex` mean with several shapes, and what does `pixelCast` cost?** Undocumented. Use one static-mesh shape per chunk entity, verify by picking a known triangle, keep a CPU ray-triangle fallback, and call `pixelCast` once per tap. Confidence: unsure.
+21. **Is `MeshResource.generate(from: [MeshDescriptor])` still in the iOS 26 SDK?** Unverified in the docs (the page 404s; community code only). Prefer `LowLevelMesh`; confirm with one compile if used. Confidence: unsure.
+22. **Is the `SCNScene.write` second-write bug still present?** Unknown on iOS 18.3 and 26. It only matters for the last-resort path. Confidence: unsure.
+
+### Quality and measurement
+
+23. **What do `completedEdges` mean at runtime?** Undocumented beyond "edges that outline the surface". Soft coverage hint only, never a finish gate. Confidence: unsure.
+24. **What is the confidence map format?** Expect `OneComponent8` with raw values 0, 1, 2. Read the format at runtime and map with `ARConfidenceLevel(rawValue:)`. Confidence: likely.
+25. **How accurate is LiDAR depth at room scale?** The 3.7 cm median ARKit versus Faro figure is whole-frame and likely inflated by far pixels. Error grows with range (about 1 to 2 cm at 1 to 3 m, rising past about 4.5 m). Room-scale app error is several cm to decimetres and dominated by tracking. Use a distance-dependent depth term calibrated with the tape protocol. Confidence: likely.
+26. **Does Mapper need a user measurement correction?** Yes, as an option: one tape-measured reference length applied as a reversible uniform scale. Confidence: unsure (no Apple accuracy figure).
+27. **What is the thermal timeline?** No published numbers. Expect `.fair` within minutes and possibly `.serious` after 10 to 20 minutes of RoomPlan plus mesh plus overlay; `.critical` is unlikely in normal room scans. Log thermal state and battery every 30 s. Confidence: unsure.
+
+### Storage, deployment and UX
+
+28. **What is the jetsam limit?** No authoritative figure for this phone. Budget about 2.5 GB and measure. Confidence: unsure.
+29. **Can the free-team profile carry increased-memory-limit?** Unknown for Sideloadly. Test by inspecting `embedded.mobileprovision`, but do not depend on it. Confidence: unsure.
+30. **What are the free Apple ID limits?** 3 active sideloaded apps per device, 10 App IDs per 7 days, 7-day expiry. Two phones on one Apple ID is fine. Confidence: likely (Sideloadly FAQ not re-fetched).
+31. **Does iOS 26 change background processing or SceneKit?** `BGContinuedProcessingTaskRequest` (iOS 26.0) must be submitted from the foreground on a user action, CPU only on iPhone, with a system-provided Live Activity. SceneKit deprecation is compile-time only; code still runs on iOS 18 and 26, and the warnings may not even fire with an 18.0 deployment target. Confidence: verified for API availability.
+32. **Which RoomPlan section labels exist?** Six: `livingRoom`, `kitchen`, `diningRoom`, `bedroom`, `bathroom`, `unidentified` (iOS 17.0). Use `@unknown default` and treat labels as suggested names only. Confidence: verified.
+33. **Can the scan screen stay portrait while the viewer rotates?** Yes with UIKit bridging (orientation mask, `setNeedsUpdateOfSupportedInterfaceOrientations()`, `requestGeometryUpdate`), but v1 is portrait only. Confidence: likely.
+34. **Does `ShareLink` with a folder URL work as well as `UIActivityViewController`?** Unknown; forums report failures. Use a `UIActivityViewController` wrapper for folders with zip as fallback. Confidence: unsure.
+
+### Still unresolved (device tests for the first builds)
+
+- RoomPlan plus scene depth plus mesh on one session on iOS 18.3.2, including whether walls keep coming and whether the video format is replaced.
+- Texture orientation, UV V origin, depth-pass projection signs, and whether hi-res frame intrinsics are rescaled.
+- Per-vertex color through `ShaderGraphMaterial` or `CustomMaterial`, and RealityKit frame rate at about 1M triangles.
+- `MDLUtility.convert(toUSDZ:writeTo:)` behavior and texture packaging; `canExportFileExtension` results.
+- Runtime values: `maximumNumberOfInputImages`, `PhotogrammetrySession.limits`, available memory, depth and image sizes, mesh chunk size and cadence.
+- Reconstruction time, thermal timeline and battery drain on the A15.
+- `ARWorldMap` size and relocalization success rate; `StructureBuilder` crash rate with 3 to 4 rooms.
+- Whether Sideloadly keeps the increased-memory-limit entitlement; `ShareLink` with folders; the `ObjectCaptureView` leak size on iOS 18.
+
+## 7. Sources
+
+Every URL used by the researchers, verifiers, section drafters and checkers, grouped by subsystem. Apple documentation JSON URLs (`https://developer.apple.com/tutorials/data/documentation/<path>.json`) are listed in their human-readable form (`https://developer.apple.com/documentation/<path>`); both forms resolve to the same page.
+
+### ARKit mesh and depth
+
+- https://developer.apple.com/documentation/arkit/aranchor
+- https://developer.apple.com/documentation/arkit/arcamera
+- https://developer.apple.com/documentation/arkit/arcamera/projectionmatrix(for:viewportsize:znear:zfar
+- https://developer.apple.com/documentation/arkit/arcamera/projectionmatrixfororientation:viewportsize:znear:zfar:
+- https://developer.apple.com/documentation/arkit/arcamera/unprojectpoint(_:ontoplane:orientation:viewportsize:)
+- https://developer.apple.com/documentation/arkit/arconfiguration/framesemantics-swift.struct/scenedepth
+- https://developer.apple.com/documentation/arkit/arconfiguration/recommendedvideoformatforhighresolutionframecapturing
+- https://developer.apple.com/documentation/arkit/arconfiguration/videoformat-swift.class
+- https://developer.apple.com/documentation/arkit/arconfiguration/videoformat-swift.class/isrecommendedforhighresolutionframecapturing
+- https://developer.apple.com/documentation/arkit/ardepthdata
+- https://developer.apple.com/documentation/arkit/ardepthdata/confidencemap
+- https://developer.apple.com/documentation/arkit/ardepthdata/depthmap
+- https://developer.apple.com/documentation/arkit/arframe
+- https://developer.apple.com/documentation/arkit/arframe/capturedimage
+- https://developer.apple.com/documentation/arkit/arframe/raycastquery(from:allowing:alignment:)
+- https://developer.apple.com/documentation/arkit/arframe/scenedepth
+- https://developer.apple.com/documentation/arkit/arframe/worldmappingstatus-swift.enum
+- https://developer.apple.com/documentation/arkit/armeshanchor
+- https://developer.apple.com/documentation/arkit/armeshanchor/geometry
+- https://developer.apple.com/documentation/arkit/armeshclassification
+- https://developer.apple.com/documentation/arkit/armeshgeometry
+- https://developer.apple.com/documentation/arkit/arplaneanchor
+- https://developer.apple.com/documentation/arkit/arraycastquery/target-swift.enum/estimatedplane
+- https://developer.apple.com/documentation/arkit/arsession/capturehighresolutionframe(completion
+- https://developer.apple.com/documentation/arkit/arsession/capturehighresolutionframe(using:completion
+- https://developer.apple.com/documentation/arkit/arsession/currentframe
+- https://developer.apple.com/documentation/arkit/arsession/delegate
+- https://developer.apple.com/documentation/arkit/arsession/delegatequeue
+- https://developer.apple.com/documentation/arkit/arsession/getcurrentworldmap(completionhandler:)
+- https://developer.apple.com/documentation/arkit/arsession/raycast(_:)
+- https://developer.apple.com/documentation/arkit/arsession/run(_:options:)
+- https://developer.apple.com/documentation/arkit/arsession/runoptions
+- https://developer.apple.com/documentation/arkit/arsession/runoptions/resetscenereconstruction
+- https://developer.apple.com/documentation/arkit/arsessiondelegate
+- https://developer.apple.com/documentation/arkit/arworldmap
+- https://developer.apple.com/documentation/arkit/arworldtrackingconfiguration/environmenttexturing-swift.enum
+- https://developer.apple.com/documentation/arkit/arworldtrackingconfiguration/initialworldmap
+- https://developer.apple.com/documentation/arkit/arworldtrackingconfiguration/scenereconstruction
+- https://developer.apple.com/documentation/arkit/arworldtrackingconfiguration/supportsscenereconstruction(_
+- https://developer.apple.com/documentation/arkit/creating-a-fog-effect-using-scene-depth
+- https://developer.apple.com/documentation/arkit/displaying-a-point-cloud-using-scene-depth
+- https://developer.apple.com/documentation/arkit/saving-and-loading-world-data
+- https://developer.apple.com/documentation/arkit/visualizing-and-interacting-with-a-reconstructed-scene
+- https://developer.apple.com/documentation/foundation/processinfo/thermalstate-swift.property
+- https://developer.apple.com/documentation/realitykit/arview/automaticallyconfiguresession
+- https://developer.apple.com/documentation/roomplan/roomcapturesession
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/init(arsession
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/stop(pausearsession:)
+- https://developer.apple.com/documentation/roomplan/roomcapturesessiondelegate/capturesession(_:didstartwith:)
+- https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure
+- https://developer.apple.com/forums/thread/130326
+- https://developer.apple.com/forums/thread/682585
+- https://developer.apple.com/forums/thread/705469
+- https://developer.apple.com/forums/thread/710134
+- https://developer.apple.com/forums/thread/728601
+- https://developer.apple.com/forums/thread/763400
+- https://developer.apple.com/forums/thread/805839
+- https://developer.apple.com/forums/thread/808834
+- https://developer.apple.com/videos/play/wwdc2022/10126/
+- https://developer.apple.com/videos/play/wwdc2023/10192/
+- https://github.com/Shadowru/straylite/blob/b4d8940dd2c770a7bd79fbec25bc5ec3763c42ec/Sources/straylite/Capture/CaptureCoordinator.swift
+- https://github.com/WiseLabCMU/wisescan-ios/blob/main/README.md
+- https://github.com/YvigUnderscore/ReScan/pull/17
+- https://github.com/dotnet/macios/wiki/ARKit-iOS-xcode26.0-b1
+- https://github.com/pickettdad/homebinder/blob/main/docs/PHOTO-SETTINGS-RESULT-2026-09-07.md
+- https://github.com/pickettdad/homebinder/blob/main/docs/ZONE-SESSION-MEASURED-2026-08-19.md
+- https://github.com/xybp888/iOS-SDKs/blob/master/iPhoneOS26.5.sdk/System/Library/Frameworks/ARKit.framework/Headers/ARCamera.h
+- https://raw.githubusercontent.com/xybp888/iOS-SDKs/master/iPhoneOS14.0.sdk/System/Library/Frameworks/ARKit.framework/Headers/ARMeshGeometry.h
+- https://stackoverflow.com/questions/77620306
+- https://stackoverflow.com/questions/79208951
+
+### RoomPlan
+
+- https://developer.apple.com/documentation/arkit/arsession/delegate
+- https://developer.apple.com/documentation/arkit/arsession/getcurrentworldmap(completionhandler:)
+- https://developer.apple.com/documentation/arkit/arworldtrackingconfiguration/initialworldmap
+- https://developer.apple.com/documentation/roomplan
+- https://developer.apple.com/documentation/roomplan/captured-object-attributes
+- https://developer.apple.com/documentation/roomplan/capturedroom
+- https://developer.apple.com/documentation/roomplan/capturedroom/export(to:metadataurl:modelprovider:exportoptions:)
+- https://developer.apple.com/documentation/roomplan/capturedroom/modelprovider
+- https://developer.apple.com/documentation/roomplan/capturedroom/object/attribute(of:)
+- https://developer.apple.com/documentation/roomplan/capturedroom/object/category-swift.enum
+- https://developer.apple.com/documentation/roomplan/capturedroom/section/label-swift.enum
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/curve-swift.struct/center
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/polygoncorners
+- https://developer.apple.com/documentation/roomplan/capturedroom/usdexportoptions
+- https://developer.apple.com/documentation/roomplan/capturedroom/usdexportoptions/model
+- https://developer.apple.com/documentation/roomplan/capturedroomattribute
+- https://developer.apple.com/documentation/roomplan/capturedstructure/export(to:metadataurl:modelprovider:exportoptions
+- https://developer.apple.com/documentation/roomplan/create-a-3d-model-of-an-interior-room-by-guiding-the-user-through-an-ar-experience
+- https://developer.apple.com/documentation/roomplan/roombuilder
+- https://developer.apple.com/documentation/roomplan/roombuilder/capturedroom(from:)
+- https://developer.apple.com/documentation/roomplan/roomcapturesession
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/arsession
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/captureerror
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/configuration
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/init(arsession:)
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/instruction
+- https://developer.apple.com/documentation/roomplan/roomcapturesessiondelegate
+- https://developer.apple.com/documentation/roomplan/roomcapturesessiondelegate/capturesession(_:didendwith:error:)
+- https://developer.apple.com/documentation/roomplan/roomcaptureview
+- https://developer.apple.com/documentation/roomplan/roomcaptureview/init(frame:arsession:)
+- https://developer.apple.com/documentation/roomplan/roomcaptureviewdelegate
+- https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure
+- https://developer.apple.com/documentation/roomplan/structurebuilder/capturedstructure(from
+- https://developer.apple.com/forums/thread/710765
+- https://developer.apple.com/forums/thread/728601
+- https://developer.apple.com/forums/thread/763135
+- https://developer.apple.com/forums/thread/763400
+- https://developer.apple.com/forums/thread/775853
+- https://developer.apple.com/forums/thread/775945
+- https://developer.apple.com/forums/thread/808834
+- https://developer.apple.com/videos/play/wwdc2022/10127/
+- https://developer.apple.com/videos/play/wwdc2023/10192/
+- https://github.com/XRealityZone/apple-wwdc-ar-demo
+- https://machinelearning.apple.com/research/roomplan
+- https://raw.githubusercontent.com/facebookresearch/ocean/main/impl/ocean/devices/arkit/roomplan/swift/AKRoomPlanTracker6DOF_Swift.swift
+
+### Object Capture
+
+- https://developer.apple.com/documentation/modelio/mdlasset
+- https://developer.apple.com/documentation/modelio/mdlasset/boundingbox
+- https://developer.apple.com/documentation/modelio/mdlasset/canexportfileextension(_:)
+- https://developer.apple.com/documentation/modelio/mdlasset/childobjects(of:)
+- https://developer.apple.com/documentation/modelio/mdlasset/export(to:)
+- https://developer.apple.com/documentation/modelio/mdlasset/init(url:)-1f4ym
+- https://developer.apple.com/documentation/realitykit/boundingbox/extents
+- https://developer.apple.com/documentation/realitykit/entity/init(contentsof:withname:)
+- https://developer.apple.com/documentation/realitykit/hastransform/visualbounds(recursive:relativeto:excludeinactive:)
+- https://developer.apple.com/documentation/realitykit/meshresource/bounds
+- https://developer.apple.com/documentation/realitykit/objectcapturepointcloudview
+- https://developer.apple.com/documentation/realitykit/objectcapturepointcloudview/init(session:)
+- https://developer.apple.com/documentation/realitykit/objectcapturepointcloudview/showshotlocations(_:)
+- https://developer.apple.com/documentation/realitykit/objectcapturesession
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/beginnewscanpass()
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/beginnewscanpassafterflip()
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/cameratracking
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/canrequestimagecapture
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/capturestate
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/configuration-swift.struct/isovercaptureenabled
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/error
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/error/insufficientstorage(requiredbytes:)
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/feedback-swift.enum
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/feedback-swift.property
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/isautocaptureenabled
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/maximumnumberofinputimages
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/numberofshotstaken
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/requestimagecapture()
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/shouldplayhaptics
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/start(imagesdirectory:configuration:)
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/startcapturing()
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/startdetecting()
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/usercompletedscanpass
+- https://developer.apple.com/documentation/realitykit/objectcaptureview
+- https://developer.apple.com/documentation/realitykit/objectcaptureview/init(session:)
+- https://developer.apple.com/documentation/realitykit/photogrammetrysample
+- https://developer.apple.com/documentation/realitykit/photogrammetrysample/boundingbox
+- https://developer.apple.com/documentation/realitykit/photogrammetrysample/init(contentsof:)
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/configuration-swift.struct/checkpointdirectory
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/configuration-swift.struct/ignoreboundingbox
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/configuration-swift.struct/init(checkpointdirectory:)
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/configuration-swift.struct/isobjectmaskingenabled
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/limits-swift.struct/maximumnumberofinputimages
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/limits-swift.type.property
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/output
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/output/automaticdownsampling
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/output/processingstage
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/output/progressinfo
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/output/requestprogressinfo(_:_:)
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/output/stitchingincomplete
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/outputs-swift.property
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail/medium
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail/reduced
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/geometry
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/modelfile(url:detail:geometry:)
+- https://developer.apple.com/documentation/realitykit/scanning-objects-using-object-capture
+- https://developer.apple.com/forums/thread/742077
+- https://developer.apple.com/videos/play/wwdc2023/10191/
+- https://developer.apple.com/videos/play/wwdc2024/10107/
+- https://docs-assets.developer.apple.com/published/c13a7fb3aa69/ScanningObjectsUsingObjectCapture.zip
+- https://github.com/VForev/Lidar4Free/blob/HEAD/LidarFree/Reconstruct/ReconstructionService.swift
+- https://github.com/VForev/Lidar4Free/blob/f4d6506626c02a024dec6baf51fb2d68c1bcae40/LidarFree/Reconstruct/ReconstructionService.swift
+- https://github.com/tristanheilman/react-native-object-capture/blob/HEAD/ios/Session/RNPhotogrammetrySession.swift
+- https://www.it-jim.com/blog/3d-reconstruction-on-ios/
+
+### Texturing pipeline
+
+- https://developer.apple.com/documentation/arkit/arcamera
+- https://developer.apple.com/documentation/arkit/arcamera/transform
+- https://developer.apple.com/documentation/arkit/arcamera/viewmatrix(viewrotationangle
+- https://developer.apple.com/documentation/arkit/arconfiguration/configurablecapturedeviceforprimarycamera
+- https://developer.apple.com/documentation/arkit/ardepthdata
+- https://developer.apple.com/documentation/arkit/ardepthdata/depthmap
+- https://developer.apple.com/documentation/arkit/arframe/capturedimage
+- https://developer.apple.com/documentation/arkit/arframe/exifdata
+- https://developer.apple.com/documentation/arkit/argeometryelement
+- https://developer.apple.com/documentation/arkit/armeshgeometry
+- https://developer.apple.com/documentation/arkit/armeshgeometry/classification
+- https://developer.apple.com/documentation/arkit/arsession/capturehighresolutionframe(completion
+- https://developer.apple.com/documentation/arkit/visualizing-and-interacting-with-a-reconstructed-scene
+- https://developer.apple.com/documentation/coreimage/cicontext
+- https://developer.apple.com/documentation/coreimage/cirenderdestination/isflipped
+- https://developer.apple.com/documentation/metalkit/mtktextureloader/newtexture(cgimage:options:)
+- https://developer.apple.com/documentation/metalperformanceshaders/mpsimagestatisticsmeanandvariance
+- https://developer.apple.com/documentation/modelio/mdlasset/canexportfileextension(_
+- https://developer.apple.com/documentation/modelio/mdlutility/convert(tousdz:writeto:)
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/attribute
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/part/init(indexoffset:indexcount:topology:materialindex:bounds:)
+- https://developer.apple.com/documentation/realitykit/lowleveltexture
+- https://developer.apple.com/documentation/realitykit/lowleveltexture/descriptor-swift.struct
+- https://developer.apple.com/documentation/realitykit/meshbuffers
+- https://developer.apple.com/documentation/realitykit/meshresource/init(from:)
+- https://developer.apple.com/documentation/realitykit/modelentity/init(mesh:materials:)
+- https://developer.apple.com/documentation/realitykit/textureresource/generate(from:withname:options:)
+- https://developer.apple.com/documentation/realitykit/textureresource/init(image:withname:options:)
+- https://developer.apple.com/documentation/realitykit/unlitmaterial/init(texture:)
+- https://developer.apple.com/documentation/scenekit
+- https://developer.apple.com/forums/thread/695404
+- https://developer.apple.com/forums/thread/759333
+- https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+- https://developer.apple.com/videos/play/wwdc2022/10126/
+- https://developer.apple.com/videos/play/wwdc2025/288/
+- https://github.com/CariusLars/ar_flutter_plugin/issues/163
+- https://github.com/WiseLabCMU/wisescan-ios/blob/main/docs/design/capture-quality-triage.md
+- https://github.com/aabdlwahab/3d-scanner
+- https://github.com/emin-grbo/WWDCLounges/blob/c4ecea0fbc126868aa96046fb91b34d7fc5ede06/docs/wwdc22/arkit-realitykit-usdz-lounge.md
+- https://github.com/maxxfrazer/RealityGeometries/issues/3
+- https://github.com/metal-by-example/metal-spatial-dynamic-mesh
+- https://github.com/metal-by-example/sample-code/issues/11
+- https://github.com/nianticlabs/map-free-reloc/issues/5
+- https://github.com/suzuki-naoto/VisualizingAPointCloudUsingSceneDepth/blob/master/SceneDepthPointCloud/Shaders.metal
+- https://openusd.org/release/spec_usdz.html
+- https://raw.githubusercontent.com/aabdlwahab/3d-scanner/main/App/Sources/Core/Processing/TextureAtlasBuilder.swift
+- https://raw.githubusercontent.com/aabdlwahab/3d-scanner/main/App/Sources/Core/Processing/ViewSelector.swift
+
+### Rendering and viewer
+
+- https://andrewgrant.org/2020/04/using-the-2020-ipads-armeshanchor-with-scenekit/
+- https://developer.apple.com/documentation/arkit/armeshgeometry
+- https://developer.apple.com/documentation/arkit/visualizing-and-interacting-with-a-reconstructed-scene
+- https://developer.apple.com/documentation/metal/mtlrendercommandencoder/settrianglefillmode(_:)
+- https://developer.apple.com/documentation/metalkit/mtkview
+- https://developer.apple.com/documentation/realitykit/anchorentity
+- https://developer.apple.com/documentation/realitykit/anchorentity/init(anchor:)
+- https://developer.apple.com/documentation/realitykit/arview
+- https://developer.apple.com/documentation/realitykit/arview/debugoptions-swift.struct/showsceneunderstanding
+- https://developer.apple.com/documentation/realitykit/arview/environment-swift.struct/background-swift.struct
+- https://developer.apple.com/documentation/realitykit/arview/environment-swift.struct/background-swift.struct/camerafeed(exposurecompensation:)
+- https://developer.apple.com/documentation/realitykit/arview/environment-swift.struct/sceneunderstanding-swift.struct/options-swift.struct
+- https://developer.apple.com/documentation/realitykit/arview/hittest(_:query:mask:)
+- https://developer.apple.com/documentation/realitykit/arview/init(frame:cameramode:)
+- https://developer.apple.com/documentation/realitykit/arview/init(frame:cameramode:automaticallyconfiguresession:)
+- https://developer.apple.com/documentation/realitykit/arview/project(_:)
+- https://developer.apple.com/documentation/realitykit/arview/ray(through:)
+- https://developer.apple.com/documentation/realitykit/arview/snapshot(savetohdr:completion:)-66jzu
+- https://developer.apple.com/documentation/realitykit/billboardcomponent
+- https://developer.apple.com/documentation/realitykit/cameracontrols
+- https://developer.apple.com/documentation/realitykit/collisioncasthit/trianglehit-swift.property
+- https://developer.apple.com/documentation/realitykit/collisioncasthit/trianglehit-swift.struct
+- https://developer.apple.com/documentation/realitykit/collisioncomponent/init(shapes:mode:filter:)
+- https://developer.apple.com/documentation/realitykit/custommaterial
+- https://developer.apple.com/documentation/realitykit/custommaterial/init(surfaceshader:geometrymodifier:lightingmodel:)
+- https://developer.apple.com/documentation/realitykit/entity/componentset
+- https://developer.apple.com/documentation/realitykit/entity/isenabled
+- https://developer.apple.com/documentation/realitykit/entitytargetvalue
+- https://developer.apple.com/documentation/realitykit/inputtargetcomponent
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/descriptor-swift.struct/allowsprimitiverestart
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/descriptor-swift.struct/init(vertexcapacity:vertexattributes:vertexlayouts:indexcapacity:indextype:)
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/init(descriptor:)
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/part/init(indexoffset:indexcount:topology:materialindex:bounds:)
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/replace(bufferindex:using:)
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/vertexsemantic/color
+- https://developer.apple.com/documentation/realitykit/lowlevelmesh/withunsafemutablebytes(bufferindex:_:)
+- https://developer.apple.com/documentation/realitykit/materialparametertypes/trianglefillmode
+- https://developer.apple.com/documentation/realitykit/meshbuffercontainer
+- https://developer.apple.com/documentation/realitykit/meshdescriptor
+- https://developer.apple.com/documentation/realitykit/meshresource
+- https://developer.apple.com/documentation/realitykit/meshresource/generate(from:)
+- https://developer.apple.com/documentation/realitykit/meshresource/generatebox(size:cornerradius:)-2ovma
+- https://developer.apple.com/documentation/realitykit/meshresource/generatetext(_:extrusiondepth:font:containerframe:alignment:linebreakmode:)
+- https://developer.apple.com/documentation/realitykit/meshresource/init(from:)
+- https://developer.apple.com/documentation/realitykit/modifying-realitykit-rendering-using-custom-materials
+- https://developer.apple.com/documentation/realitykit/perspectivecameracomponent
+- https://developer.apple.com/documentation/realitykit/perspectivecameracomponent/init(near:far:fieldofviewindegrees:)
+- https://developer.apple.com/documentation/realitykit/physicallybasedmaterial/basecolor-swift.struct
+- https://developer.apple.com/documentation/realitykit/physicallybasedmaterial/blending-swift.enum/transparent(opacity:)
+- https://developer.apple.com/documentation/realitykit/pixelcasthit
+- https://developer.apple.com/documentation/realitykit/realitycoordinatespaceprojecting
+- https://developer.apple.com/documentation/realitykit/realitycoordinatespaceprojecting/hittest(point:in:query:mask:)
+- https://developer.apple.com/documentation/realitykit/realitycoordinatespaceprojecting/project(point:to:)
+- https://developer.apple.com/documentation/realitykit/realitycoordinatespaceprojecting/ray(through:in:to:)
+- https://developer.apple.com/documentation/realitykit/realityview
+- https://developer.apple.com/documentation/realitykit/realityview/init(make:update:)
+- https://developer.apple.com/documentation/realitykit/realityviewcameracontent
+- https://developer.apple.com/documentation/realitykit/scene/pixelcast(from:to:)
+- https://developer.apple.com/documentation/realitykit/scene/raycast(origin:direction:length:query:mask:relativeto:)
+- https://developer.apple.com/documentation/realitykit/shadergraphmaterial
+- https://developer.apple.com/documentation/realitykit/shadergraphmaterial/init(materialxlabel:data:)
+- https://developer.apple.com/documentation/realitykit/shaperesource/generatestaticmesh(from:)
+- https://developer.apple.com/documentation/realitykit/shaperesource/generatestaticmesh(positions:faceindices:)
+- https://developer.apple.com/documentation/realitykit/textureresource
+- https://developer.apple.com/documentation/realitykit/textureresource/createoptions/init(semantic:mipmapsmode:)
+- https://developer.apple.com/documentation/realitykit/textureresource/init(image:withname:options:)
+- https://developer.apple.com/documentation/realitykit/unlitmaterial
+- https://developer.apple.com/documentation/realitykit/unlitmaterial/color
+- https://developer.apple.com/documentation/realitykit/unlitmaterial/faceculling-swift.property
+- https://developer.apple.com/documentation/realitykit/unlitmaterial/init(texture:)
+- https://developer.apple.com/documentation/realitykit/unlitmaterial/trianglefillmode-swift.property
+- https://developer.apple.com/documentation/scenekit
+- https://developer.apple.com/documentation/scenekit/scngeometrysource/init(buffer:vertexformat:semantic:vertexcount:dataoffset:datastride:)
+- https://developer.apple.com/documentation/swiftui/view/realityviewcameracontrols(_:)
+- https://developer.apple.com/documentation/xcode-release-notes/xcode-26-release-notes
+- https://developer.apple.com/forums/thread/751764
+- https://developer.apple.com/forums/thread/759449
+- https://developer.apple.com/forums/thread/763404
+- https://developer.apple.com/forums/thread/774411
+- https://developer.apple.com/forums/thread/774697
+- https://developer.apple.com/metal/Metal-RealityKit-APIs.pdf
+- https://developer.apple.com/videos/play/wwdc2025/288/
+- https://github.com/ThomasZhang223/Scale/blob/baaf6ef2d451959fe513b737a646e097ad75da24/apps/mobile/modules/object-measure/ios/ObjectMeasureNativeView.swift
+- https://github.com/WiseLabCMU/wisescan-ios/blob/main/wisescan-ios/PointCloudManager.swift
+- https://github.com/google-ar/arcore-ios-sdk/blob/dc6011fe12b08761241bb1524ca3839c6f6552fd/Examples/GeospatialExample/GeospatialExample/ARViewContainer.swift
+- https://github.com/pookjw/MySwiftUI/blob/main/Sources/MyRealityFoundation/MeshResource.swift
+
+### Floor plan and CAD output
+
+- http://www.w3.org/2000/svg
+- https://developer.apple.com/documentation/arkit/arconfiguration/worldalignment-swift.enum/gravity
+- https://developer.apple.com/documentation/coregraphics/cgcontext/init(consumer:mediabox:_:)
+- https://developer.apple.com/documentation/foundation/locale/measurementsystem-swift.property
+- https://developer.apple.com/documentation/foundation/measurement/formatstyle
+- https://developer.apple.com/documentation/foundation/measurement/formatstyle/init(width:locale:usage:numberformatstyle:)
+- https://developer.apple.com/documentation/roomplan/capturedroom
+- https://developer.apple.com/documentation/roomplan/capturedroom/floors
+- https://developer.apple.com/documentation/roomplan/capturedroom/object/attributes
+- https://developer.apple.com/documentation/roomplan/capturedroom/object/category-swift.enum
+- https://developer.apple.com/documentation/roomplan/capturedroom/section
+- https://developer.apple.com/documentation/roomplan/capturedroom/section/center
+- https://developer.apple.com/documentation/roomplan/capturedroom/section/label-swift.enum
+- https://developer.apple.com/documentation/roomplan/capturedroom/story
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/category-swift.enum
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/category-swift.enum/door(isopen:)
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/completededges
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/curve-swift.struct
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/curve-swift.struct/center
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/curve-swift.struct/endangle
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/curve-swift.struct/radius
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/curve-swift.struct/startangle
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/dimensions
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/parentidentifier
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/polygoncorners
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/transform
+- https://developer.apple.com/documentation/roomplan/capturedroom/usdexportoptions
+- https://developer.apple.com/documentation/roomplan/capturedroomattribute
+- https://developer.apple.com/documentation/roomplan/capturedstructure
+- https://developer.apple.com/documentation/roomplan/capturedstructure/export(to:metadataurl:modelprovider:exportoptions:)
+- https://developer.apple.com/documentation/roomplan/capturedstructure/rooms
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/init(arsession:)
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/stop(pauseARSession:)
+- https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure
+- https://developer.apple.com/documentation/roomplan/structurebuilder/builderror
+- https://developer.apple.com/documentation/roomplan/structurebuilder/builderror/invalidroomlocation
+- https://developer.apple.com/documentation/roomplan/structurebuilder/capturedstructure(from:)
+- https://developer.apple.com/documentation/roomplan/structurebuilder/init(options:)
+- https://developer.apple.com/documentation/swiftui/canvas
+- https://developer.apple.com/documentation/swiftui/draggesture/init(minimumdistance:coordinatespace:)
+- https://developer.apple.com/documentation/swiftui/graphicscontext
+- https://developer.apple.com/documentation/swiftui/graphicscontext/fill(_:with:style:)
+- https://developer.apple.com/documentation/swiftui/graphicscontext/stroke(_:with:linewidth:)
+- https://developer.apple.com/documentation/swiftui/graphicscontext/withcgcontext(content:)
+- https://developer.apple.com/documentation/swiftui/imagerenderer
+- https://developer.apple.com/documentation/swiftui/imagerenderer/render(rasterizationscale:renderer:)
+- https://developer.apple.com/documentation/swiftui/magnificationgesture
+- https://developer.apple.com/documentation/swiftui/magnifygesture
+- https://developer.apple.com/documentation/swiftui/magnifygesture/init(minimumscaledelta:)
+- https://developer.apple.com/documentation/swiftui/rotategesture
+- https://developer.apple.com/documentation/swiftui/rotategesture/init(minimumangledelta:)
+- https://developer.apple.com/documentation/swiftui/sharelink
+- https://developer.apple.com/documentation/swiftui/spatialtapgesture
+- https://developer.apple.com/documentation/swiftui/spatialtapgesture/init(count:coordinatespace:)
+- https://developer.apple.com/documentation/swiftui/view/fileexporter(ispresented:document:contenttype:defaultfilename:oncompletion:)
+- https://developer.apple.com/documentation/swiftui/view/fileexporter(ispresented:item:contenttypes:defaultfilename:oncompletion:oncancellation:)
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrenderer
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrenderer/init(bounds:format:)
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrenderer/writepdf(to:withactions:)
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrenderercontext/beginpage()
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrendererformat/documentinfo
+- https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/init(exportedas:conformingto:)
+- https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/init(filenameextension:conformingto:)
+- https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/pdf
+- https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/svg
+- https://developer.apple.com/forums/thread/713409?page=1
+- https://developer.apple.com/forums/thread/733945
+- https://developer.apple.com/forums/thread/760952
+- https://developer.apple.com/videos/play/wwdc2023/10192/
+- https://ezdxf.readthedocs.io/en/stable/dxfinternals/filestructure.html
+- https://github.com/BaidetskyiYurii/RoomPlanDemo/blob/main/RoomPlanDemo/FloorPlan/FloorPlanSurface.swift
+- https://github.com/LibreCAD/LibreCAD/blob/master/librecad/src/lib/engine/document/lc_graphicvariables.cpp
+- https://github.com/denniswave/RoomPlan-2D
+- https://github.com/gromb57/ios-wwdc23__MergingMultipleScansIntoASingleStructure/blob/main/RoomPlanMultiscanMerging/RoomTableViewController.swift
+- https://github.com/laanlabs/openPlan3D/blob/main/test-roomplan.json
+- https://github.com/mozman/ezdxf/blob/master/src/ezdxf/entities/lwpolyline.py
+- https://raw.githubusercontent.com/mozman/ezdxf/master/src/ezdxf/sections/headervars.py
+- https://vdci.edu/learn/autocad/draw-doors-floor-plan-tools
+
+### 3D export formats
+
+- https://developer.apple.com/documentation/applearchive
+- https://developer.apple.com/documentation/coretransferable/filerepresentation
+- https://developer.apple.com/documentation/coretransferable/filerepresentation/init(exportedcontenttype:shouldallowtoopeninplace:exporting:)
+- https://developer.apple.com/documentation/coretransferable/senttransferredfile/init(_:allowaccessingoriginalfile:)
+- https://developer.apple.com/documentation/foundation/jsonserialization/data(withjsonobject:options:)
+- https://developer.apple.com/documentation/foundation/nsfilecoordinator/coordinate(readingitemat:options:error:byaccessor:)
+- https://developer.apple.com/documentation/foundation/nsfilecoordinator/readingoptions/foruploading
+- https://developer.apple.com/documentation/modelio/mdlasset
+- https://developer.apple.com/documentation/modelio/mdlasset/add(_:)
+- https://developer.apple.com/documentation/modelio/mdlasset/canexportfileextension(_:)
+- https://developer.apple.com/documentation/modelio/mdlasset/canimportfileextension(_:)
+- https://developer.apple.com/documentation/modelio/mdlasset/childobjects(of:)
+- https://developer.apple.com/documentation/modelio/mdlasset/export(to:)
+- https://developer.apple.com/documentation/modelio/mdlmaterial/init(name:scatteringfunction:)
+- https://developer.apple.com/documentation/modelio/mdlmaterialproperty
+- https://developer.apple.com/documentation/modelio/mdlmesh/addnormals(withattributenamed:creasethreshold:)
+- https://developer.apple.com/documentation/modelio/mdlmesh/init(vertexbuffer:vertexcount:descriptor:submeshes:)
+- https://developer.apple.com/documentation/modelio/mdlmeshbufferdata/init(type:data:)
+- https://developer.apple.com/documentation/modelio/mdlsubmesh/init(indexbuffer:indexcount:indextype:geometrytype:material:)
+- https://developer.apple.com/documentation/modelio/mdlutility
+- https://developer.apple.com/documentation/modelio/mdlutility/convert(tousdz:writeto:)
+- https://developer.apple.com/documentation/modelio/mdlvertexattribute/init(name:format:offset:bufferindex:)
+- https://developer.apple.com/documentation/modelio/mdlvertexbufferlayout/init(stride:)
+- https://developer.apple.com/documentation/quicklook/arquicklookpreviewitem
+- https://developer.apple.com/documentation/quicklook/arquicklookpreviewitem/init(fileat:)
+- https://developer.apple.com/documentation/quicklook/qlpreviewcontroller
+- https://developer.apple.com/documentation/realitykit/entity/write(to:)
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/issupported
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/issupported
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail/medium
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/modelfile(url:detail:geometry:)
+- https://developer.apple.com/documentation/roomplan/capturedroom/export(to:exportoptions:)
+- https://developer.apple.com/documentation/roomplan/capturedroom/export(to:metadataurl:modelprovider:exportoptions:)
+- https://developer.apple.com/documentation/roomplan/capturedstructure/export(to:metadataurl:modelprovider:exportoptions:)
+- https://developer.apple.com/documentation/roomplan/structurebuilder/capturedstructure(from:)
+- https://developer.apple.com/documentation/scenekit/scnscene/write(to:options:delegate:progresshandler:)
+- https://developer.apple.com/documentation/scenekit/scnsceneexportdelegate/write(_:withscenedocumenturl:originalimageurl:)
+- https://developer.apple.com/documentation/scenekit/scnsceneexportdestinationurl
+- https://developer.apple.com/documentation/swiftui/sharelink/init(item:subject:message:preview:)
+- https://developer.apple.com/documentation/swiftui/view/quicklookpreview(_:)
+- https://developer.apple.com/documentation/uikit/uiactivityviewcontroller/init(activityitems:applicationactivities:)
+- https://developer.apple.com/documentation/uikit/uidocumentbrowserviewcontroller
+- https://developer.apple.com/documentation/uikit/uidocumentpickerviewcontroller/init(forexporting:ascopy:)
+- https://developer.apple.com/documentation/uikit/uigraphicsimagerenderer
+- https://developer.apple.com/documentation/uikit/uigraphicsimagerenderer/pngdata(actions:)
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrenderer
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrenderer/init(bounds:format:)
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrenderer/writepdf(to:withactions:)
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrenderercontext/beginpage(withbounds:pageinfo:)
+- https://developer.apple.com/documentation/uikit/uigraphicspdfrendererformat/documentinfo
+- https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/init(filenameextension:conformingto:)
+- https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/usdz
+- https://developer.apple.com/forums/thread/111061
+- https://developer.apple.com/forums/thread/658109
+- https://developer.apple.com/forums/thread/701842
+- https://developer.apple.com/forums/thread/704590
+- https://developer.apple.com/forums/thread/706609
+- https://developer.apple.com/forums/thread/737766
+- https://developer.apple.com/forums/thread/742077
+- https://developer.apple.com/forums/thread/765329
+- https://developer.apple.com/forums/thread/774459
+- https://ezdxf.readthedocs.io/en/stable/dxfinternals/filestructure.html
+- https://help.autodesk.com/cloudhelp/2017/ENU/AutoCAD-DXF/files/GUID-748FC305-F3F2-4F74-825A-61F04D757A50.htm
+- https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#glb-file-format-specification
+
+### Scan quality, coverage and measurement confidence
+
+- https://developer.apple.com/documentation/arkit/arcamera/exposureduration
+- https://developer.apple.com/documentation/arkit/arcamera/intrinsics
+- https://developer.apple.com/documentation/arkit/arcamera/projectpoint(_:viewrotationangle:viewportsize
+- https://developer.apple.com/documentation/arkit/arcamera/projectpoint:orientation:viewportsize:
+- https://developer.apple.com/documentation/arkit/arcamera/trackingstate-swift.enum
+- https://developer.apple.com/documentation/arkit/arcamera/unprojectpoint(_:ontoplane:orientation:viewportsize:)
+- https://developer.apple.com/documentation/arkit/arcoachingoverlayview
+- https://developer.apple.com/documentation/arkit/arconfidencelevel
+- https://developer.apple.com/documentation/arkit/arconfiguration/supportedvideoformats
+- https://developer.apple.com/documentation/arkit/arconfiguration/videoformat-swift.property
+- https://developer.apple.com/documentation/arkit/ardepthdata
+- https://developer.apple.com/documentation/arkit/ardepthdata/confidencemap
+- https://developer.apple.com/documentation/arkit/arframe/displaytransform(viewrotationangle:viewportsize
+- https://developer.apple.com/documentation/arkit/arframe/rawfeaturepoints
+- https://developer.apple.com/documentation/arkit/arframe/raycastquery(from:allowing:alignment:)
+- https://developer.apple.com/documentation/arkit/arframe/scenedepth
+- https://developer.apple.com/documentation/arkit/arframe/worldmappingstatus-swift.property
+- https://developer.apple.com/documentation/arkit/arlightestimate/ambientintensity
+- https://developer.apple.com/documentation/arkit/armeshanchor
+- https://developer.apple.com/documentation/arkit/armeshclassification
+- https://developer.apple.com/documentation/arkit/armeshgeometry/classification
+- https://developer.apple.com/documentation/arkit/armeshgeometry/normals
+- https://developer.apple.com/documentation/arkit/arplaneanchor/planeextent
+- https://developer.apple.com/documentation/arkit/arplaneextent
+- https://developer.apple.com/documentation/arkit/arraycastquery
+- https://developer.apple.com/documentation/arkit/arsession/capturehighresolutionframe(completion:)
+- https://developer.apple.com/documentation/arkit/arsession/raycast(_:)
+- https://developer.apple.com/documentation/arkit/arworldtrackingconfiguration/scenereconstruction
+- https://developer.apple.com/documentation/foundation/processinfo/thermalstate-swift.enum/serious
+- https://developer.apple.com/documentation/foundation/processinfo/thermalstate-swift.property
+- https://developer.apple.com/documentation/foundation/processinfo/thermalstatedidchangenotification
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/feedback-swift.enum
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/feedback-swift.enum/objectnotdetected
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/maximumnumberofinputimages
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/usercompletedscanpass
+- https://developer.apple.com/documentation/roomplan/capturedroom/confidence
+- https://developer.apple.com/documentation/roomplan/capturedroom/floors
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/completededges
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/curve-swift.property
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/edge
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface/polygoncorners
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/configuration/iscoachingenabled
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/init(arsession:)
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/instruction
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/stop(pausearsession:)
+- https://developer.apple.com/documentation/roomplan/roomcapturesessiondelegate
+- https://developer.apple.com/documentation/roomplan/structurebuilder/capturedstructure(from:)
+- https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled
+- https://developer.apple.com/documentation/uikit/uidevice/batterylevel
+- https://developer.apple.com/forums/thread/732903
+- https://developer.apple.com/forums/thread/763400
+- https://developer.apple.com/videos/play/wwdc2020/10611/
+- https://developer.apple.com/videos/play/wwdc2022/10127/
+- https://developer.apple.com/videos/play/wwdc2023/10192/
+- https://github.com/beatTheSystem42/MetalScanDemo/blob/main/Renderer.swift
+- https://github.com/bzellman/MagicCuts/blob/9531ea9fb5e36cfb02ac72b96a48da5113eeabec/MagicCuts/Fieldwork/RoomSession.swift
+- https://github.com/cristiangavidia23/structura/blob/97aeb635b201b07ba4c4e45e8bf550fa0532139f/Structura/Models/FloorPlan.swift
+- https://github.com/pookjw/MySwiftUI/blob/c8f4de8599ea11426dff8c99f10e81298a9e3822/Sources/_MyRealityKit_MySwiftUI/ObjectCaptureSession.swift
+- https://hackernoon.com/what-happens-when-you-max-out-an-iphone-thermal-throttling-in-real-time-ar
+- https://machinelearning.apple.com/research/roomplan
+- https://rerun.io/blog/arkitscenes-slam
+- https://www.it-jim.com/blog/roomplan-framework-by-apple/
+- https://www.mdpi.com/2673-7418/3/4/30
+- https://www.nature.com/articles/s41598-021-01763-9
+- https://www.sciencedirect.com/science/article/pii/S2666165923000510
+- https://www.tandfonline.com/doi/full/10.1080/2150704X.2026.2720055
+
+### Storage, deployment and concurrency
+
+- https://developer.apple.com/documentation/arkit/arcamera/imageresolution
+- https://developer.apple.com/documentation/arkit/armeshgeometry
+- https://developer.apple.com/documentation/arkit/arscnview
+- https://developer.apple.com/documentation/arkit/arsession/delegatequeue
+- https://developer.apple.com/documentation/arkit/arsession/getcurrentworldmap(completionhandler:)
+- https://developer.apple.com/documentation/arkit/arworldmap
+- https://developer.apple.com/documentation/backgroundtasks/bgcontinuedprocessingtask
+- https://developer.apple.com/documentation/backgroundtasks/bgcontinuedprocessingtaskrequest
+- https://developer.apple.com/documentation/backgroundtasks/bgcontinuedprocessingtaskrequest/init(identifier:title:subtitle:)
+- https://developer.apple.com/documentation/backgroundtasks/bgtaskscheduler/register(fortaskwithidentifier:using:launchhandler:)
+- https://developer.apple.com/documentation/backgroundtasks/bgtaskscheduler/supportedresources
+- https://developer.apple.com/documentation/bundleresources/entitlements
+- https://developer.apple.com/documentation/bundleresources/information-property-list/nsphotolibraryaddusagedescription
+- https://developer.apple.com/documentation/bundleresources/information-property-list/uifilesharingenabled
+- https://developer.apple.com/documentation/bundleresources/information-property-list/uilaunchscreen
+- https://developer.apple.com/documentation/bundleresources/information-property-list/uirequireddevicecapabilities
+- https://developer.apple.com/documentation/bundleresources/information-property-list/uisupportedinterfaceorientations
+- https://developer.apple.com/documentation/coreimage/cicontext/writeheifrepresentation(of:to:format:colorspace:options
+- https://developer.apple.com/documentation/foundation/data/init(bytesnocopy:count:deallocator
+- https://developer.apple.com/documentation/foundation/processinfo/thermalstatedidchangenotification
+- https://developer.apple.com/documentation/foundation/urlresourcevalues/isexcludedfrombackup
+- https://developer.apple.com/documentation/foundation/urlresourcevalues/volumeavailablecapacityforimportantusage
+- https://developer.apple.com/documentation/metal/mtldevice/recommendedmaxworkingsetsize
+- https://developer.apple.com/documentation/os/os_proc_available_memory
+- https://developer.apple.com/documentation/realitykit/objectcapturesession
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/maximumnumberofinputimages
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/start(imagesdirectory:configuration:)
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/limits-swift.struct/maximuminputimagedimension
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/limits-swift.struct/maximumnumberofinputimages
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/limits-swift.type.property
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail
+- https://developer.apple.com/documentation/roomplan/capturedroom/usdexportoptions
+- https://developer.apple.com/documentation/roomplan/capturedroomdata
+- https://developer.apple.com/documentation/roomplan/roomcapturesession
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/init(arsession:)
+- https://developer.apple.com/documentation/scenekit
+- https://developer.apple.com/documentation/simd/simd_float3x3
+- https://developer.apple.com/documentation/simd/simd_float4x4
+- https://developer.apple.com/documentation/uikit/encrypting-your-app-s-files
+- https://developer.apple.com/documentation/uikit/uiapplication/beginbackgroundtask(withname:expirationhandler:)
+- https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled
+- https://developer.apple.com/documentation/uniformtypeidentifiers/defining-file-and-data-types-for-your-app
+- https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device
+- https://developer.apple.com/forums/thread/702400
+- https://developer.apple.com/forums/thread/797538
+- https://developer.apple.com/forums/thread/85066
+- https://developer.apple.com/forums/thread/96804
+- https://github.com/SideStore/SideStore/issues/1616
+- https://github.com/swiftlang/swift-evolution/blob/main/proposals/0306-actors.md
+- https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md
+- https://raw.githubusercontent.com/yonaskolb/XcodeGen/master/SettingPresets/base.yml
+- https://sideloadly.io/faq.html
+- https://www.swift.org/migration/documentation/swift-6-concurrency-migration-guide/completechecking
+
+### UX patterns
+
+- https://developer.apple.com/documentation/arkit/arcoachingoverlayview
+- https://developer.apple.com/documentation/arkit/arcoachingoverlayview/goal-swift.enum
+- https://developer.apple.com/documentation/arkit/visualizing-and-interacting-with-a-reconstructed-scene
+- https://developer.apple.com/documentation/foundation/locale/measurementsystem-swift.property
+- https://developer.apple.com/documentation/foundation/measurementformatunitusage
+- https://developer.apple.com/documentation/realitykit/arview/debugoptions-swift.struct/showsceneunderstanding
+- https://developer.apple.com/documentation/realitykit/objectcapturepointcloudview/showshotlocations(_:)
+- https://developer.apple.com/documentation/realitykit/objectcapturesession
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/capturestate
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/configuration-swift.struct
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/feedback-swift.enum
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/isautocaptureenabled
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/maximumnumberofinputimages
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/pause()
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/shouldplayhaptics
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/start(imagesdirectory:configuration:)
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/startcapturing(
+- https://developer.apple.com/documentation/realitykit/objectcapturesession/startdetecting()
+- https://developer.apple.com/documentation/realitykit/objectcaptureview
+- https://developer.apple.com/documentation/realitykit/objectcaptureview/hideobjectreticle(_:)
+- https://developer.apple.com/documentation/realitykit/objectcaptureview/init(session:camerafeedoverlay:)
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail/custom
+- https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail/medium
+- https://developer.apple.com/documentation/roomplan/capturedroom/section/label-swift.enum
+- https://developer.apple.com/documentation/roomplan/capturedroom/surface
+- https://developer.apple.com/documentation/roomplan/capturedroom/usdexportoptions
+- https://developer.apple.com/documentation/roomplan/create-a-3d-model-of-an-interior-room-by-guiding-the-user-through-an-ar-experience
+- https://developer.apple.com/documentation/roomplan/roomcapturesession
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/captureerror
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/configuration
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/configuration/iscoachingenabled
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/instruction
+- https://developer.apple.com/documentation/roomplan/roomcapturesession/stop(pausearsession:)
+- https://developer.apple.com/documentation/roomplan/roomcapturesessiondelegate
+- https://developer.apple.com/documentation/roomplan/roomcapturesessiondelegate/capturesession(_:didprovide:)
+- https://developer.apple.com/documentation/roomplan/roomcaptureview
+- https://developer.apple.com/documentation/roomplan/roomcaptureview/capturesession
+- https://developer.apple.com/documentation/roomplan/roomcaptureview/delegate
+- https://developer.apple.com/documentation/roomplan/roomcaptureview/init(frame:arsession:)
+- https://developer.apple.com/documentation/roomplan/roomcaptureview/ismodelenabled
+- https://developer.apple.com/documentation/roomplan/roomcaptureviewdelegate
+- https://developer.apple.com/documentation/roomplan/scanning-the-rooms-of-a-single-structure
+- https://developer.apple.com/documentation/roomplan/structurebuilder
+- https://developer.apple.com/documentation/roomplan/structurebuilder/capturedstructure(from:)
+- https://developer.apple.com/documentation/roomplan/structurebuilder/init(options:)
+- https://developer.apple.com/documentation/swiftui/dynamictypesize
+- https://developer.apple.com/documentation/swiftui/scaledmetric
+- https://developer.apple.com/documentation/swiftui/sensoryfeedback
+- https://developer.apple.com/documentation/swiftui/sharelink
+- https://developer.apple.com/documentation/swiftui/sharelink/init(item:subject:message:preview:label:)
+- https://developer.apple.com/documentation/swiftui/uiviewrepresentable
+- https://developer.apple.com/documentation/swiftui/view/persistentsystemoverlays(_:)
+- https://developer.apple.com/documentation/swiftui/view/sensoryfeedback(_:trigger:)
+- https://developer.apple.com/documentation/swiftui/view/sensoryfeedback(_:trigger:condition:)
+- https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled
+- https://developer.apple.com/documentation/uikit/uiapplicationdelegate/application(_:supportedinterfaceorientationsfor:)
+- https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator/init(style:)
+- https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator/init(style:view:)
+- https://developer.apple.com/documentation/uikit/uiviewcontroller/setneedsupdateofsupportedinterfaceorientations()
+- https://developer.apple.com/documentation/uikit/uiwindowscene/requestgeometryupdate(_:errorhandler:)
+- https://developer.apple.com/forums/thread/654431
+- https://developer.apple.com/forums/thread/708892
+- https://developer.apple.com/forums/thread/736482
+- https://developer.apple.com/videos/play/wwdc2022/10127/
+- https://developer.apple.com/videos/play/wwdc2023/10191/
+- https://developer.apple.com/videos/play/wwdc2023/10192/
+- https://developer.apple.com/videos/play/wwdc2024/10107/
+- https://github.com/XRealityZone/apple-wwdc-ar-demo/blob/main/CreateA3DModelOfAnInteriorRoomByGuidingTheUserThroughAnARExperience/RoomPlanExampleApp/RoomCaptureViewController.swift
+- https://github.com/sfomuseum/ios-guided-capture/blob/main/GuidedCapture.xcodeproj/project.pbxproj
+- https://github.com/sfomuseum/ios-guided-capture/blob/main/GuidedCapture/OnboardingStateMachine.swift
+- https://github.com/sfomuseum/ios-guided-capture/blob/main/GuidedCapture/OnboardingTutorialView+LocalizedString.swift
+- https://guidecalculator.com/conversion/inches-to-fraction-calculator
+- https://help.magicplan.app/auto-scan-your-floor-plan
+- https://learn.poly.cam/hc/en-us/articles/48565771018772-Which-Capture-Mode-Should-I-Use
+- https://support.apple.com/en-za/102468
+- https://support.canvas.io/article/10-tutorial-how-to-scan-a-room-with-canvas
