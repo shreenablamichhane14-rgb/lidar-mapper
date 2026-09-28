@@ -53,6 +53,7 @@ struct ContentView: View {
         SelfTestSuite(name: "Texture job", run: TextureJobSelfTest.run),
         SelfTestSuite(name: "Keyframes", run: KeyframesSelfTest.run),
         SelfTestSuite(name: "Room capture", run: RoomCaptureSelfTest.run),
+        SelfTestSuite(name: "Quality", run: QualitySelfTest.run),
     ]
 
     @State private var results: [SelfTestResult] = []
