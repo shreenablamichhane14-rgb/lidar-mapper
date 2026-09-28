@@ -7,6 +7,11 @@ import RoomPlan
 // `ScanRecorder`, per-room persistence and sealing. This file holds the public types, the stored
 // state and the main-thread entry points; hub-queue handlers are in RoomScanEngine+Lifecycle.swift
 // and the finish sequence in RoomScanPersistence.swift.
+//
+// Writers: the engine's `RawScanWriter` writes the RoomPlan, log, event and world map files;
+// recorders receive only the folder (`ScanRecorder.beginRecording`) and write through their own
+// `RawScanWriter` on the same serial io queue, so the engine's flush after every
+// `finishRecording` completion orders all of them before the close and the seal.
 
 /// Everything the engine needs to know about the room it captures.
 struct RoomScanTarget: Equatable, Sendable {
