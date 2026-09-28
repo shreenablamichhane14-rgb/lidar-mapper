@@ -64,8 +64,12 @@ enum CoreSelfTest {
         let viaCamera = k.project(cameraPoint: SIMD3<Float>(camPoint.x, camPoint.y, camPoint.z))
         check("intrinsics.worldMatchesCamera", viaWorld == viaCamera)
         let depthK = k.scaled(toWidth: 256, height: 192)
-        check("intrinsics.scaled", abs(depthK.fx - 1450 * 256 / 1920) < 1e-3 && abs(depthK.cy - 721 * 192 / 1440) < 1e-3
-              && depthK.width == 256 && depthK.height == 192)
+        let expectedFx: Float = 1450.0 * 256.0 / 1920.0
+        let expectedCy: Float = 721.0 * 192.0 / 1440.0
+        let fxError: Float = abs(depthK.fx - expectedFx)
+        let cyError: Float = abs(depthK.cy - expectedCy)
+        let scaledSizeOK = depthK.width == 256 && depthK.height == 192
+        check("intrinsics.scaled", fxError < 1e-3 && cyError < 1e-3 && scaledSizeOK)
         let fromMatrix = Intrinsics(matrix: k.matrix, width: 1920, height: 1440)
         check("intrinsics.matrix", fromMatrix == k)
 
@@ -96,7 +100,11 @@ enum CoreSelfTest {
         let confidence: [UInt8] = [0, 1, 2, 2, 0, 1]
         let depthData = DepthFile.encode(width: 3, height: 2, depth: depthValues, confidence: confidence)
         if let map = try? DepthFile.decode(depthData) {
-            let close = zip(map.depth, depthValues).allSatisfy { abs($0 - $1) <= $1 * 0.001 + 1e-4 }
+            let close = zip(map.depth, depthValues).allSatisfy { (pair: (Float, Float)) -> Bool in
+                let tolerance: Float = pair.1 * 0.001 + 1e-4
+                let error: Float = abs(pair.0 - pair.1)
+                return error <= tolerance
+            }
             check("dpth.roundTrip", close && map.confidence == confidence && map.width == 3 && map.height == 2)
             check("dpth.at", map.depthAt(x: 2, y: 1) != nil && map.depthAt(x: 3, y: 0) == nil)
         } else {
@@ -177,9 +185,14 @@ enum CoreSelfTest {
         check("settings.standardGate", settings.keyframeGate.meters == 0.30 && settings.keyframeGate.degrees == 15)
         settings.detail = .maximum
         settings.keepAllPhotos = false
-        check("settings.coarseGate", abs(settings.keyframeGate.meters - 0.18) < 1e-6 && abs(settings.keyframeGate.degrees - 10.5) < 1e-5)
+        let coarseGate = settings.keyframeGate
+        let metersError: Float = abs(coarseGate.meters - 0.18)
+        let degreesError: Float = abs(coarseGate.degrees - 10.5)
+        check("settings.coarseGate", metersError < 1e-6 && degreesError < 1e-5)
         settings.distance = .closeUp
-        check("settings.depthWindow", settings.depthWindow == 0.3...2 && ScanSettings.room.depthWindow == 0.3...4)
+        let closeUpWindow: ClosedRange<Float> = 0.3...2
+        let normalWindow: ClosedRange<Float> = 0.3...4
+        check("settings.depthWindow", settings.depthWindow == closeUpWindow && ScanSettings.room.depthWindow == normalWindow)
 
         // QualityVerdict
         check("verdict.good", QualityVerdict.from(shape: 0.9, walls: 0.95, floor: 1, ceiling: 0.9, texture: 0.99) == .good)
