@@ -66,13 +66,13 @@ struct TurntableSamples: Sequence {
 
     /// Draws the image into a 32BGRA pixel buffer, downscaled so the long side is at most maxDimension.
     private static func bgraBuffer(from image: CGImage, maxDimension: Int) -> CVPixelBuffer? {
-        let longest: Double = Double(max(image.width, image.height))
+        let longest: Double = Double(Swift.max(image.width, image.height))
         let limit: Double = Double(maxDimension)
-        let scale: Double = min(1.0, limit / longest)
+        let scale: Double = Swift.min(1.0, limit / longest)
         let scaledWidth: Double = Double(image.width) * scale
         let scaledHeight: Double = Double(image.height) * scale
-        let width = max(1, Int(scaledWidth))
-        let height = max(1, Int(scaledHeight))
+        let width = Swift.max(1, Int(scaledWidth))
+        let height = Swift.max(1, Int(scaledHeight))
         var buffer: CVPixelBuffer?
         let attributes: [CFString: Any] = [
             kCVPixelBufferCGImageCompatibilityKey: true,
@@ -133,7 +133,7 @@ struct TurntableSamples: Sequence {
             }
         }
         // A mask covering almost nothing or almost everything is not a usable subject.
-        let pixelCount: Int = max(1, width * height)
+        let pixelCount: Int = Swift.max(1, width * height)
         let fraction: Double = Double(covered) / Double(pixelCount)
         return (fraction > 0.005 && fraction < 0.9) ? mask : nil
     }
