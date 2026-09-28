@@ -89,7 +89,6 @@ final class FrameCopier {
             KeyframesLog.once("copier.copy", "frame copier: could not copy the image planes")
             return nil
         }
-        CVBufferRemoveAllAttachments(target)
         CVBufferPropagateAttachments(image, target)
         return target
     }

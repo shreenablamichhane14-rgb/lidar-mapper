@@ -44,7 +44,7 @@ final class PhotoRecorder: ScanRecorder {
     /// photos.jsonl line. A request made while another is still pending is merged into it
     /// (one photo, the first note).
     func requestPhoto(note: String = "") {
-        let accepted: Bool = locked {
+        let accepted = locked { () -> Bool in
             guard pendingNote == nil else { return false }
             pendingNote = note
             return true
@@ -144,7 +144,7 @@ final class PhotoRecorder: ScanRecorder {
 
     /// Puts a request back when its frame could not be copied (unless a new one arrived).
     private func restoreRequest(_ note: String) {
-        locked {
+        locked { () -> Void in
             if pendingNote == nil { pendingNote = note }
         }
     }
@@ -170,7 +170,7 @@ final class PhotoRecorder: ScanRecorder {
             let written = try KeyframeEncoding.writePhoto(job, folder: folder, writer: writer, copier: copier,
                                                           quality: PhotoRecorder.jpegQuality)
             guard written, let self else { return }
-            let handler: ((UUID) -> Void)? = self.locked {
+            let handler = self.locked { () -> ((UUID) -> Void)? in
                 self.savedCount += 1
                 return self.savedHandler
             }

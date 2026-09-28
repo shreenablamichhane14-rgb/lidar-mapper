@@ -81,7 +81,7 @@ final class KeyframeRecorder: ScanRecorder {
     /// Hub queue. Keyframes written, lost viewpoints skipped, and failed writes.
     var stats: RecorderStats {
         var result = RecorderStats()
-        locked {
+        locked { () -> Void in
             result.keyframes = writtenCount
             result.skippedKeyframes = skippedCount
         }
@@ -108,7 +108,7 @@ final class KeyframeRecorder: ScanRecorder {
         nextIndex = 0
         previousFrame = nil
         resetWindow(at: nil)
-        locked {
+        locked { () -> Void in
             pausedFlag = false
             writtenCount = 0
             skippedCount = 0
@@ -209,7 +209,7 @@ final class KeyframeRecorder: ScanRecorder {
 
     /// Io queue. Counts a finished job (and its record when written).
     private func noteJobFinished(written: Bool, nanos: UInt64) {
-        locked {
+        locked { () -> Void in
             if written { writtenCount += 1 }
             jobCount += 1
             jobNanos &+= nanos
