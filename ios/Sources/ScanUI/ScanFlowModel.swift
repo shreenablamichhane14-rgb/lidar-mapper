@@ -203,7 +203,8 @@ import AVFoundation
         if alert?.id == ScanErrorCopy.pausedPromptID { alert = nil }
         apply(.doneTapped)
         announcer.reset()
-        log("done: finishing the room, \(snapshot.wallCount) walls, \(Int(snapshot.elapsed)) s")
+        let seconds = ScanFlowModel.elapsedParts(snapshot.elapsed)
+        log("done: finishing the room, \(snapshot.wallCount) walls, \(seconds.minutes) min \(seconds.seconds) s")
         engine?.finish()
     }
 
@@ -257,7 +258,6 @@ import AVFoundation
             endFlow()
         case .capturing, .stopping:
             guard !isDiscarding else { return }
-            alert = nil
             showsCancelConfirmation = true
         case .checking, .quality, .finishing, .done, .failed, .cancelled:
             break
