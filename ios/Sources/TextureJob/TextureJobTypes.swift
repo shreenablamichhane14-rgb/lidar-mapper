@@ -185,8 +185,8 @@ extension TexturedMesh {
     private func isDrawable(face f: Int, pages: Int, vertexCount: Int) -> Bool {
         guard Int(faceAtlas[f]) < pages else { return false }
         let first = 3 * f
-        return Int(indices[first]) < vertexCount && Int(indices[first + 1]) < vertexCount
-            && Int(indices[first + 2]) < vertexCount
+        let i0 = Int(indices[first]), i1 = Int(indices[first + 1]), i2 = Int(indices[first + 2])
+        return i0 < vertexCount && i1 < vertexCount && i2 < vertexCount
     }
 
     /// Textured area over total area of the faces (area weighted, 0...1): a face counts as

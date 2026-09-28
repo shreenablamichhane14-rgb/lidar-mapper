@@ -188,9 +188,11 @@ final class TextureLowStep: ProcessingStep {
         let bakeStarted = ProcessInfo.processInfo.systemUptime
         let memoryAtBake = TextureBakeWatcher.availableMemory()
         var lowestMemory = memoryAtBake
-        let baked = try bake(mesh: txMesh, keyframes: found.keyframes, options: TextureLowStep.options(reduced: reduced),
-                             ctx: ctx, report: report, lowestMemory: &lowestMemory)
-        guard var result = baked else {
+        // Bound straight into `result` (no second binding), so `result` holds the only
+        // reference to the atlases and `saveReleasingPages` really frees each page after writing.
+        guard var result = try bake(mesh: txMesh, keyframes: found.keyframes,
+                                    options: TextureLowStep.options(reduced: reduced),
+                                    ctx: ctx, report: report, lowestMemory: &lowestMemory) else {
             return finishWithoutTexture(ctx, outcome: .noKeyframes, detail: "the baker had no keyframes")
         }
         let bakeSeconds = ProcessInfo.processInfo.systemUptime - bakeStarted

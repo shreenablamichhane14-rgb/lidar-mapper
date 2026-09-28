@@ -97,9 +97,10 @@ enum TextureStore {
     /// `save`, taking the atlases out of `result` one at a time: each page is encoded,
     /// written and released before the next, so no finished atlas CGImage is held after it
     /// is on disk (when the caller holds no other reference). `result.atlases` is empty
-    /// afterwards, also when a write throws part way.
+    /// afterwards on every path, also when validation fails or a write throws part way.
     static func saveReleasingPages(mesh: MeshWithAttributes, result: inout TXResult, package: ProjectPackage,
                                    room: UUID) throws {
+        defer { result.atlases.removeAll() }
         let faces = mesh.triangleCount
         guard faces > 0 else { throw TextureJobError.invalidResult("the mesh has no faces") }
         guard result.faceAtlas.count == faces, result.texcoords.count == 3 * faces else {
@@ -111,7 +112,6 @@ enum TextureStore {
         }
         let pageCount = result.atlases.count
         guard pageCount <= maxPages else {
-            result.atlases = []
             throw TextureJobError.invalidResult("\(pageCount) pages, at most \(maxPages)")
         }
         let pages = pageIndices(for: result, faceCount: faces)
@@ -122,31 +122,20 @@ enum TextureStore {
 
         let folderURL = folder(package, room: room)
         let uv = uvURL(package, room: room)
-        do {
-            try ProjectStore.ensureDirectory(folderURL, inside: package.root)
-            try removeIfPresent(uv)
-        } catch {
-            result.atlases = []
-            throw error
-        }
+        try ProjectStore.ensureDirectory(folderURL, inside: package.root)
+        try removeIfPresent(uv)
 
         var page = 0
         while !result.atlases.isEmpty {
             let pageNumber = page
             let jpeg: Data? = autoreleasepool { () -> Data? in
                 let image: CGImage = result.atlases.removeFirst()
-                return jpegData(image, quality: jpegQuality)
+                return TextureStore.jpegData(image, quality: TextureStore.jpegQuality)
             }
             guard let data = jpeg else {
-                result.atlases = []
                 throw TextureJobError.encodingFailed("page \(pageNumber)")
             }
-            do {
-                try ProjectStore.writeData(data, to: pageURL(package, room: room, page: pageNumber), createParents: false)
-            } catch {
-                result.atlases = []
-                throw error
-            }
+            try ProjectStore.writeData(data, to: pageURL(package, room: room, page: pageNumber), createParents: false)
             page += 1
         }
 

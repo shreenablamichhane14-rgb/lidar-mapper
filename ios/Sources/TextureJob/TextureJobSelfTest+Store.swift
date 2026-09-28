@@ -43,14 +43,16 @@ extension TextureJobSelfTest {
             r.check("store.pages", loaded.faceAtlas == [0, 1, u], "\(loaded.faceAtlas)")
             r.check("store.texcoords", Array(loaded.texcoords.prefix(6)) == Array(result.texcoords.prefix(6)))
             let zero = SIMD2<Float>(0, 0)
-            r.check("store.untexturedZero", loaded.texcoords.count == 9
-                    && loaded.texcoords[6] == zero && loaded.texcoords[7] == zero && loaded.texcoords[8] == zero)
+            let zeroCorners: [SIMD2<Float>] = [zero, zero, zero]
+            let untexturedCorners: [SIMD2<Float>] = Array(loaded.texcoords.suffix(3))
+            r.check("store.untexturedZero", loaded.texcoords.count == 9 && untexturedCorners == zeroCorners)
             r.check("store.pageURLs", loaded.pageURLs.map({ $0.lastPathComponent }) == ["page_0.jpg", "page_1.jpg"])
             r.near("store.coverage", loaded.coverage, 2.0 / 3.0, 1e-5)
             r.check("store.parts", loaded.pageParts().count == 2)
             let chunk = try MeshChunkFile.decode(try Data(contentsOf: TextureStore.meshURL(package, room: room)))
-            r.check("store.meshRecord", chunk.anchorID == room && Transform4(chunk.transform) == Transform4.identity
-                    && chunk.classes == [1, 1, 2])
+            let identityTransform: Bool = Transform4(chunk.transform) == Transform4.identity
+            let expectedClasses: [UInt8] = [1, 1, 2]
+            r.check("store.meshRecord", chunk.anchorID == room && identityTransform && chunk.classes == expectedClasses)
 
             guard var single = storeResult(pageCount: 1) else {
                 return r.check("store.fixtureSingle", false, "no atlas images")
@@ -60,8 +62,10 @@ extension TextureJobSelfTest {
             let stale = TextureStore.pageURL(package, room: room, page: 1)
             r.check("store.stalePageRemoved", !FileManager.default.fileExists(atPath: stale.path))
             let reloaded = try TextureStore.load(package, room: room)
-            r.check("store.reloadPages", reloaded?.pageURLs.count == 1 && reloaded?.faceAtlas == [0, 0, u],
-                    "\(String(describing: reloaded?.faceAtlas))")
+            let reloadedPages: [UInt16] = reloaded?.faceAtlas ?? []
+            let expectedPages: [UInt16] = [0, 0, u]
+            r.check("store.reloadPages", reloaded?.pageURLs.count == 1 && reloadedPages == expectedPages,
+                    "\(reloadedPages)")
         } catch {
             r.fail("store", error)
         }
@@ -108,8 +112,11 @@ extension TextureJobSelfTest {
             try FileManager.default.removeItem(at: TextureStore.pageURL(package, room: room, page: 1))
             let degraded = try TextureStore.load(package, room: room)
             let u = TexturedMesh.untexturedPage
-            r.check("fail.missingPageDegrades", degraded?.faceAtlas == [0, u, u] && degraded?.pageParts().count == 1,
-                    "\(String(describing: degraded?.faceAtlas))")
+            let degradedPages: [UInt16] = degraded?.faceAtlas ?? []
+            let expectedDegraded: [UInt16] = [0, u, u]
+            let degradedParts: Int = degraded?.pageParts().count ?? 0
+            r.check("fail.missingPageDegrades", degradedPages == expectedDegraded && degradedParts == 1,
+                    "\(degradedPages)")
 
             let uv = TextureStore.uvURL(package, room: room)
             let oneFace = TextureStore.encodeUV(texcoords: [SIMD2<Float>](repeating: SIMD2<Float>(0.5, 0.5), count: 3),

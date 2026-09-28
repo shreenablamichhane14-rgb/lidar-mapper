@@ -20,8 +20,10 @@ extension TextureJobSelfTest {
         let big = KeyframeLoader.subsample(count: 1000, max: 150)
         var increasing = true
         for i in 1..<Swift.max(1, big.count) where big[i] <= big[i - 1] { increasing = false }
-        r.check("loader.subsampleSpread", big.count == 150 && big.first == 0 && big.last == 999 && increasing,
-                "\(big.count) picks, first \(String(describing: big.first)), last \(String(describing: big.last))")
+        let firstPick: Int = big.first ?? -1
+        let lastPick: Int = big.last ?? -1
+        let spread: Bool = big.count == 150 && firstPick == 0 && lastPick == 999
+        r.check("loader.subsampleSpread", spread && increasing, "\(big.count) picks, first \(firstPick), last \(lastPick)")
 
         var records: [KeyframeRecord] = []
         records.append(keyframeRecord(index: 2, x: 0.2))
