@@ -12,8 +12,9 @@ import simd
 /// that never slip); `TextureJobSelfTest+Step.swift` covers `KeyframeLoader` and
 /// `TextureLowStep`.
 enum TextureJobSelfTest {
-    /// Fewer checks than this means a section stopped early without reporting.
-    private static let minimumChecks = 80
+    /// Fewer checks than this means a section stopped early without reporting (about 139
+    /// checks run when everything passes).
+    private static let minimumChecks = 120
 
     /// Collects failing checks and counts every check.
     final class Recorder {
