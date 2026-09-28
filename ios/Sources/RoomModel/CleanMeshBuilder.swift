@@ -3,6 +3,7 @@ import simd
 
 /// What a clean mesh part shows (viewer layers and export materials pick by kind).
 enum CleanPartKind: Hashable, Sendable {
+    /// Architectural surfaces, an object box of a category, and occluded (inferred) regions.
     case wall, floor, ceiling, door, window, opening, object(ObjectCategory), occluded
 }
 

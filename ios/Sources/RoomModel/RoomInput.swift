@@ -8,6 +8,7 @@ import simd
 
 /// What a RoomPlan surface is. Raw values are persisted in `RoomInput` JSON.
 enum SurfaceKind: String, Codable, CaseIterable, Sendable {
+    /// Wall, closed door, door open during the scan, window, opening without a leaf, floor.
     case wall, door, openDoor, window, opening, floor
 
     /// The Core opening kind for doors, windows and openings; nil for walls and floors.

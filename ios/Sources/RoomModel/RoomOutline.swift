@@ -34,10 +34,10 @@ struct WallSegment: Equatable, Sendable {
 
     /// The same wall traversed the other way (start and end swapped, arc unchanged).
     var reversed: WallSegment {
-        var copy = self
-        copy.start = end
-        copy.end = start
-        return copy
+        var swapped = self
+        swapped.start = end
+        swapped.end = start
+        return swapped
     }
 }
 

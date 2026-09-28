@@ -79,8 +79,23 @@ extension SectionInput {
     /// Mirrors one RoomPlan section. The label is stored by its case name (for example
     /// "livingRoom"), which is also what `CleanRoom.sectionLabel` persists.
     init(_ section: CapturedRoom.Section) {
-        self.init(label: String(describing: section.label),
+        self.init(label: SectionInput.labelName(section.label),
                   center: Vec3(section.center),
                   story: section.story)
+    }
+
+    /// Stable case name of a RoomPlan section label. An explicit switch instead of
+    /// `String(describing:)`, which depends on RoomPlan's reflection metadata and description;
+    /// unknown future labels become "unidentified".
+    static func labelName(_ label: CapturedRoom.Section.Label) -> String {
+        switch label {
+        case .livingRoom: return "livingRoom"
+        case .kitchen: return "kitchen"
+        case .diningRoom: return "diningRoom"
+        case .bedroom: return "bedroom"
+        case .bathroom: return "bathroom"
+        case .unidentified: return RoomInput.unidentifiedSectionLabel
+        @unknown default: return RoomInput.unidentifiedSectionLabel
+        }
     }
 }
