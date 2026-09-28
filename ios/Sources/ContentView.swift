@@ -18,6 +18,9 @@ struct ContentView: View {
     /// Failing assertions from the units module, run once on this device.
     @State private var unitFailures: [String] = []
     @State private var unitsChecked = false
+    /// Failing assertions from the geometry module, run once on this device.
+    @State private var geometryFailures: [String] = []
+    @State private var geometryChecked = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -42,6 +45,16 @@ struct ContentView: View {
                 Text("Example: \(LengthFormat.both(3.845, prefs: .standard))")
                     .font(.callout)
             }
+            if geometryChecked {
+                HStack {
+                    Image(systemName: geometryFailures.isEmpty ? "checkmark.circle.fill" : "xmark.circle")
+                        .foregroundStyle(geometryFailures.isEmpty ? .green : .red)
+                    Text(geometryFailures.isEmpty ? "Geometry self-test passed" : "Geometry self-test: \(geometryFailures.count) failed")
+                }
+                ForEach(geometryFailures.prefix(5), id: \.self) { failure in
+                    Text(failure).font(.caption).foregroundStyle(.secondary)
+                }
+            }
             Spacer()
         }
         .padding()
@@ -54,6 +67,13 @@ struct ContentView: View {
             LogStore.shared.write("units self-test: \(failures.isEmpty ? "passed" : "\(failures.count) failed")", category: "app")
             for failure in failures {
                 LogStore.shared.write("units self-test FAIL: \(failure)", category: "app")
+            }
+            let geometry = GeometrySelfTest.run()
+            geometryFailures = geometry
+            geometryChecked = true
+            LogStore.shared.write("geometry self-test: \(geometry.isEmpty ? "passed" : "\(geometry.count) failed")", category: "app")
+            for failure in geometry {
+                LogStore.shared.write("geometry self-test FAIL: \(failure)", category: "app")
             }
         }
     }
