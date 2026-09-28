@@ -145,7 +145,7 @@ Membership follows the real dependencies in the module index (section 1), which 
 ### 2.1 Build 4 (0.4), room MVP
 
 ```
-wave 0 (merged or merging): Support Units Geometry Export Core Coverage MeshProcessing Texturing
+wave 0 (merged on integration): Support Units Geometry Export Core Coverage MeshProcessing Texturing
 
 wave 4a (imports wave 0 only)                                             est. lines
   Store        ios/Sources/Store        <- Core Support                         900
@@ -288,6 +288,8 @@ Paths below are relative to the project package (`ProjectPackage.root`). Core na
 | `raw/objects/<o>/` (`Images/`, `objectlog.json`, `SEAL.json`; RawScanFolder layout for large objects) | ObjectCapture, LargeObject (build 5) | ObjectCapture `PhotogrammetryStep`, ObjectModel |
 | `derived/objects/<o>/checkpoint/`, `model.usdz`, `dims.json` (build 5) | ObjectCapture (checkpoint, model), ObjectModel (`dims.json`) | ObjectModel, ObjectUI |
 | `derived/structure/structure.json`, `alignment.json`, `attempt.json` (build 5) | Structure | Structure |
+
+Input hashes (D11): a step hashes the `SealFile`s of the raw folders it reads with `InputHasher.hash(seals:editRevision:extra:)`; a step that reads another step's output also adds that step's current stamp `inputHash` (read from `derived/index.json` with `ProjectStore.readJSON(DerivedIndex.self, from:)`) to `extra`, so it reruns when its input was rebuilt (for example `CleanModelStep` adds the room's `consolidateMesh` stamps, `FloorPlanStep` the `cleanModel` stamp, `TextureLowStep` the room's `consolidateMesh` stamp). Only steps that read edits pass `EditLog.revision` (build 4: `ThumbnailStep`).
 
 JSON in the package is written with `ProjectStore.encoder` and read with `ProjectStore.decoder` (ISO 8601 dates, sorted keys). The one exception is RoomPlan's own types (`CapturedRoomData`, `CapturedRoom`, `CapturedStructure`): encode with a plain `JSONEncoder()` and decode with a plain `JSONDecoder()`.
 
@@ -2008,6 +2010,9 @@ enum ResultAvailability {
     func handleTap(_ hit: ViewerHit?)        // object boxes: selectedObject
     func openSimpleModel() async             // CapturedRoom.export(to:metadataURL:modelProvider:exportOptions: [.mesh]) into exports/, sets quickLookURL
 }
+/// Until `floorPlan` is stamped (or has failed) the screen shows the processing view instead of the
+/// tabs (D20): `Copy.Processing.title`, the current step's text (`stepText`), a progress bar and
+/// `Copy.Processing.keepOpen`; then the tabs appear with chips for the steps still running.
 struct ResultScreen: View { init(projectID: UUID, onExport: @escaping () -> Void) }
 ```
 Content per tab: Realistic = `TextureStore.load` pages via `pageParts()` into `ViewerPart`s with `.texture(url)`; Solid Color and Wireframe styles re-use the view mesh. 3D Clean = `CleanMeshBuilder.parts` (walls light gray `.lit`, floor, openings translucent, objects translucent boxes plus wireframe with `pickTag .element(id)`, furniture in `.cleanFurniture` so Hide Furniture toggles that layer), ceiling hidden. Floor Plan = `PlanCanvasView` of `PlanDrawing.make(level:toggles:prefs:roomTitles:name:)` with `RoomTitles.titles(for:)`. Raw Scan = `MeshModelStore.loadView` plus `loadInferred` through `ViewerContentBuilder.meshParts` with `MeshClassPalette.all`. The dimensions panel lists `RoomDimensions.rows(for:evidence:)` (evidence from `QualityStore.load`, else `RoomEvidence.unknown`) with `MeasureDisplay.valueText` and `accuracyText`, grouped, plus `Copy.Measure.disclaimer`. The model observes `ProcessingRunner.shared.states[projectID]` and `.mapperManifestDidChange` and reloads what changed. Units come from `UnitPreferences.load()` on appear.
@@ -2186,7 +2191,7 @@ Composition: the scan cover shows `RoomScanScreen(model:)` and attaches `.sheet`
 
 **Self-test.** `AppShellSelfTest.run()`, at least 8 checks: `roomSteps` for a manifest with one captured room lists the steps in order with subjects and the optional flags on consolidateMesh, quality, thumbnail and textureLow; BuildRoomStep omitted when raw capturedroom.json exists and when capturedroomdata.json is missing (temp package); a `.ready` project is not enqueued; two rooms produce per-room steps; an object-only manifest produces no room steps.
 
-**Acceptance checks.** App launches to Home; the capability probe and self-test log lines are unchanged in format; the scan cover dismisses on cancel and on finish; the quality sheet appears over the live camera; Results opens immediately after Finish with chips; Export works from Results; Demo Mode runs the whole flow without camera permission.
+**Acceptance checks.** App launches to Home; the capability probe and self-test log lines are unchanged in format; the scan cover dismisses on cancel and on finish; the quality sheet appears over the live camera; Results opens right after Finish with the processing view, then shows the tabs once the floor plan is ready, with chips for later steps; Export works from Results; Demo Mode runs the whole flow without camera permission.
 
 **SPEC owned.** "SCANNING MODES" (entry flow); "PROJECT SYSTEM" (projects stored locally, restore on relaunch of unfinished work); "LOCAL-FIRST ARCHITECTURE" ("must work offline", no account); TEST_PLAN MODE-01 to MODE-05, ROOM-01, ROOM-02, ROOM-11, QUAL-01, QUAL-04, PROJ-01, PROJ-05, OFF-01 to OFF-04 end to end.
 

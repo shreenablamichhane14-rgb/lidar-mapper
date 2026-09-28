@@ -213,7 +213,7 @@ The session folder's `session.json` is written once by RoomCapture for the first
 ### 3.5 Derived index and stamps (D11)
 
 - `DerivedIndex.stamps` holds one `DerivedStamp` per `(step, subject)`; `subject` is the room or object id, nil for project-wide products (`clean.json`, `plan.json`, structure, thumbnail).
-- `inputHash = InputHasher.hash(seals:editRevision:extra:)` with the `SealFile`s of the raw folders the step reads, `EditLog.revision` only for steps that read edits (thumbnail in build 4; alignRooms and objectMetrics in build 5), and `extra` = option strings (for example `"variant=reduced"`, `"density=textured"`) plus the hash of an upstream derived input where the step reads one (the `mesh_view.mchk` hash for TextureJob). `CleanModelStep` does not include the edit revision: the base model ignores edits.
+- `inputHash = InputHasher.hash(seals:editRevision:extra:)` with the `SealFile`s of the raw folders the step reads, `EditLog.revision` only for steps that read edits (thumbnail in build 4; alignRooms and objectMetrics in build 5), and `extra` = option strings (for example `"variant=reduced"`, `"density=textured"`) plus the current stamp `inputHash` of every upstream step whose output it reads (for example `CleanModelStep` adds the rooms' `consolidateMesh` stamps, `FloorPlanStep` the `cleanModel` stamp, `TextureLowStep` its room's `consolidateMesh` stamp), so a rebuilt input makes its readers rerun (MODULES.md section 3.1). `CleanModelStep` does not include the edit revision: the base model ignores edits.
 - A step writes its outputs atomically first, then the runner records the stamp and writes the index atomically. A crash in between reruns the step; steps are idempotent.
 - Bumping `ProjectManifest.currentPipelineVersion` makes every stamp stale. `schemaVersion` is independent and refuses newer manifests (`CoreError.unsupportedSchema`).
 - Readers trust a derived file only when it exists and its stamp is fresh; otherwise the Results tab shows its preparing or unavailable state (`TabAvailability`).
@@ -425,7 +425,7 @@ Budgets are starting values; every step logs its peak and wall time and the buil
 
 | Mode | Order (a step follows the steps it reads) | Results opens after (D20) |
 |---|---|---|
-| Room | per room `buildRoom` (if needed), per room `consolidateMesh`, `cleanModel`, `floorPlan`, per room `quality`, `thumbnail`, per room `textureLow` | Finish (tabs show chips until `floorPlan` is stamped) |
+| Room | per room `buildRoom` (if needed), per room `consolidateMesh`, `cleanModel`, `floorPlan`, per room `quality`, `thumbnail`, per room `textureLow` | `floorPlan` (ResultScreen shows the processing view until then) |
 | House (5) | per room `buildRoom`; `mergeStructure`, `alignRooms`; per room `consolidateMesh`; `cleanModel`, `floorPlan`; per room `quality`; `thumbnail`; per room `textureLow` | Finish Building |
 | Object small (5) | `reconstructObject`, `objectMetrics`, `thumbnail` | `objectMetrics` |
 | Object large (5) | `consolidateMesh`, `objectMetrics`, `textureLow`, `thumbnail` | `objectMetrics` |
@@ -453,7 +453,7 @@ Reduced variant: each chunk is simplified to half its faces before merging and t
 - Keyframes: `KeyframeLoader.keyframes(in:maxCount:)` reads `keyframes.jsonl` through `RawScanReader`, keeps records with `trackingNormal`, subsamples evenly to at most 150 for the bake (raw keeps all, D6), and creates each `TXKeyframe.image` lazily with ImageIO (`kCGImageSourceShouldCache: false`), so JPEG decoding happens only when the baker draws; `intrinsics` from `KeyframeRecord.intrinsics.matrix`, `imageResolution` from its width and height, `cameraToWorld` from `transform.simd`, `exposureOffset` from the record.
 - Options: `TextureDensity.textured` (build 4) is `TXOptions` with `atlasSize` 2048, `texelsPerMeter` 100, `maxAtlases` 4, `normalizeExposure` false; its reduced variant uses a 150k-face mesh and 1024 atlases. `TextureDensity.photoRealistic` (build 6, Photo Realistic) uses 4096 atlases, 250 to 500 texels per meter by `DetailLevel`, 8 atlases and `normalizeExposure` true (`TXExposure` gain normalization).
 - Run: `TextureBaker(options:).bake(mesh:keyframes:progress:)` off main; progress goes to `ctx.progress`, and `ctx.isCancelled` is forwarded to `baker.cancel()`.
-- Output (`TextureStore.save`): each atlas page is written as `page_<n>.jpg` (JPEG 0.85 through `CGImageDestination`) and released; `texcoords` (bottom-left origin, 3 per face) and `faceAtlas` go into `textured.tuv`; the exact baked mesh goes into `textured.mchk`. The stamp includes the view mesh hash. Proposed Texturing change for build 6: an atlas callback so finished atlases stream to disk and the baker's peak drops (it estimates about 830 MB at 1M faces).
+- Output (`TextureStore.save`): each atlas page is written as `page_<n>.jpg` (JPEG 0.85 through `CGImageDestination`) and released; `texcoords` (bottom-left origin, 3 per face) and `faceAtlas` go into `textured.tuv`; the exact baked mesh goes into `textured.mchk`. The input hash includes the room's `consolidateMesh` stamp (3.5). Proposed Texturing change for build 6: an atlas callback so finished atlases stream to disk and the baker's peak drops (it estimates about 830 MB at 1M faces).
 - Display and export split vertices per face corner (`TexturedMesh.pageParts()`), so vertex count grows (RESEARCH 3.4 gotcha 17).
 - `TXError.noKeyframes` or a failure: Realistic falls back (7.3) and the geometry stays usable (TEST_PLAN TEX-06).
 
@@ -702,7 +702,7 @@ enum TabAvailability: Equatable, Sendable { case ready, preparing(text: String, 
 enum ViewerDisplayStyle: String, CaseIterable, Sendable { case photoRealistic, textured, solidColor, wireframe, rawScan }
 ```
 
-`ResultModel` maps `ProcessingRunner.shared.states[projectID]` and the files on disk (`ResultFiles`) to a `TabAvailability` per tab (`ResultAvailability.compute`; chips such as `Copy.Results.stepProgress(Copy.Processing.stepTextures, percent:)`, D20), holds the display style, the Hide Furniture flag, the plan toggles, the `DimensionRow`s of `RoomDimensions.rows(for:evidence:)` (length, width, floor area, perimeter, ceiling height, wall area, estimated volume, then per wall, door and window, each with provenance and accuracy) and the selected object. Unavailable reasons come from the degraded mode or the mode (for example `Copy.Results.noWalls`). The model reloads on `.mapperManifestDidChange` and when the runner's state changes. Units come from `UnitPreferences.load()` on appear.
+Until `floorPlan` is stamped, `ResultScreen` shows the processing view (`Copy.Processing.title`, the current step, `Copy.Processing.keepOpen`) instead of the tabs (D20). `ResultModel` maps `ProcessingRunner.shared.states[projectID]` and the files on disk (`ResultFiles`) to a `TabAvailability` per tab (`ResultAvailability.compute`; chips such as `Copy.Results.stepProgress(Copy.Processing.stepTextures, percent:)`, D20), holds the display style, the Hide Furniture flag, the plan toggles, the `DimensionRow`s of `RoomDimensions.rows(for:evidence:)` (length, width, floor area, perimeter, ceiling height, wall area, estimated volume, then per wall, door and window, each with provenance and accuracy) and the selected object. Unavailable reasons come from the degraded mode or the mode (for example `Copy.Results.noWalls`). The model reloads on `.mapperManifestDidChange` and when the runner's state changes. Units come from `UnitPreferences.load()` on appear.
 
 ### 10.5 Quality sheet and export
 
@@ -781,7 +781,7 @@ This section and MODULES.md section 2 state the same plan; MODULES.md adds the p
 
 ### 13.1 Shipped and merged
 
-Build 1 (skeleton, probe), build 2 (units) and build 3 (0.3: probe plus Units, Geometry and Export self-tests) are on main. Wave 0 of build 4 is merged on `integration` and compiled green: Core (the shared contract), Coverage, MeshProcessing (`MeshChunk` renamed `MergeChunk`, `Cleanup.swift` and `ObjectIsolation.swift` finished) and Texturing, each with its self-test in the Diagnostics suite list.
+Builds 1 and 2 (skeleton, capability probe, `LogStore`, `DebugServer`, UX copy, Units) and build 3 (0.3: probe plus Units, Geometry and Export self-tests) are on main. Wave 0 of build 4 is merged on `integration` and compiled green: Core (the shared contract), Coverage, MeshProcessing (`MeshChunk` renamed `MergeChunk`, `Cleanup.swift` and `ObjectIsolation.swift` finished) and Texturing, each with its self-test in the Diagnostics suite list.
 
 ### 13.2 Build 4 (0.4): Room MVP
 
