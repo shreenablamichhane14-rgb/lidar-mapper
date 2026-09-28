@@ -11,10 +11,17 @@ import simd
 /// interpolated linearly in screen space and the stored value is `1 / interpolated`.
 /// Both windings are drawn, so back faces occlude too.
 ///
-/// Near plane: a triangle with any corner closer than `TXCamera.nearDepth` (or behind the
-/// camera) is skipped instead of clipped. Such a triangle then cannot occlude anything, which
-/// can only make a hidden point look visible, never the reverse. Scanned triangles are a few
-/// centimeters wide, so this touches very few of them (mostly floor right under the phone).
+/// Near plane rule: a triangle with any corner behind the near plane, that is closer than
+/// `TXCamera.nearDepth` along the view axis or behind the camera, is not rasterized at all; it
+/// is skipped instead of clipped. Such a triangle then cannot occlude anything, which can only
+/// make a hidden point look visible, never the reverse. Scanned triangles are a few centimeters
+/// wide, so this touches very few of them (mostly floor right under the phone).
+///
+/// Occlusion tolerance is slope aware (see `slopeTolerance`): a surface seen at a grazing angle
+/// changes depth quickly across one buffer pixel, so the 3x3 minimum can sit well in front of
+/// a point on that same surface. The tolerance therefore grows with the point's depth and with
+/// the tangent of the view angle: `max(minimum, 1.5 * depth / fx * tanTheta)`, where `fx` is
+/// the focal length of this buffer's own (resized) camera.
 struct TXDepthBuffer {
     /// Buffer width in pixels.
     let width: Int
@@ -119,12 +126,50 @@ struct TXDepthBuffer {
     }
 
     /// True when world point p is not hidden: its depth <= buffer depth (3x3 min neighborhood) + tolerance.
+    /// `tolerance` is the final tolerance in meters, used as given.
     /// A point behind the camera or outside the image is reported as not visible.
     func isVisible(_ p: SIMD3<Float>, sourceCamera: TXCamera, tolerance: Float) -> Bool {
         guard let q = sourceCamera.project(p) else { return false }
-        guard let center = cell(atSourcePixel: SIMD2<Float>(q.x, q.y), sourceCamera: sourceCamera) else {
+        guard let nearest = nearestDepth(atSourcePixel: SIMD2<Float>(q.x, q.y), sourceCamera: sourceCamera) else {
             return false
         }
+        return q.z <= nearest + tolerance
+    }
+
+    /// Same test as `isVisible(_:sourceCamera:tolerance:)` but with the slope aware tolerance
+    /// `slopeTolerance(depth:minimum:tanTheta:)` evaluated at the point's own depth.
+    /// `tanTheta` is the tangent of the angle between the face normal and the direction to the camera.
+    func isVisible(_ p: SIMD3<Float>, sourceCamera: TXCamera, minimumTolerance: Float, tanTheta: Float) -> Bool {
+        guard let q = sourceCamera.project(p) else { return false }
+        guard let nearest = nearestDepth(atSourcePixel: SIMD2<Float>(q.x, q.y), sourceCamera: sourceCamera) else {
+            return false
+        }
+        let tolerance: Float = slopeTolerance(depth: q.z, minimum: minimumTolerance, tanTheta: tanTheta)
+        return q.z <= nearest + tolerance
+    }
+
+    /// Slope aware occlusion tolerance in meters: `max(minimum, 1.5 * depth / fx * tanTheta)`, where
+    /// `fx` is this buffer's (resized) focal length, so `depth / fx` is the size of one buffer pixel
+    /// at that depth. Falls back to `minimum` when the inputs are not finite or fx is not positive.
+    func slopeTolerance(depth: Float, minimum: Float, tanTheta: Float) -> Float {
+        let fx: Float = camera.fx
+        guard fx > 0, depth.isFinite, tanTheta.isFinite, depth > 0, tanTheta > 0 else { return minimum }
+        let slope: Float = 1.5 * depth / fx * tanTheta
+        return max(minimum, slope)
+    }
+
+    /// Tangent of the view angle from its cosine: `sqrt(1 - cos^2) / max(cos, 0.05)`.
+    /// The cosine is clamped to 0...1 first, so the result is always finite and at most about 20.
+    static func tanTheta(cosine: Float) -> Float {
+        let c: Float = min(1, max(0, cosine))
+        let sine: Float = max(0, 1 - c * c).squareRoot()
+        return sine / max(c, 0.05)
+    }
+
+    /// Minimum buffer depth over the 3x3 cells around pixel `p` of the original camera image,
+    /// or nil when `p` is outside the image.
+    private func nearestDepth(atSourcePixel p: SIMD2<Float>, sourceCamera: TXCamera) -> Float? {
+        guard let center = cell(atSourcePixel: p, sourceCamera: sourceCamera) else { return nil }
         let values: [Float] = self.depth
         var nearest = Float.infinity
         let yLow: Int = max(0, center.y - 1)
@@ -137,7 +182,7 @@ struct TXDepthBuffer {
                 if d < nearest { nearest = d }
             }
         }
-        return q.z <= nearest + tolerance
+        return nearest
     }
 }
 
@@ -157,7 +202,9 @@ enum TXVisibilityBuilder {
     /// cameras[i] = TXCamera(keyframe: keyframes[i]) (image pixel size). Streams one depth buffer at a time.
     /// For each keyframe: frustum test (all 3 corners project in front and inside image with 1 px margin),
     /// back-face test and cosine (dot(normal, normalize(camPos - centroid)) >= options.minViewCosine),
-    /// occlusion (centroid AND at least 2 of 3 corners pulled 5% toward centroid pass isVisible),
+    /// occlusion (centroid AND at least 2 of 3 corners pulled 5% toward centroid pass isVisible, with the
+/// slope aware tolerance max(options.occlusionTolerance, 1.5 * depth / fxBuffer * tanTheta), where
+/// tanTheta comes from the face cosine and fxBuffer is the depth buffer camera's fx),
     /// pixelsPerMeter = sqrt(projected triangle pixel area / world area).
     /// Keeps per face the best maxCandidatesPerFace by cosine * pixelsPerMeter (ties keep the
     /// lower keyframe index). Candidates of a face are sorted best first.
@@ -231,20 +278,25 @@ enum TXVisibilityBuilder {
                     if score <= worst.cosine * worst.pixelsPerMeter { continue }
                 }
 
-                // Occlusion: centroid and at least 2 of 3 slightly pulled-in corners.
-                if !buffer.isVisible(centroid, sourceCamera: camera, tolerance: tolerance) { continue }
+                // Occlusion: centroid and at least 2 of 3 slightly pulled-in corners, with a
+                // tolerance that grows at grazing angles.
+                let tanTheta: Float = TXDepthBuffer.tanTheta(cosine: cosine)
+                if !buffer.isVisible(centroid, sourceCamera: camera, minimumTolerance: tolerance,
+                                     tanTheta: tanTheta) { continue }
                 let p0: SIMD3<Float> = positions[i0]
                 let p1: SIMD3<Float> = positions[i1]
                 let p2: SIMD3<Float> = positions[i2]
                 var passed = 0
-                if buffer.isVisible(p0 + (centroid - p0) * 0.05, sourceCamera: camera, tolerance: tolerance) {
+                if buffer.isVisible(p0 + (centroid - p0) * 0.05, sourceCamera: camera,
+                                    minimumTolerance: tolerance, tanTheta: tanTheta) {
                     passed += 1
                 }
-                if buffer.isVisible(p1 + (centroid - p1) * 0.05, sourceCamera: camera, tolerance: tolerance) {
+                if buffer.isVisible(p1 + (centroid - p1) * 0.05, sourceCamera: camera,
+                                    minimumTolerance: tolerance, tanTheta: tanTheta) {
                     passed += 1
                 }
                 if passed < 2 && buffer.isVisible(p2 + (centroid - p2) * 0.05, sourceCamera: camera,
-                                                  tolerance: tolerance) {
+                                                  minimumTolerance: tolerance, tanTheta: tanTheta) {
                     passed += 1
                 }
                 if passed < 2 { continue }
