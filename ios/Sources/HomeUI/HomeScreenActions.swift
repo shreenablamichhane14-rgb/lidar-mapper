@@ -3,6 +3,7 @@ import SwiftUI
 // Dialogs, lifecycle and user actions of `HomeScreen` (split from HomeScreen.swift to keep both
 // files short; the state they touch is internal for that reason). Everything runs on the main
 // actor; disk work goes to detached tasks.
+@MainActor
 extension HomeScreen {
     // MARK: - Dialogs and lifecycle
 
