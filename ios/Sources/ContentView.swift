@@ -35,6 +35,7 @@ struct ContentView: View {
         SelfTestSuite(name: "Units", run: UnitsSelfTest.run),
         SelfTestSuite(name: "Geometry", run: GeometrySelfTest.run),
         SelfTestSuite(name: "Export", run: ExportSelfTest.run),
+        SelfTestSuite(name: "Core", run: CoreSelfTest.run),
     ]
 
     @State private var results: [SelfTestResult] = []
