@@ -203,8 +203,8 @@ enum TXVisibilityBuilder {
     /// For each keyframe: frustum test (all 3 corners project in front and inside image with 1 px margin),
     /// back-face test and cosine (dot(normal, normalize(camPos - centroid)) >= options.minViewCosine),
     /// occlusion (centroid AND at least 2 of 3 corners pulled 5% toward centroid pass isVisible, with the
-/// slope aware tolerance max(options.occlusionTolerance, 1.5 * depth / fxBuffer * tanTheta), where
-/// tanTheta comes from the face cosine and fxBuffer is the depth buffer camera's fx),
+    /// slope aware tolerance max(options.occlusionTolerance, 1.5 * depth / fxBuffer * tanTheta), where
+    /// tanTheta comes from the face cosine and fxBuffer is the depth buffer camera's fx),
     /// pixelsPerMeter = sqrt(projected triangle pixel area / world area).
     /// Keeps per face the best maxCandidatesPerFace by cosine * pixelsPerMeter (ties keep the
     /// lower keyframe index). Candidates of a face are sorted best first.

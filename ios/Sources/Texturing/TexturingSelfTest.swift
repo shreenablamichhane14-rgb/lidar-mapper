@@ -138,108 +138,6 @@ enum TexturingSelfTest {
                  vis.candidate(forFace: 0, keyframe: 0) != nil && vis.candidate(forFace: 1, keyframe: 0) != nil)
     }
 
-    // MARK: - Packer
-
-    /// Skyline packer spill, failure cases and atlas trimming.
-    private static func checkPacker(_ c: inout TXTestChecks) {
-        let five = [SIMD2<Int>](repeating: SIMD2<Int>(100, 100), count: 5)
-        if let p = TXAtlasPacker.pack(sizes: five, atlasSize: 256, maxAtlases: 8) {
-            c.expect("packer.fiveInto256.atlases", p.atlasCount == 2, "\(p.atlasCount) atlases")
-            c.expect("packer.fiveInto256.usedHeights", p.usedHeights == [200, 100], "\(p.usedHeights)")
-            c.expect("packer.fiveInto256.noOverlap", TXTestScenes.overlappingPairs(sizes: five, placements: p.placements) == 0)
-        } else {
-            c.expect("packer.fiveInto256", false, "returned nil")
-        }
-        c.expect("packer.maxAtlases1.nil", TXAtlasPacker.pack(sizes: five, atlasSize: 256, maxAtlases: 1) == nil)
-        c.expect("packer.oversize.nil", TXAtlasPacker.pack(sizes: [SIMD2<Int>(300, 10)], atlasSize: 256, maxAtlases: 8) == nil)
-        let h1: Int = TXAtlasPacker.atlasHeight(usedHeight: 435, atlasSize: 512)
-        let h2: Int = TXAtlasPacker.atlasHeight(usedHeight: 100, atlasSize: 512)
-        c.expect("packer.atlasHeight.435", h1 == 512, "\(h1)")
-        c.expect("packer.atlasHeight.100", h2 == 128, "\(h2)")
-    }
-
-    // MARK: - Keyframe selector
-
-    /// Acceptance, rejection reasons and thinning of `KeyframeSelector`.
-    private static func checkSelector(_ c: inout TXTestChecks) {
-        var s = KeyframeSelector()
-        let origin = SIMD3<Float>(0, 0, 0), moved = SIMD3<Float>(0.2, 0, 0)
-        let d0 = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 0, translation: origin), timestamp: 0, exposureOffset: 0)
-        c.expect("selector.firstAccepted", d0 == .accept, "\(d0)")
-        let d1 = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 0, translation: origin), timestamp: 1, exposureOffset: 0)
-        c.expect("selector.samePoseTooClose", d1 == .rejectTooClose, "\(d1)")
-        let d2 = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 0, translation: moved), timestamp: 2, exposureOffset: 0)
-        c.expect("selector.translationAccepted", d2 == .accept, "\(d2)")
-        let d3 = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 15, translation: moved), timestamp: 3, exposureOffset: 0)
-        c.expect("selector.rotationAccepted", d3 == .accept, "\(d3)")
-        _ = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 15, translation: moved), timestamp: 4, exposureOffset: 0)
-        let d4 = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 30, translation: moved), timestamp: 4.01, exposureOffset: 0)
-        c.expect("selector.fastRotationBlur", d4 == .rejectBlur, "\(d4)")
-        let d5 = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 30, translation: moved), timestamp: 5, exposureOffset: 3)
-        c.expect("selector.exposure3EV", d5 == .rejectExposure, "\(d5)")
-        let d6 = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 45, translation: moved), timestamp: 6, exposureOffset: 0)
-        c.expect("selector.laterRotationAccepted", d6 == .accept, "\(d6)")
-        let d7 = s.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 45, translation: SIMD3<Float>(1, 0, 0)),
-                            timestamp: 6.05, exposureOffset: 0)
-        c.expect("selector.tooSoon", d7 == .rejectTooSoon, "\(d7)")
-        c.expect("selector.count", s.count == 4, "\(s.count)")
-
-        var config = KeyframeSelector.Config()
-        config.maxKeyframes = 3
-        var t = KeyframeSelector(config: config)
-        let xs: [Float] = [0, 0.2, 0.4, 0.6, 1.2]
-        for (i, x) in xs.enumerated() {
-            _ = t.consider(cameraToWorld: TXTestScenes.pose(yawDegrees: 0, translation: SIMD3<Float>(x, 0, 0)),
-                           timestamp: Double(i), exposureOffset: nil)
-        }
-        c.expect("thinning.allAccepted", t.count == 5, "\(t.count)")
-        let dropped: Int? = t.thinIfNeeded()
-        c.expect("thinning.returnsIndex", dropped.map { $0 >= 1 && $0 <= 3 } ?? false, "\(String(describing: dropped))")
-        c.expect("thinning.reducesCount", t.count == 4, "\(t.count)")
-        _ = t.thinIfNeeded()
-        c.expect("thinning.keepsFirstAndLast", t.count == 3 && t.keyframeTimestamps.first == 0 && t.keyframeTimestamps.last == 4,
-                 "\(t.keyframeTimestamps)")
-        c.expect("thinning.stopsAtMax", t.thinIfNeeded() == nil)
-    }
-
-    // MARK: - Sharpness and smoothing
-
-    /// Sharpness of a flat image, weight range, and label smoothing on a hand-made strip.
-    private static func checkSharpnessAndSmoothing(_ c: inout TXTestChecks) {
-        var flat = TXRGBImage(width: 64, height: 48)
-        for y in 0..<48 { for x in 0..<64 { flat.setPixel(x, y, SIMD3<Float>(128, 128, 128)) } }
-        if let cg = flat.makeCGImage(), let luma = TXLumaImage(image: cg) {
-            let s: Float = TXViewSelection.sharpness(of: luma)
-            c.expect("sharpness.flatIsZero", abs(s) < 1e-6, "\(s)")
-        } else {
-            c.expect("sharpness.flatIsZero", false, "could not make the flat image")
-        }
-        let w: [Float] = TXViewSelection.sharpnessWeights([10, 100, 50, 0.1, 400])
-        c.expect("sharpness.weightsInRange", w.count == 5 && w.allSatisfy { $0 >= 0.5 && $0 <= 1 }, "\(w)")
-        c.expect("sharpness.blurryGetsHalf", w.count == 5 && w[3] == 0.5 && w[4] == 1, "\(w)")
-
-        let strip: TXMesh = TXTestScenes.stripMesh()
-        let geometry = TXFaceGeometry(mesh: strip)
-        let adjacency = TXAdjacency(mesh: strip)
-        let special = 3
-        var offsets: [Int32] = [0]
-        var list: [TXViewCandidate] = []
-        for f in 0..<strip.faceCount {
-            list.append(TXViewCandidate(keyframe: 0, cosine: 1.0, pixelsPerMeter: 1000))
-            list.append(TXViewCandidate(keyframe: 1, cosine: f == special ? 1.05 : 0.9, pixelsPerMeter: 1000))
-            offsets.append(Int32(list.count))
-        }
-        let vis = TXVisibility(offsets: offsets, candidates: list)
-        let ones = [Float](repeating: 1, count: 2)
-        let raw = TXViewSelection.select(visibility: vis, adjacency: adjacency, geometry: geometry, weights: ones,
-                                         targetPixelsPerMeter: 1, smoothness: 0.35, iterations: 0)
-        c.expect("smoothing.rawPicksB", raw.count == strip.faceCount && raw[special] == 1, "\(raw)")
-        let smooth = TXViewSelection.select(visibility: vis, adjacency: adjacency, geometry: geometry, weights: ones,
-                                            targetPixelsPerMeter: 1)
-        c.expect("smoothing.outlierBecomesA", smooth.count == strip.faceCount && smooth[special] == 0, "\(smooth)")
-        c.expect("smoothing.allA", smooth.allSatisfy { $0 == 0 }, "\(smooth)")
-    }
-
     // MARK: - Cube and floor scene
 
     /// Rendering, visibility, view selection, charts, packing, full bakes and exposure.
@@ -292,15 +190,18 @@ enum TexturingSelfTest {
         c.expect("sharpness.checkerPositive", sharp.count == 5 && sharp.allSatisfy { $0 > 0 }, "\(sharp)")
 
         checkCharts(&c, mesh: mesh, cameras: cameras, vis: vis, geometry: geometry, adjacency: adjacency)
-        checkBakes(&c, mesh: mesh, keyframes: keyframes, geometry: geometry)
 
         // Exposure: keyframe 1 darkened by 0.7 should get a gain about 1/0.7 relative to keyframe 0.
         var lumas: [TXLumaImage?] = []
         var darkLumas: [TXLumaImage?] = []
+        var darkKeyframes: [TXKeyframe] = []
         for (k, image) in images.enumerated() {
-            lumas.append(image.makeCGImage().flatMap { TXLumaImage(image: $0) })
             let dark: TXRGBImage = k == 1 ? TXTestScenes.scaled(image, gain: 0.7) : image
+            lumas.append(image.makeCGImage().flatMap { TXLumaImage(image: $0) })
             darkLumas.append(dark.makeCGImage().flatMap { TXLumaImage(image: $0) })
+            if let kf = TXTestScenes.keyframe(image: dark, camera: cameras[k], timestamp: Double(k)) {
+                darkKeyframes.append(kf)
+            }
         }
         let equal = TXExposure.solveGains(visibility: vis, geometry: geometry, cameras: cameras, lumas: lumas)
         c.expect("exposure.equalNearOne", equal.count == 5 && equal.allSatisfy { abs($0 - 1) < 0.1 }, "\(equal)")
@@ -310,6 +211,7 @@ enum TexturingSelfTest {
         let sorted = gains.sorted()
         c.expect("exposure.medianIsOne", sorted.count == 5 && abs(sorted[2] - 1) < 1e-3, "\(gains)")
 
+        checkBakes(&c, mesh: mesh, keyframes: keyframes, darkKeyframes: darkKeyframes, geometry: geometry)
         checkErrors(&c, mesh: mesh, keyframes: keyframes)
     }
 
@@ -360,98 +262,85 @@ enum TexturingSelfTest {
 
     // MARK: - Full bakes
 
-    /// Full bakes at 512 (one atlas, colors against ground truth) and 256 (spill to several atlases).
-    private static func checkBakes(_ c: inout TXTestChecks, mesh: TXMesh, keyframes: [TXKeyframe], geometry: TXFaceGeometry) {
-        for size in [512, 256] {
-            var options = TXOptions()
-            options.atlasSize = size
-            options.texelsPerMeter = 80
-            options.normalizeExposure = false
-            let name = "bake\(size)"
-            let result: TXResult
-            do {
-                result = try TextureBaker(options: options).bake(mesh: mesh, keyframes: keyframes, progress: nil)
-            } catch {
-                c.expect("\(name).succeeds", false, "threw \(error)")
-                continue
-            }
-            let n: Int = mesh.faceCount
-            let countsOK: Bool = result.texcoords.count == 3 * n && result.faceAtlas.count == n && result.faceSource.count == n
-            c.expect("\(name).arrayCounts", countsOK,
-                     "texcoords \(result.texcoords.count), faceAtlas \(result.faceAtlas.count), faceSource \(result.faceSource.count)")
-            if !countsOK { continue }
-            var inRange = true, atlasOK = true
-            var texturedArea: Float = 0
-            for f in 0..<n where result.faceSource[f] >= 0 {
-                texturedArea += geometry.areas[f]
-                if Int(result.faceAtlas[f]) >= result.atlases.count { atlasOK = false }
-                for k in 0..<3 {
-                    let t: SIMD2<Float> = result.texcoords[3 * f + k]
-                    if !(t.x >= 0 && t.x <= 1 && t.y >= 0 && t.y <= 1) { inRange = false }
-                }
-            }
-            c.expect("\(name).texcoordsInUnitSquare", inRange)
-            c.expect("\(name).faceAtlasValid", atlasOK)
-            let sizes: [SIMD2<Int>] = result.atlases.map { SIMD2<Int>($0.width, $0.height) }
-            c.expect("\(name).atlasWidth", sizes.allSatisfy { $0.x == size && $0.y <= size }, "\(sizes)")
-            c.expect("\(name).noTexelShared", TXTestScenes.texelClashes(result: result, sizes: sizes) == 0)
-            let expected: Float = geometry.totalArea > 0 ? texturedArea / geometry.totalArea : 0
-            c.expect("\(name).coverageMatchesArea", abs(result.coverage - expected) < 1e-3,
-                     "coverage \(result.coverage), textured area fraction \(expected)")
-            if size == 256 {
-                c.expect("bake256.spills", result.atlases.count > 1, "\(result.atlases.count) atlases")
-                continue
-            }
-            c.expect("bake512.oneAtlas", result.atlases.count == 1, "\(result.atlases.count) atlases")
-            c.expect("bake512.coverageRange", result.coverage > 0.5 && result.coverage < 0.9, "\(result.coverage)")
-            c.expect("bake512.bottomUntextured", (24..<32).allSatisfy { result.faceSource[$0] == -1 })
-            c.expect("bake512.topTextured", (16..<24).allSatisfy { result.faceSource[$0] >= 0 })
-            let errors: [Float] = TXTestScenes.colorErrors(result: result, mesh: mesh, geometry: geometry, count: 200)
-            c.expect("bake512.colorSamples", errors.count == 200, "only \(errors.count) sample points")
-            let bad: Int = errors.filter { $0 > 12 }.count
-            let worst: Float = errors.max() ?? 0
-            c.expect("bake512.colorsMatchGroundTruth", errors.count > 0 && bad * 50 <= errors.count,
-                     "\(bad) of \(errors.count) points off by more than 12, max error \(worst)")
+    /// Full bakes: 1024 texels (one atlas, colors against ground truth), 256 texels (spill to
+    /// several atlases), and 1024 texels from keyframes with keyframe 1 darkened by 0.7 and
+    /// exposure normalization on (colors must still match the ground truth).
+    private static func checkBakes(_ c: inout TXTestChecks, mesh: TXMesh, keyframes: [TXKeyframe],
+                                   darkKeyframes: [TXKeyframe], geometry: TXFaceGeometry) {
+        if let result = bake(&c, name: "bake1024", size: 1024, normalize: false, mesh: mesh, keyframes: keyframes,
+                             geometry: geometry) {
+            c.expect("bake1024.oneAtlas", result.atlases.count == 1, "\(result.atlases.count) atlases")
+            // 5 of 6 cube sides plus most of the floor; the cube bottom (1 of 26 m^2) is never seen.
+            c.expect("bake1024.coverageRange", result.coverage > 0.5 && result.coverage < 0.96, "\(result.coverage)")
+            c.expect("bake1024.bottomUntextured", (24..<32).allSatisfy { result.faceSource[$0] == -1 })
+            c.expect("bake1024.topTextured", (16..<24).allSatisfy { result.faceSource[$0] >= 0 })
+            checkColors(&c, name: "bake1024", result: result, mesh: mesh, geometry: geometry)
+        }
+        if let result = bake(&c, name: "bake256", size: 256, normalize: false, mesh: mesh, keyframes: keyframes,
+                             geometry: geometry) {
+            c.expect("bake256.spills", result.atlases.count > 1, "\(result.atlases.count) atlases")
+        }
+        if darkKeyframes.count == keyframes.count,
+           let result = bake(&c, name: "bakeExposure", size: 1024, normalize: true, mesh: mesh,
+                             keyframes: darkKeyframes, geometry: geometry) {
+            checkColors(&c, name: "bakeExposure", result: result, mesh: mesh, geometry: geometry)
+        } else if darkKeyframes.count != keyframes.count {
+            c.expect("bakeExposure.keyframes", false, "could not create the darkened keyframes")
         }
     }
 
-    // MARK: - Errors
-
-    /// Invalid meshes, missing keyframes and cancellation make `bake` throw the right error.
-    private static func checkErrors(_ c: inout TXTestChecks, mesh: TXMesh, keyframes: [TXKeyframe]) {
-        let empty: TXError? = bakeError(TextureBaker(), TXMesh(positions: [], indices: []), keyframes)
-        c.expect("errors.emptyMesh", isInvalidMesh(empty), "\(String(describing: empty))")
-        let triangle: [SIMD3<Float>] = [SIMD3<Float>(0, 0, -1), SIMD3<Float>(1, 0, -1), SIMD3<Float>(0, 1, -1)]
-        let outOfRange: TXError? = bakeError(TextureBaker(), TXMesh(positions: triangle, indices: [0, 1, 5]), keyframes)
-        c.expect("errors.indexOutOfRange", isInvalidMesh(outOfRange), "\(String(describing: outOfRange))")
-        let none: TXError? = bakeError(TextureBaker(), mesh, [])
-        c.expect("errors.noKeyframes", none == TXError.noKeyframes, "\(String(describing: none))")
-        let baker = TextureBaker()
-        baker.cancel()
-        let cancelled: TXError? = bakeError(baker, mesh, keyframes)
-        c.expect("errors.cancelled", cancelled == TXError.cancelled, "\(String(describing: cancelled))")
-    }
-
-    /// The `TXError` thrown by a bake, or nil when it succeeds or throws something else.
-    private static func bakeError(_ baker: TextureBaker, _ mesh: TXMesh, _ keyframes: [TXKeyframe]) -> TXError? {
+    /// Runs one bake at `size` texels (80 texels per meter) and the checks every bake must pass:
+    /// array sizes, texcoords in the unit square, valid atlas indices, atlas sizes, no atlas
+    /// texel shared by two faces, and coverage equal to the textured area fraction. Returns the
+    /// result, or nil when the bake threw or its arrays have the wrong size.
+    private static func bake(_ c: inout TXTestChecks, name: String, size: Int, normalize: Bool, mesh: TXMesh,
+                             keyframes: [TXKeyframe], geometry: TXFaceGeometry) -> TXResult? {
+        var options = TXOptions()
+        options.atlasSize = size
+        options.texelsPerMeter = 80
+        options.normalizeExposure = normalize
+        let result: TXResult
         do {
-            _ = try baker.bake(mesh: mesh, keyframes: keyframes, progress: nil)
-            return nil
-        } catch let error as TXError {
-            return error
+            result = try TextureBaker(options: options).bake(mesh: mesh, keyframes: keyframes, progress: nil)
         } catch {
+            c.expect("\(name).succeeds", false, "threw \(error)")
             return nil
         }
+        let n: Int = mesh.faceCount
+        let countsOK: Bool = result.texcoords.count == 3 * n && result.faceAtlas.count == n && result.faceSource.count == n
+        c.expect("\(name).arrayCounts", countsOK,
+                 "texcoords \(result.texcoords.count), faceAtlas \(result.faceAtlas.count), faceSource \(result.faceSource.count)")
+        if !countsOK { return nil }
+        var inRange = true, atlasOK = true
+        var texturedArea: Float = 0
+        for f in 0..<n where result.faceSource[f] >= 0 {
+            texturedArea += geometry.areas[f]
+            if Int(result.faceAtlas[f]) >= result.atlases.count { atlasOK = false }
+            for k in 0..<3 {
+                let t: SIMD2<Float> = result.texcoords[3 * f + k]
+                if !(t.x >= 0 && t.x <= 1 && t.y >= 0 && t.y <= 1) { inRange = false }
+            }
+        }
+        c.expect("\(name).texcoordsInUnitSquare", inRange)
+        c.expect("\(name).faceAtlasValid", atlasOK)
+        let sizes: [SIMD2<Int>] = result.atlases.map { SIMD2<Int>($0.width, $0.height) }
+        c.expect("\(name).atlasWidth", sizes.allSatisfy { $0.x == size && $0.y <= size }, "\(sizes)")
+        c.expect("\(name).noTexelShared", TXTestScenes.texelClashes(result: result, sizes: sizes) == 0)
+        let expected: Float = geometry.totalArea > 0 ? texturedArea / geometry.totalArea : 0
+        c.expect("\(name).coverageMatchesArea", abs(result.coverage - expected) < 1e-3,
+                 "coverage \(result.coverage), textured area fraction \(expected)")
+        return result
     }
 
-    /// True for `TXError.invalidMesh` with any message.
-    private static func isInvalidMesh(_ error: TXError?) -> Bool {
-        guard let error = error else { return false }
-        switch error {
-        case .invalidMesh(_):
-            return true
-        default:
-            return false
-        }
+    /// Baked colors against the ground-truth checkerboard at 200 surface points: at most 1 in 50
+    /// may differ by more than 12 (of 255) in any channel.
+    private static func checkColors(_ c: inout TXTestChecks, name: String, result: TXResult, mesh: TXMesh,
+                                    geometry: TXFaceGeometry) {
+        let errors: [Float] = TXTestScenes.colorErrors(result: result, mesh: mesh, geometry: geometry, count: 200)
+        c.expect("\(name).colorSamples", errors.count == 200, "only \(errors.count) sample points")
+        let bad: Int = errors.filter { $0 > 12 }.count
+        let worst: Float = errors.max() ?? 0
+        c.expect("\(name).colorsMatchGroundTruth", errors.count > 0 && bad * 50 <= errors.count,
+                 "\(bad) of \(errors.count) points off by more than 12, max error \(worst)")
     }
 }
