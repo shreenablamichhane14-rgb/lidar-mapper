@@ -300,8 +300,9 @@ enum PlanDrawing {
             break
         case .note:
             let s: Float = 0.08
-            sketch.polyline(PlanLayers.notes, [at + SIMD2<Float>(0, 0), at + SIMD2<Float>(s, 0),
-                                               at + SIMD2<Float>(s, s), at + SIMD2<Float>(0, s)], closed: true)
+            let marker = [SIMD2<Float>(at.x, at.y), SIMD2<Float>(at.x + s, at.y),
+                          SIMD2<Float>(at.x + s, at.y + s), SIMD2<Float>(at.x, at.y + s)]
+            sketch.polyline(PlanLayers.notes, marker, closed: true)
             textStart = at + SIMD2<Float>(s + 0.06, 0)
         case .symbol:
             sketch.circle(PlanLayers.notes, center: at, radius: 0.1)

@@ -149,52 +149,63 @@ enum PlanWallDrawing {
         }
     }
 
-    /// A curved wall as arcs around its center; nil when the arc does not fit the wall's
-    /// endpoints (the caller then draws it straight). Openings are drawn on the chord.
+    /// A curved wall sampled along its arc (RoomModel's `WallArc`: plan angles, the covered
+    /// side contains the middle angle, the radius blends from |a - center| to |b - center| so
+    /// the samples meet the corners, as in RoomModel's outline). Nil when the arc is unusable
+    /// (the caller then draws the wall straight). Openings are drawn on the chord and occluded
+    /// spans are not marked on curved walls.
     private static func drawCurved(_ g: WallGeometry, arc: WallArc, into sketch: inout PlanSketch) -> PlanHit? {
         let c = PlanAxes.toPlan(arc.center.simd)
-        guard PlanSketch.isFinite(c) else { return nil }
-        let ra = simd_distance(g.a, c)
-        let rb = simd_distance(g.b, c)
-        guard ra > 0.05, rb > 0.05, abs(ra - rb) < 0.25 * max(ra, rb) else { return nil }
-        let r = (ra + rb) / 2
-        let angleA = Double(atan2(g.a.y - c.y, g.a.x - c.x))
-        let angleB = Double(atan2(g.b.y - c.y, g.b.x - c.x))
-        let ccw = Plan2D.sweep(start: angleA, end: angleB)
-        let twoPi = 2 * Double.pi
-        var span = Double(abs(arc.endAngle - arc.startAngle)).truncatingRemainder(dividingBy: twoPi)
-        if !span.isFinite || span <= 1e-6 { span = min(ccw, twoPi - ccw) }
-        let goesCCW = abs(ccw - span) <= abs((twoPi - ccw) - span)
-        let start = goesCCW ? angleA : angleB
-        let end = goesCCW ? angleB : angleA
+        guard PlanSketch.isFinite(c), arc.radius.isFinite, arc.radius > 1e-3,
+              arc.startAngle.isFinite, arc.endAngle.isFinite else { return nil }
+        let radiusA = simd_distance(g.a, c)
+        let radiusB = simd_distance(g.b, c)
+        guard radiusA > 1e-3, radiusB > 1e-3 else { return nil }
+        let alpha = atan2(g.a.y - c.y, g.a.x - c.x)
+        let beta = atan2(g.b.y - c.y, g.b.x - c.x)
+        let middle = (arc.startAngle + arc.endAngle) * 0.5
+        let counterClockwise = positiveAngle(beta - alpha)
+        let sweep: Float = positiveAngle(middle - alpha) <= counterClockwise
+            ? counterClockwise : -(2 * Float.pi - counterClockwise)
+        guard abs(sweep) > 1e-4 else { return nil }
         // Travelling counter-clockwise the room (left) is toward the center, so the body grows
-        // outward; travelling clockwise it grows inward.
-        let outerRadius = goesCCW ? r + g.thickness : max(0, r - g.thickness)
-        sketch.arc(PlanLayers.walls, center: c, radius: r, startAngle: start, endAngle: end)
-        if g.thickness > 1e-4 && outerRadius > 1e-3 {
-            if g.wall.thicknessSource == .estimated {
-                sketch.dashedArc(PlanLayers.wallsEstimated, center: c, radius: outerRadius, startAngle: start, endAngle: end)
+        // outward; travelling clockwise it grows toward the center.
+        let outward: Float = sweep > 0 ? 1 : -1
+        let rawSteps = (abs(sweep) / (5 * Float.pi / 180)).rounded(.up)
+        let steps = Int(min(72, max(2, rawSteps)))
+        var inner: [SIMD2<Float>] = []
+        var outer: [SIMD2<Float>] = []
+        for i in 0...steps {
+            let f = Float(i) / Float(steps)
+            let angle = alpha + sweep * f
+            let radius = radiusA + (radiusB - radiusA) * f
+            let direction = SIMD2<Float>(cos(angle), sin(angle))
+            let onArc: SIMD2<Float> = c + direction * radius
+            inner.append(i == 0 ? g.a : (i == steps ? g.b : onArc))
+            outer.append(c + direction * max(0, radius + outward * g.thickness))
+        }
+        sketch.polyline(PlanLayers.walls, inner, closed: false)
+        let estimated = g.wall.thicknessSource == .estimated
+        if g.thickness > 1e-4 {
+            if estimated {
+                sketch.dashedPolyline(PlanLayers.wallsEstimated, outer)
             } else {
-                sketch.arc(PlanLayers.walls, center: c, radius: outerRadius, startAngle: start, endAngle: end)
+                sketch.polyline(PlanLayers.walls, outer, closed: false)
             }
-            for angle in [start, end] {
-                let direction = SIMD2<Float>(Float(cos(angle)), Float(sin(angle)))
-                stroke(c + direction * r, c + direction * outerRadius,
-                       estimated: g.wall.thicknessSource == .estimated, into: &sketch)
+            if let firstInner = inner.first, let firstOuter = outer.first, let lastInner = inner.last, let lastOuter = outer.last {
+                stroke(firstInner, firstOuter, estimated: estimated, into: &sketch)
+                stroke(lastInner, lastOuter, estimated: estimated, into: &sketch)
             }
         }
-        let sweep = Plan2D.sweep(start: start, end: end)
-        var band: [SIMD2<Float>] = []
-        for radius in [r, max(outerRadius, 0)] {
-            var ring: [SIMD2<Float>] = []
-            for k in 0...8 {
-                let angle = start + sweep * Double(k) / 8
-                ring.append(c + SIMD2<Float>(Float(cos(angle)), Float(sin(angle))) * radius)
-            }
-            let ordered: [SIMD2<Float>] = band.isEmpty ? ring : Array(ring.reversed())
-            band.append(contentsOf: ordered)
-        }
+        let band = inner + Array(outer.reversed())
         return PlanHit(element: g.wall.id, kind: .wall, segment: nil, polygon: band)
+    }
+
+    /// An angle wrapped into 0 ..< 2 pi.
+    private static func positiveAngle(_ angle: Float) -> Float {
+        let twoPi = 2 * Float.pi
+        let wrapped = angle.truncatingRemainder(dividingBy: twoPi)
+        return wrapped < 0 ? wrapped + twoPi : wrapped
     }
 
     /// Sorted gap intervals (distance from a) of the openings hosted by a wall.

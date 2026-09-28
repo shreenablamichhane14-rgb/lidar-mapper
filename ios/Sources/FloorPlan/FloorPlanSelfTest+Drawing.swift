@@ -12,12 +12,17 @@ extension FloorPlanSelfTest {
     static let allOn = PlanToggles(furniture: true, measurements: true, roomNames: true, doorsWindows: true,
                                    fixtures: true, grid: true, scale: true)
 
-    /// The drawing of the fixture room's level with `toggles`.
+    /// A level 0 holding only `walls`.
+    static func level(walls: [PlanWall]) -> PlanLevel {
+        PlanLevel(id: 0, name: "", elevation: 0, rooms: [], walls: walls, openings: [], fixtures: [], annotations: [],
+                  dimensions: [])
+    }
+
+    /// The drawing of the first level of `plan` with `toggles` and the fixture room's titles.
     static func drawing(_ plan: PlanModel, toggles: PlanToggles) -> PlanDrawingResult {
-        let level = plan.levels.first ?? PlanLevel(id: 0, name: "", elevation: 0, rooms: [], walls: [], openings: [],
-                                                     fixtures: [], annotations: [], dimensions: [])
+        let firstLevel = plan.levels.first ?? FloorPlanSelfTest.level(walls: [])
         let titles = RoomTitles.titles(for: FloorPlanSelfTestFixtures.rectangleModel())
-        return PlanDrawing.make(level: level, toggles: toggles, prefs: testPrefs, roomTitles: titles, name: "Test")
+        return PlanDrawing.make(level: firstLevel, toggles: toggles, prefs: testPrefs, roomTitles: titles, name: "Test")
     }
 
     /// Layers, labels, toggles, grid, scale bar, door swings, estimated faces, occlusion.
@@ -95,6 +100,18 @@ extension FloorPlanSelfTest {
         log.expect("draw.occludedDashed", (counts[PlanLayers.occluded] ?? 0) > 1, "got \(counts[PlanLayers.occluded] ?? 0)")
         let windowLines = counts[PlanLayers.windows] ?? 0
         log.expect("draw.windowThreeLines", windowLines == 3, "got \(windowLines)")
+
+        var curved = PlanWall(id: F.id(60), a: Vec2(x: 1, y: 0), b: Vec2(x: 0, y: 1), thickness: 0.1, thicknessSource: .measured,
+                              arc: WallArc(center: Vec3(x: 0, y: 0, z: 0), radius: 1, startAngle: 0, endAngle: Float.pi / 2),
+                              provenance: .measured, occludedSpans: [])
+        let curvedDrawing = drawing(PlanModel(levels: [level(walls: [curved])], northAngle: 0, stamp: nil), toggles: .standard)
+        let curvedHit = PlanDrawing.hitTest(curvedDrawing.hits, at: SIMD2<Float>(0.74, 0.74), tolerance: 0.01)
+        let curvedWallLines = F.layerCounts(curvedDrawing.plan)[PlanLayers.walls] ?? 0
+        log.expect("draw.curvedWall", curvedHit?.element == F.id(60) && curvedWallLines >= 2, "got \(curvedWallLines)")
+        curved.thicknessSource = .estimated
+        let dashedArc = F.layerCounts(drawing(PlanModel(levels: [level(walls: [curved])], northAngle: 0, stamp: nil),
+                                              toggles: .standard).plan)
+        log.expect("draw.curvedEstimatedDashed", (dashedArc[PlanLayers.wallsEstimated] ?? 0) > 2)
 
         let names = ObjectCategory.allCases.map { Copy.FloorPlan.categoryName($0) }
         log.expect("draw.categoryNamesNonEmpty", names.allSatisfy { !$0.isEmpty })

@@ -76,6 +76,43 @@ struct PlanSketch {
         }
     }
 
+    /// A dashed polyline: dash pieces follow the path across its corners with a continuous
+    /// dash pattern (short `.line` pieces).
+    mutating func dashedPolyline(_ layer: String, _ points: [SIMD2<Float>]) {
+        guard points.count >= 2, points.allSatisfy({ PlanSketch.isFinite($0) }) else { return }
+        let path = points.map { PlanSketch.d($0) }
+        var cumulative: [Double] = [0]
+        for i in 1..<path.count {
+            cumulative.append(cumulative[i - 1] + simd_distance(path[i - 1], path[i]))
+        }
+        let total = cumulative[cumulative.count - 1]
+        guard total > 1e-5 else { return }
+        let period = PlanSketch.dashLength + PlanSketch.dashGap
+        let count = PlanSketch.pieceCount(total / period)
+        var first = 0
+        for k in 0..<count {
+            let s0 = Double(k) * period
+            let s1 = min(s0 + PlanSketch.dashLength, total)
+            guard s1 - s0 > 1e-6 else { continue }
+            while first < path.count - 2 && cumulative[first + 1] <= s0 { first += 1 }
+            var j = first
+            while j < path.count - 1 && cumulative[j] < s1 {
+                let segmentStart = cumulative[j]
+                let segmentEnd = cumulative[j + 1]
+                let lower = max(s0, segmentStart)
+                let upper = min(s1, segmentEnd)
+                let span = segmentEnd - segmentStart
+                if upper - lower > 1e-6 && span > 1e-9 {
+                    let delta = path[j + 1] - path[j]
+                    let p = path[j] + delta * ((lower - segmentStart) / span)
+                    let q = path[j] + delta * ((upper - segmentStart) / span)
+                    add(layer, .line(from: p, to: q))
+                }
+                j += 1
+            }
+        }
+    }
+
     /// A counter-clockwise arc from `startAngle` to `endAngle` (radians from plan +x).
     mutating func arc(_ layer: String, center: SIMD2<Float>, radius: Float, startAngle: Double, endAngle: Double) {
         guard PlanSketch.isFinite(center), radius.isFinite, radius > 1e-5,
@@ -166,7 +203,11 @@ enum PlanSymbols {
         let v = SIMD2<Float>(-u.y, u.x)
         let hx = abs(fixture.size.x) / 2
         let hz = abs(fixture.size.y) / 2
-        return [c - u * hx - v * hz, c + u * hx - v * hz, c + u * hx + v * hz, c - u * hx + v * hz]
+        let ux: SIMD2<Float> = u * hx
+        let vz: SIMD2<Float> = v * hz
+        let low: SIMD2<Float> = c - vz
+        let high: SIMD2<Float> = c + vz
+        return [low - ux, low + ux, high + ux, high - ux]
     }
 
     /// Draws a fixture's symbol and label on `layer`.
@@ -285,11 +326,13 @@ enum PlanSymbols {
         let tip = f.point(0, h - min(0.1, h * 0.2))
         sketch.line(layer, tail, tip)
         let head = min(0.15, w * 0.5)
-        sketch.line(layer, tip, tip - f.forward * head + f.across * head * 0.6)
-        sketch.line(layer, tip, tip - f.forward * head - f.across * head * 0.6)
+        let back: SIMD2<Float> = tip - f.forward * head
+        let side: SIMD2<Float> = f.across * (head * 0.6)
+        sketch.line(layer, tip, back + side)
+        sketch.line(layer, tip, back - side)
         let labelHeight = max(0.08, min(0.14, w * 0.4))
-        sketch.centeredText(layer, Copy.FloorPlan.stairsUp, baselineCenter: tail + f.across * (head + labelHeight * 1.4),
-                            height: labelHeight)
+        let labelAt: SIMD2<Float> = tail + f.across * (head + labelHeight * 1.4)
+        sketch.centeredText(layer, Copy.FloorPlan.stairsUp, baselineCenter: labelAt, height: labelHeight)
     }
 
     /// The category name centered in the footprint when it fits across it.
