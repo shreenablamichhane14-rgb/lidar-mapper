@@ -383,9 +383,10 @@ extension RoomScanEngine {
         if let notice = RoomScanStats.finalNotice(context.notice, roomBuilt: capturedRoomID != nil) {
             events.append(.failed(notice))
         }
-        RoomScanLog.write("room \(context.target.roomID) finished: \(stats.keyframes) keyframes, \(stats.photos) photos, "
-                          + "degraded \(context.log.degraded.rawValue), system stop \(context.systemStop?.copyKey ?? "none"); "
-                          + RoomScanLog.deviceLine())
+        let stopName: String = context.systemStop?.copyKey ?? "none"
+        let counts = "\(stats.keyframes) keyframes, \(stats.photos) photos"
+        let ending = "degraded \(context.log.degraded.rawValue), system stop \(stopName)"
+        RoomScanLog.write("room \(context.target.roomID) finished: \(counts), \(ending); " + RoomScanLog.deviceLine())
         publish(state: .finished, events: events, result: result)
     }
 
