@@ -3,15 +3,15 @@ import UIKit
 
 /// The scan quality sheet (SPEC SCAN QUALITY SYSTEM, D19, docs/MODULES.md 3.25): Shape, Walls,
 /// Floor, Ceiling and Color and texture as percentages with bars, the missing area count, a
-/// plain summary line, the degraded-mode and light notes, Finish or Finish Anyway, and Discard
-/// with a confirmation. AppShell presents it over the live scan screen with
-/// `.presentationDetents([.medium, .large])` and `.interactiveDismissDisabled()`; the sheet
-/// never presents itself.
+/// plain summary line, the degraded-mode and light notes, Finish or Finish Anyway, and Discard.
+/// AppShell presents it over the live scan screen with `.presentationDetents([.medium, .large])`
+/// and `.interactiveDismissDisabled()`; the sheet never presents itself.
 ///
 /// A nil `evaluation` shows "Checking your scan...". If the check runs longer than
 /// `QualityPresentation.checkingSlowAfterSeconds`, Finish Anyway and Discard appear under it so
-/// the user is never stuck. `onDiscard` runs only after the user confirmed in the sheet's own
-/// alert, and removes only the scan just captured (lead decision 4, `ScanFlowModel.discardScan`).
+/// the user is never stuck. `onDiscard` runs when Discard Scan is tapped; the caller asks for
+/// the confirmation (docs/MODULES.md 3.29: AppShell's `onDiscard` confirms, then calls
+/// `ScanFlowModel.discardScan`, which removes only the scan just captured, lead decision 4).
 /// `onShowMissingAreas` nil hides Show Missing Areas (build 4; build 5 passes it only while the
 /// room's session is still running); the button also stays hidden when nothing is missing.
 ///
@@ -26,13 +26,11 @@ struct QualitySheet: View {
     private let evaluation: QualityEvaluation?
     /// Finish or Finish Anyway.
     private let onFinish: () -> Void
-    /// Discard, called only after the confirmation.
+    /// Discard Scan tapped; the caller confirms, then discards.
     private let onDiscard: () -> Void
     /// Show Missing Areas (build 5); nil hides the button.
     private let onShowMissingAreas: (() -> Void)?
 
-    /// True while the Discard confirmation alert is up.
-    @State private var confirmsDiscard = false
     /// True once the check has run longer than `QualityPresentation.checkingSlowAfterSeconds`.
     @State private var checkingIsSlow = false
     /// When the last button action ran, to ignore an accidental double tap.
@@ -73,16 +71,6 @@ struct QualitySheet: View {
             }
         }
         .presentationDragIndicator(.visible)
-        .alert(Copy.Quality.discardConfirmTitle, isPresented: $confirmsDiscard) {
-            Button(Copy.Scanning.cancelConfirmDiscard, role: .destructive) {
-                discardConfirmed()
-            }
-            Button(Copy.Quality.discardConfirmKeep, role: .cancel) {
-                log("discard cancelled, scan kept")
-            }
-        } message: {
-            Text(Copy.Quality.discardConfirmBody)
-        }
         .task(id: evaluation == nil) {
             await watchCheckingTime()
         }
@@ -182,10 +170,10 @@ struct QualitySheet: View {
         .controlSize(.large)
     }
 
-    /// Discard Scan, which asks for confirmation first.
+    /// Discard Scan (the caller asks for the confirmation).
     private var discardButton: some View {
         Button(role: .destructive) {
-            requestDiscard()
+            discardTapped()
         } label: {
             Text(Copy.Scanning.cancelConfirmDiscard)
                 .font(.headline)
@@ -208,16 +196,10 @@ struct QualitySheet: View {
         onFinish()
     }
 
-    /// Opens the Discard confirmation.
-    private func requestDiscard() {
-        log("discard asked")
-        confirmsDiscard = true
-    }
-
-    /// The user confirmed Discard Scan.
-    private func discardConfirmed() {
+    /// Runs Discard Scan; the caller confirms before anything is deleted.
+    private func discardTapped() {
         guard acceptAction() else { return }
-        log("discard confirmed")
+        log("discard tapped")
         onDiscard()
     }
 
