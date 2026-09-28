@@ -1,4 +1,6 @@
 import Foundation
+import CoreGraphics
+import RealityKit
 import simd
 
 /// One pickable part: its bounding volume hierarchy plus what a hit reports. `MeshBVH` is
@@ -52,5 +54,38 @@ enum ViewerPicking {
                              triangle: hit.triangle, pickTag: entry.pickTag)
         }
         return best
+    }
+}
+
+/// Picking and label projection on the main actor.
+@MainActor extension ViewerModel {
+    /// Nearest visible pickable triangle under a point of the attached view (points): the
+    /// view's `ray(through:)`, then `MeshBVH.raycast` over the pickable parts. Nil while the
+    /// load has not finished or when nothing is hit.
+    func hitTest(_ point: CGPoint) -> ViewerHit? {
+        guard !pickEntries.isEmpty else { return nil }
+        let pickRay: Ray?
+        if let view = arView, let viewRay = view.ray(through: point) {
+            pickRay = Ray(origin: viewRay.origin, direction: viewRay.direction)
+        } else {
+            pickRay = ViewerOrbitMath.ray(through: point, cameraToWorld: orbitState.cameraToWorld,
+                                          verticalFieldOfViewDegrees: ViewerModel.fieldOfView, viewSize: viewSize)
+        }
+        guard let ray = pickRay else { return nil }
+        return ViewerPicking.nearestHit(ray, entries: pickEntries, visibleLayers: visibleLayers)
+    }
+
+    /// Screen point (view points) of a world point for SwiftUI label overlays; nil behind the
+    /// camera. Refresh labels when `cameraRevision` changes.
+    func project(_ world: SIMD3<Float>) -> CGPoint? {
+        let pose = orbitState.cameraToWorld
+        let forward = -SIMD3<Float>(pose.columns.2.x, pose.columns.2.y, pose.columns.2.z)
+        let eye = SIMD3<Float>(pose.columns.3.x, pose.columns.3.y, pose.columns.3.z)
+        guard simd_dot(world - eye, forward) > ViewerModel.nearPlane else { return nil }
+        if let view = arView {
+            return view.project(world)
+        }
+        return ViewerOrbitMath.project(world, cameraToWorld: pose, verticalFieldOfViewDegrees: ViewerModel.fieldOfView,
+                                       viewSize: viewSize)
     }
 }

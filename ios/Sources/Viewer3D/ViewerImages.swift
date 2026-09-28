@@ -1,6 +1,8 @@
 import Foundation
 import CoreGraphics
 import ImageIO
+import RealityKit
+import UIKit
 
 /// A `CGImage` handed between the main actor and background tasks. `CGImage` is immutable,
 /// so sharing it across queues is safe.
@@ -79,5 +81,31 @@ enum ViewerImages {
             return true
         }
         return drawn ? (bytes, width, height) : nil
+    }
+}
+
+/// Snapshots of the attached view.
+@MainActor extension ViewerModel {
+    /// JPEG of the current view (`ARView.snapshot(saveToHDR:completion:)`), scaled so the
+    /// longer side is at most `maxPixel`. Nil when no view is attached or the snapshot fails.
+    func snapshotJPEG(maxPixel: Int) async -> Data? {
+        guard let view = arView, view.bounds.width > 0, view.bounds.height > 0 else {
+            LogStore.shared.write("snapshot skipped: no view", category: "viewer")
+            return nil
+        }
+        let image: UIImage? = await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
+            view.snapshot(saveToHDR: false) { snapshot in
+                continuation.resume(returning: snapshot)
+            }
+        }
+        guard let cgImage = image?.cgImage else {
+            LogStore.shared.write("snapshot failed", category: "viewer")
+            return nil
+        }
+        let boxed = ViewerCGImage(image: cgImage)
+        return await Task.detached(priority: .userInitiated) { () -> Data? in
+            guard let scaled = ViewerImages.scaled(boxed.image, maxPixel: maxPixel) else { return nil }
+            return ViewerImages.jpegData(scaled, quality: 0.9)
+        }.value
     }
 }
