@@ -10,8 +10,9 @@ import simd
 /// hand-written DXF usually breaks. The cost: R12 has no $INSUNITS, so the drawing is
 /// unitless. `text(for:)` and `data(for:)` write 1 drawing unit = 1 meter (importers ask
 /// for or assume units); `text(for:millimeters:unitsNote:)` and
-/// `data(for:millimeters:unitsNote:)` write 1 drawing unit = 1 millimeter and state the
-/// unit in a TEXT note below the drawing (D23), which is what the export screen uses.
+/// `data(for:millimeters:unitsNote:)` with `millimeters: true` write 1 drawing unit =
+/// 1 millimeter and, given a note, state the unit in a TEXT note below the drawing
+/// (D23), which is what the export screen uses.
 ///
 /// Structure: HEADER ($ACADVER, $EXTMIN, $EXTMAX), TABLES (LTYPE CONTINUOUS, one LAYER
 /// entry per plan layer plus layer "0", STYLE STANDARD), empty BLOCKS, ENTITIES, EOF.
@@ -272,9 +273,10 @@ extension DXFWriter {
     /// drawing unit = 1 mm), so `$EXTMIN` and `$EXTMAX` scale too; when false the
     /// geometry is written in meters exactly like `text(for:)`. When `unitsNote` is not
     /// nil and not blank, one TEXT entity with that string is appended on the notes
-    /// layer ("A-ANNO-NOTE" when the plan has it, else "0"), left-aligned with the
-    /// lower-left corner of `plan.bounds()` and one note height below the drawing. Still
-    /// R12, still no `$INSUNITS`, no DIMENSION entities and no new layers.
+    /// layer ("A-ANNO-NOTE" when the plan has it, else "0"), starting at the left edge of
+    /// `plan.bounds()` with its baseline two note heights below the bottom, so its top
+    /// clears the drawing by one note height. Still R12, still no `$INSUNITS`, no
+    /// DIMENSION entities and no new layers.
     static func text(for plan: Plan2D, millimeters: Bool, unitsNote: String?) throws -> String {
         guard !plan.entities.isEmpty else { throw ExportError.emptyPlan }
         let factor: Double = millimeters ? millimetersPerMeter : 1
