@@ -21,6 +21,13 @@ struct PlanSketch {
         SIMD2<Double>(Double(p.x), Double(p.y))
     }
 
+    /// Number of dash pieces for `periods` dash periods: rounded up, at least 1, at most
+    /// `maxDashes` (clamped before converting, so a huge or non-finite value never traps).
+    static func pieceCount(_ periods: Double) -> Int {
+        guard periods.isFinite else { return 1 }
+        return Int(Swift.min(Double(maxDashes), Swift.max(1, periods.rounded(.up))))
+    }
+
     /// True when both components are finite.
     static func isFinite(_ p: SIMD2<Float>) -> Bool {
         p.x.isFinite && p.y.isFinite
@@ -60,7 +67,7 @@ struct PlanSketch {
         guard length > 1e-5 else { return }
         let direction = (to - from) / length
         let period = PlanSketch.dashLength + PlanSketch.dashGap
-        let count = min(PlanSketch.maxDashes, max(1, Int((length / period).rounded(.up))))
+        let count = PlanSketch.pieceCount(length / period)
         for i in 0..<count {
             let s = Double(i) * period
             let e = min(s + PlanSketch.dashLength, length)
@@ -83,7 +90,7 @@ struct PlanSketch {
         let r = Double(radius)
         let arcLength = Plan2D.sweep(start: startAngle, end: endAngle) * r
         let period = PlanSketch.dashLength + PlanSketch.dashGap
-        let count = min(PlanSketch.maxDashes, max(1, Int((arcLength / period).rounded(.up))))
+        let count = PlanSketch.pieceCount(arcLength / period)
         for i in 0..<count {
             let s = Double(i) * period
             let e = min(s + PlanSketch.dashLength, arcLength)
@@ -265,7 +272,8 @@ enum PlanSymbols {
     private static func drawStairs(_ f: SymbolFrame, layer: String, into sketch: inout PlanSketch) {
         let w = f.halfWidth
         let h = f.halfDepth
-        let treads = min(60, Int((h * 2 / treadDepth).rounded(.down)))
+        let rawTreads = (h * 2 / treadDepth).rounded(.down)
+        let treads = rawTreads.isFinite ? Int(min(60, max(0, rawTreads))) : 0
         if treads >= 1 {
             for i in 1...treads {
                 let y = -h + Float(i) * treadDepth
