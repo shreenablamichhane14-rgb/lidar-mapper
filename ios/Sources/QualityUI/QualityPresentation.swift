@@ -22,6 +22,21 @@ enum QualityTint: Equatable, Sendable {
             self = .poor
         }
     }
+
+    /// The tint of a verdict (good, okay and poor map one to one), for the summary line.
+    init(verdict: QualityVerdict) {
+        switch verdict {
+        case .good: self = .good
+        case .okay: self = .okay
+        case .poor: self = .poor
+        }
+    }
+
+    /// The tint of the missing areas row: good when nothing is missing, okay otherwise (a count
+    /// is not a score, so it never reads as poor on its own).
+    init(missingAreas count: Int) {
+        self = count > 0 ? .okay : .good
+    }
 }
 
 /// One row of the quality sheet (Shape, Walls, Floor, Ceiling, Color and texture): the title,
