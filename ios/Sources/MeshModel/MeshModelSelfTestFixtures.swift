@@ -97,7 +97,9 @@ extension MeshModelSelfTest {
             let s = Float(i) / Float(nu)
             for j in 0...nv {
                 let t = Float(j) / Float(nv)
-                let p: SIMD3<Float> = origin + s * u + t * v
+                let alongU: SIMD3<Float> = s * u
+                let alongV: SIMD3<Float> = t * v
+                let p: SIMD3<Float> = origin + alongU + alongV
                 positions.append(p)
             }
         }

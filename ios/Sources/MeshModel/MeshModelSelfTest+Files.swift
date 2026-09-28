@@ -18,7 +18,8 @@ extension MeshModelSelfTest {
             worst = Swift.max(worst, simd_distance(p, corners[i % 8]))
         }
         r.check("fast.transformed", worst < 1e-4, "vertex off by \(worst) m")
-        r.check("fast.classes", fast.faceClass?.count == 16 && fast.faceClass?.last == 2)
+        let fastClasses: [UInt8] = fast.faceClass ?? []
+        r.check("fast.classes", fastClasses.count == 16 && fastClasses.last == 2)
         r.check("fast.empty", MeshConsolidator.fastWorldMesh([]).triangleCount == 0)
     }
 
