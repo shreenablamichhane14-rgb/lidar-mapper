@@ -2,6 +2,9 @@ import Foundation
 import ARKit
 import RoomPlan
 import RealityKit
+// `ObjectCaptureSession` is declared in the RealityKit + SwiftUI cross-import overlay, so it is
+// only visible to files that import both (CI run 36488207443: "cannot find type" without this).
+import SwiftUI
 
 // Adapters from Apple's live capture signals to Mapper's guidance types.
 //

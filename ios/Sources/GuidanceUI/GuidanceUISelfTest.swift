@@ -2,6 +2,8 @@ import Foundation
 import ARKit
 import RoomPlan
 import RealityKit
+// SwiftUI brings in the RealityKit cross-import overlay that declares `ObjectCaptureSession`.
+import SwiftUI
 
 /// Plain-Swift checks for GuidanceUI (no XCTest), run from the Diagnostics suite list off the
 /// main actor. Pure and deterministic: no ARKit, RoomPlan or Object Capture session, no camera,
