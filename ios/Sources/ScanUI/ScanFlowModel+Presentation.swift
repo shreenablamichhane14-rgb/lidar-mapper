@@ -9,7 +9,7 @@ import UIKit
 /// What closing the current alert does next.
 enum ScanAlertFollowUp: Equatable, Sendable {
     /// Nothing more.
-    case none
+    case stay
     /// Show the next preflight warning, then the tips or the capture.
     case continueToCapture
     /// End the flow (`onDismiss`).
@@ -55,7 +55,7 @@ extension ScanFlowModel {
     func alertAction(_ action: ScanAlertAction) {
         let followUp = alertFollowUp
         alert = nil
-        alertFollowUp = .none
+        alertFollowUp = .stay
         markPresentationClosed()
         log("alert action \(action)")
         switch action {
@@ -69,7 +69,7 @@ extension ScanFlowModel {
             resume()
         }
         switch followUp {
-        case .none:
+        case .stay:
             break
         case .continueToCapture:
             continueToCapture()
@@ -125,7 +125,7 @@ extension ScanFlowModel {
         guard ScanFlowModel.pausedPromptDue(pausedSeconds: now - since, alreadyPrompted: pausedPrompted) else { return }
         pausedPrompted = true
         Haptics.warning()
-        present(ScanErrorCopy.pausedPrompt(), followUp: .none)
+        present(ScanErrorCopy.pausedPrompt(), followUp: .stay)
     }
 
     /// Checks the 4 minute hint and the 5 minute limit against the scan time of a snapshot.

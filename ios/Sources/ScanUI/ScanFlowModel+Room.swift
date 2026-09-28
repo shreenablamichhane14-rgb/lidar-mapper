@@ -153,7 +153,7 @@ extension ScanFlowModel {
         if showsCancelConfirmation || alert != nil {
             showsCancelConfirmation = false
             alert = nil
-            alertFollowUp = .none
+            alertFollowUp = .stay
             markPresentationClosed()
         }
         showsTimeLimitSheet = false
@@ -277,7 +277,7 @@ extension ScanFlowModel {
         log("engine reported \(error.copyKey)")
         Haptics.warning()
         if finishedRoomID != nil {
-            present(ScanErrorCopy.notice(for: error), followUp: .none)
+            present(ScanErrorCopy.notice(for: error), followUp: .stay)
             return
         }
         guard !awaitingDiscardIdle, ScanFlowModel.isBeforeRoomSaved(phase) else { return }
@@ -298,7 +298,7 @@ extension ScanFlowModel {
         announcer.reset()
         showsTimeLimitSheet = false
         alert = nil
-        alertFollowUp = .none
+        alertFollowUp = .stay
         log("cancel confirmed: discarding the scan")
         guard let current = engine else {
             completeDiscard()
@@ -338,7 +338,7 @@ extension ScanFlowModel {
     /// project goes when no room is left), releases the engine and ends the flow.
     func discardSavedRoom() {
         alert = nil
-        alertFollowUp = .none
+        alertFollowUp = .stay
         stopTimers()
         announcer.reset()
         teardownEngine()

@@ -46,42 +46,41 @@ enum ScanUISelfTest {
 
     /// `ScanPreflight.evaluate`: blocking issues, their order, warnings and Demo Mode.
     private static func checkPreflight(_ c: inout ScanUISelfTestChecker) {
-        let plenty: Int64 = 20_000_000_000
-        func run(_ camera: CameraPermission = .authorized, lidar: Bool = true, free: Int64 = plenty,
+        func report(_ camera: CameraPermission = .authorized, lidar: Bool = true, free: Int64 = 20_000_000_000,
                  battery: Float? = 0.8, thermal: ThermalLevel = .nominal, demo: Bool = false) -> PreflightReport {
             ScanPreflight.evaluate(cameraStatus: camera, lidarSupported: lidar, freeBytes: free, batteryLevel: battery,
                                    thermal: thermal, isDemo: demo)
         }
-        let denied = run(.denied)
+        let denied = report(.denied)
         c.check("preflight.cameraDenied", denied.blocking == .cameraDenied, "\(String(describing: denied.blocking))")
-        let noLidar = run(lidar: false)
+        let noLidar = report(lidar: false)
         c.check("preflight.noLidar", noLidar.blocking == .noLidar, "\(String(describing: noLidar.blocking))")
-        let oneGB = run(free: 1_000_000_000)
+        let oneGB = report(free: 1_000_000_000)
         c.check("preflight.oneGBBlocks", oneGB.blocking == .lowStorage(free: 1_000_000_000),
                 "\(String(describing: oneGB.blocking))")
-        let undetermined = run(.undetermined)
+        let undetermined = report(.undetermined)
         c.check("preflight.undetermined", undetermined.blocking == .cameraUndetermined,
                 "\(String(describing: undetermined.blocking))")
-        let storageFirst = run(.denied, free: 1_000_000_000)
+        let storageFirst = report(.denied, free: 1_000_000_000)
         c.check("preflight.storageBeforeCamera", storageFirst.blocking == .lowStorage(free: 1_000_000_000))
-        let lidarFirst = run(.undetermined, lidar: false, free: 1_000_000_000)
+        let lidarFirst = report(.undetermined, lidar: false, free: 1_000_000_000)
         c.check("preflight.lidarFirst", lidarFirst.blocking == .noLidar)
 
-        let warned = run(free: 2_000_000_000, battery: 0.15, thermal: .serious)
+        let warned = report(free: 2_000_000_000, battery: 0.15, thermal: .serious)
         c.check("preflight.warningsDoNotBlock", warned.blocking == nil, "\(String(describing: warned.blocking))")
         c.check("preflight.storageWarning", warned.warnings.contains(.storageWarning(free: 2_000_000_000)),
                 "\(warned.warnings)")
         c.check("preflight.batteryWarning", warned.warnings.contains(.lowBattery(0.15)), "\(warned.warnings)")
         c.check("preflight.heatWarning", warned.warnings.contains(.deviceHot), "\(warned.warnings)")
-        let clean = run()
+        let clean = report()
         c.check("preflight.clean", clean == PreflightReport(blocking: nil, warnings: []), "\(clean)")
-        let charging = run(battery: nil)
+        let charging = report(battery: nil)
         c.check("preflight.chargingNoBatteryWarning", charging.warnings.isEmpty, "\(charging.warnings)")
 
-        let demo = run(.denied, lidar: false, free: 2_000_000_000, demo: true)
+        let demo = report(.denied, lidar: false, free: 2_000_000_000, demo: true)
         c.check("preflight.demoIgnoresCameraLidar", demo.blocking == nil && demo.warnings.isEmpty,
                 "\(demo)")
-        let demoFull = run(.denied, lidar: false, free: 30_000_000, demo: true)
+        let demoFull = report(.denied, lidar: false, free: 30_000_000, demo: true)
         c.check("preflight.demo30MBBlocks", demoFull.blocking == .lowStorage(free: 30_000_000),
                 "\(String(describing: demoFull.blocking))")
     }
@@ -115,14 +114,16 @@ enum ScanUISelfTest {
         c.check("reducer.engineStopping", ScanFlowModel.nextPhase(.capturing, on: .engineStopping) == .stopping)
         c.check("reducer.roomFinishedWhileCapturing",
                 ScanFlowModel.nextPhase(.capturing, on: .roomFinished(room)) == .checking)
-        let afterCheck = ScanFlowModel.nextPhase(.checking, on: .failed("error.deviceTooHot"))
-        let afterSheet = ScanFlowModel.nextPhase(.quality, on: .failed("error.lowMemory"))
+        let afterCheck: ScanFlowPhase = ScanFlowModel.nextPhase(.checking, on: .failed("error.deviceTooHot"))
+        let afterSheet: ScanFlowPhase = ScanFlowModel.nextPhase(.quality, on: .failed("error.lowMemory"))
         c.check("reducer.failedAfterRoomFinishedStays", afterCheck == .checking && afterSheet == .quality,
                 "\(afterCheck) \(afterSheet)")
         c.check("reducer.failedBeforeRoomFinished",
                 ScanFlowModel.nextPhase(.capturing, on: .failed("error.ioFailed")) == .failed("error.ioFailed"))
-        c.check("reducer.terminalStays", ScanFlowModel.nextPhase(.done(project), on: .cancelConfirmed) == .done(project)
-                && ScanFlowModel.nextPhase(.cancelled, on: .tipsDone) == .cancelled)
+        let doneStays: ScanFlowPhase = ScanFlowModel.nextPhase(.done(project), on: .cancelConfirmed)
+        let cancelledStays: ScanFlowPhase = ScanFlowModel.nextPhase(.cancelled, on: .tipsDone)
+        c.check("reducer.terminalStays", doneStays == .done(project) && cancelledStays == .cancelled,
+                "\(doneStays) \(cancelledStays)")
         c.check("reducer.finishWhileChecking", ScanFlowModel.nextPhase(.checking, on: .finishTapped) == .finishing)
     }
 

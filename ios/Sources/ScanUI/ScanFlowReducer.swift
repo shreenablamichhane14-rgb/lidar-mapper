@@ -58,6 +58,8 @@ enum ScanFlowPhase: Equatable, Sendable {
 
 /// Inputs of the reducer: user actions, preflight results and engine events.
 enum ScanFlowSignal: Equatable, Sendable {
+    /// Preflight results, permission answers, user taps and engine events (ARCHITECTURE 10.3);
+    /// `failed` and `roomFinished` carry a log key and the room id.
     case preflightPassed, preflightBlocked, permissionNeeded, permissionGranted, permissionDenied, tipsDone,
          engineStarted, doneTapped, engineStopping, roomFinished(UUID), evaluated, finishTapped, cancelConfirmed,
          discarded, failed(String)
@@ -143,8 +145,10 @@ extension ScanFlowModel {
     /// once both are due; each shows once.
     nonisolated static func timeCue(elapsed: Double, hintShown: Bool, limitShown: Bool) -> ScanTimeCue? {
         guard elapsed.isFinite else { return nil }
-        if elapsed >= ScanFlowTiming.timeLimitSeconds && !limitShown { return .limit }
-        if elapsed >= ScanFlowTiming.timeHintSeconds && elapsed < ScanFlowTiming.timeLimitSeconds && !hintShown { return .hint }
+        let pastLimit = elapsed >= ScanFlowTiming.timeLimitSeconds
+        let pastHint = elapsed >= ScanFlowTiming.timeHintSeconds
+        if pastLimit && !limitShown { return .limit }
+        if pastHint && !pastLimit && !hintShown { return .hint }
         return nil
     }
 
@@ -158,7 +162,7 @@ extension ScanFlowModel {
     /// Whole minutes and seconds of an elapsed time (negative and non-finite count as 0).
     nonisolated static func elapsedParts(_ seconds: Double) -> (minutes: Int, seconds: Int) {
         guard seconds.isFinite, seconds > 0 else { return (0, 0) }
-        let total = Int(seconds.rounded(.down))
+        let total = Int(Swift.min(seconds, 1_000_000_000).rounded(.down))
         return (total / 60, total % 60)
     }
 }

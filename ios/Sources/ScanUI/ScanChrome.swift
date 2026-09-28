@@ -25,15 +25,12 @@ struct ScanChrome: View {
             if showsBanner {
                 GuidanceBanner(kind: announcer.current)
             }
-            switch model.phase {
-            case .capturing:
+            if model.phase == .capturing {
                 capturingLayer
-            case .stopping:
+            } else if model.phase == .stopping {
                 stoppingLayer
-            case .cancelled where model.isDiscarding:
+            } else if model.isDiscarding {
                 centeredCard(text: Copy.ScanUI.discarding)
-            case .preflight, .permission, .tips, .checking, .quality, .finishing, .done, .failed, .cancelled:
-                Color.clear
             }
             if model.showsAlertAsNotice, let notice = model.alert {
                 noticeLayer(notice)

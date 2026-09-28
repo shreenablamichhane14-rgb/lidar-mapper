@@ -89,7 +89,7 @@ import AVFoundation
     /// Preflight warnings still to show before the capture starts.
     var pendingWarnings: [PreflightIssue] = []
     /// What closing the current alert does next.
-    var alertFollowUp: ScanAlertFollowUp = .none
+    var alertFollowUp: ScanAlertFollowUp = .stay
     /// Uptime when the last alert or dialog closed (the quality sheet waits a moment after it).
     var lastPresentationClosed: TimeInterval = -1_000
     /// Idle timer hold while the scan screen is visible.
