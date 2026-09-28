@@ -66,8 +66,8 @@ struct RoomDetectionTracker: Equatable, Sendable {
 
     /// Counts the elements of `input` never seen before.
     mutating func observe(_ input: RoomInput) {
-        for wall in input.walls where seenWalls.insert(wall.identifier).inserted {
-            newWalls += 1
+        for wall in input.walls {
+            if seenWalls.insert(wall.identifier).inserted { newWalls += 1 }
         }
         for surface in input.openings {
             switch surface.kind {
@@ -339,11 +339,13 @@ enum RoomScanLog {
         if isNew { write(message) }
     }
 
-    /// Thermal level, available memory and free storage, for the start and finish lines.
-    static func deviceLine() -> String {
+    /// Thermal level, available memory and (unless `storage` is false, as on the hub queue,
+    /// which does no disk work) free storage, for the start and finish lines.
+    static func deviceLine(storage: Bool = true) -> String {
         let thermal = ThermalLevel(ProcessInfo.processInfo.thermalState).rawValue
         let memory = MemoryProbe.availableBytes() / 1_000_000
-        let free = ProjectStore.freeBytes() / 1_000_000
-        return "thermal \(thermal), available memory \(memory) MB, free storage \(free) MB"
+        var line = "thermal \(thermal), available memory \(memory) MB"
+        if storage { line += ", free storage \(ProjectStore.freeBytes() / 1_000_000) MB" }
+        return line
     }
 }

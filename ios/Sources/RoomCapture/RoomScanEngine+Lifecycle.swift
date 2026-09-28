@@ -255,7 +255,7 @@ extension RoomScanEngine {
             for recorder in recorders { recorder.flushNow() }
         }
         appendEngineEvent(.note, "finish requested: \(reason)")
-        RoomScanLog.write("finish requested (\(reason)): " + RoomScanLog.deviceLine())
+        RoomScanLog.write("finish requested (\(reason)): " + RoomScanLog.deviceLine(storage: false))
         publish(state: .stopping, events: [.stateChanged(.stopping)])
         let serial = q.roomSerial
         DispatchQueue.main.async { [weak self] in self?.stopRoomPlanForFinish(serial: serial) }
@@ -311,7 +311,8 @@ extension RoomScanEngine {
     /// Adds the time since the current instruction started to its bucket.
     func closeInstructionBucket(now: TimeInterval) {
         if let name = q.instructionName {
-            RoomScanStats.accumulate(&q.instructionSeconds, instruction: name, delta: now - q.instructionSince)
+            let delta = now - q.instructionSince
+            RoomScanStats.accumulate(&q.instructionSeconds, instruction: name, delta: delta)
         }
         q.instructionSince = now
     }

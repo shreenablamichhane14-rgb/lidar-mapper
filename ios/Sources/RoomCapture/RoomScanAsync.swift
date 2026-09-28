@@ -53,12 +53,13 @@ enum RoomAsync {
 }
 
 /// One `beginBackgroundTask` around the finish sequence: ended by `end()` at the last step or
-/// by iOS through the expiration handler, whichever comes first. Thread-safe.
+/// by iOS through the expiration handler, whichever comes first. Thread-safe. UIKit values are
+/// only touched on the main actor; the identifier is kept as its raw value.
 final class RoomBackgroundTask: @unchecked Sendable {
     /// Guards the two properties below.
     private let lock = NSLock()
-    /// Raw value of the task identifier (`UIBackgroundTaskIdentifier.invalid` until begun).
-    private var identifierRaw = UIBackgroundTaskIdentifier.invalid.rawValue
+    /// Raw value of the task identifier; nil until begun, or when iOS refused the task.
+    private var identifierRaw: Int?
     /// True once ended (by `end()` or on expiry).
     private var ended = false
 
@@ -69,21 +70,20 @@ final class RoomBackgroundTask: @unchecked Sendable {
             let identifier = UIApplication.shared.beginBackgroundTask(withName: name, expirationHandler: {
                 task.expire()
             })
-            task.adopt(identifier.rawValue)
+            task.adopt(identifier == .invalid ? nil : identifier.rawValue)
         }
         return task
     }
 
-    /// Stores the identifier, or ends it at once when `end()` already ran.
-    private func adopt(_ raw: Int) {
+    /// Main thread. Stores the identifier, or ends it at once when `end()` already ran.
+    private func adopt(_ raw: Int?) {
         lock.lock()
         let alreadyEnded = ended
         if !alreadyEnded { identifierRaw = raw }
         lock.unlock()
-        if alreadyEnded && raw != UIBackgroundTaskIdentifier.invalid.rawValue {
-            MainActor.assumeIsolated {
-                UIApplication.shared.endBackgroundTask(UIBackgroundTaskIdentifier(rawValue: raw))
-            }
+        guard alreadyEnded, let raw else { return }
+        MainActor.assumeIsolated {
+            UIApplication.shared.endBackgroundTask(UIBackgroundTaskIdentifier(rawValue: raw))
         }
     }
 
@@ -104,13 +104,12 @@ final class RoomBackgroundTask: @unchecked Sendable {
         }
     }
 
-    /// Marks the task ended and returns its raw identifier the first time, when it is valid.
+    /// Marks the task ended and returns its raw identifier the first time, when there is one.
     private func take() -> Int? {
         lock.lock()
         defer { lock.unlock() }
         guard !ended else { return nil }
         ended = true
-        guard identifierRaw != UIBackgroundTaskIdentifier.invalid.rawValue else { return nil }
         return identifierRaw
     }
 }

@@ -217,6 +217,12 @@ final class RoomScanEngine: NSObject, ScanEngine {
     /// never touch the main-actor `RoomCaptureView`. Starts capture if start() was already called.
     @MainActor func makeCaptureView() -> RoomCaptureView {
         if let existing = captureView { return existing }
+        guard !tornDown else {
+            // A torn-down engine never touches its paused session again; SwiftUI still needs a
+            // view, so it gets an inert one that is never run.
+            RoomScanLog.write("makeCaptureView after teardown: inert view returned")
+            return RoomCaptureView(frame: .zero)
+        }
         hub.install()
         hub.run()
         let view = RoomCaptureView(frame: .zero, arSession: hub.session)
@@ -354,10 +360,10 @@ final class RoomScanEngine: NSObject, ScanEngine {
             RoomScanLog.write("start refused: RoomCaptureSession.isSupported is false")
             throw MapperError.unsupportedDevice
         }
-        let free = ProjectStore.freeBytes()
-        guard free >= ProjectStore.refuseScanBelowBytes else {
-            RoomScanLog.write("start refused: \(free / 1_000_000) MB free")
-            throw MapperError.lowStorage(freeBytes: free)
+        let freeBytes = ProjectStore.freeBytes()
+        guard freeBytes >= ProjectStore.refuseScanBelowBytes else {
+            RoomScanLog.write("start refused: \(freeBytes / 1_000_000) MB free")
+            throw MapperError.lowStorage(freeBytes: freeBytes)
         }
         let scanID = UUID()
         let info = InProgressScanInfo(scanID: scanID, projectID: target.projectID, sessionID: target.sessionID,

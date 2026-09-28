@@ -326,11 +326,13 @@ extension RoomScanEngine {
     /// Step 9: seals and moves the folder into the package on the io queue. Returns nil on
     /// success, else the failure text (the folder then stays in InProgress for recovery).
     func seal(_ context: RoomFinishContext) async -> String? {
-        let destination = context.target.package.rawRoomURL(session: context.target.sessionID, room: context.target.roomID)
+        let package = context.target.package
+        let folder = context.folder
+        let destination = package.rawRoomURL(session: context.target.sessionID, room: context.target.roomID)
         let failure: String? = await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
             RawScanWriter.ioQueue.async {
                 do {
-                    try InProgressScans.seal(context.folder, into: destination, package: context.target.package)
+                    try InProgressScans.seal(folder, into: destination, package: package)
                     continuation.resume(returning: nil)
                 } catch {
                     continuation.resume(returning: StoreFiles.describe(error))
