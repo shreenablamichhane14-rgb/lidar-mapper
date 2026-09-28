@@ -164,11 +164,11 @@ final class MeshStore: ScanRecorder {
     /// Hub queue. Stops recording, writes every dirty anchor, closes the writer, logs the room's
     /// memory line, then calls `completion` on the io queue. Later callbacks are ignored.
     func finishRecording(completion: @escaping () -> Void) {
-        let plan = locked { () -> (batch: FlushBatch?, writer: RawScanWriter?, wasRecording: Bool) in
-            guard recording else { return (nil, writerValue, false) }
+        let plan = locked { () -> (batch: FlushBatch?, writer: RawScanWriter?, wasRecording: Bool, generation: Int) in
+            guard recording else { return (nil, writerValue, false, generation) }
             let batch = takeBatchLocked(reason: .finish)
             recording = false
-            return (batch, writerValue, true)
+            return (batch, writerValue, true, generation)
         }
         guard let writer = plan.writer else {
             completion()
@@ -181,8 +181,9 @@ final class MeshStore: ScanRecorder {
         }
         if let batch = plan.batch { submit(batch) }
         writer.close()
+        let finished = plan.generation
         writer.flush { [weak self] in
-            self?.logRoomSummary()
+            self?.logRoomSummary(generation: finished)
             completion()
         }
     }

@@ -233,10 +233,12 @@ extension MeshStore {
 
     // MARK: - Logs
 
-    /// Io queue, after the final flush. The per-room memory line (D17): anchors, faces, files,
-    /// bytes, failures, `residentBytes` and `MemoryProbe.availableBytes()`.
-    func logRoomSummary() {
-        let summary = locked { () -> String in
+    /// Io queue, after the final flush of recording `generation`. The per-room memory line
+    /// (D17): anchors, faces, files, bytes, failures, `residentBytes` and
+    /// `MemoryProbe.availableBytes()`. When a new recording began meanwhile, only memory is logged.
+    func logRoomSummary(generation finished: Int) {
+        let summary = locked { () -> String? in
+            guard finished == generation else { return nil }
             let stale = indexValue.values.filter { $0.isStale }.count
             let folderName = folderValue?.url.lastPathComponent ?? "-"
             let written = counters.bytesWritten / 1_000_000
@@ -248,8 +250,12 @@ extension MeshStore {
             let part5 = "resident \(residentTotal / 1_000_000) MB"
             return part1 + part2 + part3 + part4 + part5
         }
-        let failures = locked({ writerValue })?.failureCount ?? 0
         let available = MemoryProbe.availableBytes() / 1_000_000
+        guard let summary else {
+            MeshStore.log("room finished (next recording already began), available \(available) MB")
+            return
+        }
+        let failures = locked({ writerValue })?.failureCount ?? 0
         MeshStore.log(summary + ", \(failures) write failures, available \(available) MB")
     }
 }
