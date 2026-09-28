@@ -162,6 +162,7 @@ extension CoverageSelfTest {
     /// Monotonicity, the SPEC example and the low confidence rule.
     static func checkMeasurement(_ c: inout CoverageSelfTestChecker) {
         typealias M = MeasurementConfidence
+        /// Endpoint evidence with good defaults (high confidence, 4 observations, clean tracking).
         func ev(_ d: Float, conf: Float? = 1, obs: Int = 4, track: Float = 1,
                 snap: MeasurementSnapKind = .vertex) -> MeasurementEvidence {
             MeasurementEvidence(distance: d, depthConfidence: conf, observations: obs,

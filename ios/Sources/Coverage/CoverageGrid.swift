@@ -272,7 +272,7 @@ struct CoverageGrid {
         let helper = abs(normal.y) < 0.9 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
         let t1 = simd_normalize(simd_cross(normal, helper))
         let t2 = simd_cross(normal, t1)
-        let steps = min(Int(radius / voxelSize), 3)
+        let steps = Int(min(radius / voxelSize, 3))
         guard steps >= 1 else { return }
         let r2 = radius * radius
         var marked = 0
