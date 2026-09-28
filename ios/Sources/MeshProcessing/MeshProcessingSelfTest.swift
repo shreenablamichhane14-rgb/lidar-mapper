@@ -64,8 +64,11 @@ enum MeshProcessingSelfTest {
         var positions: [SIMD3<Float>] = []
         positions.reserveCapacity((nu + 1) * (nv + 1))
         for i in 0...nu {
+            let s: Float = Float(i) / Float(nu)
             for j in 0...nv {
-                positions.append(origin + u * (Float(i) / Float(nu)) + v * (Float(j) / Float(nv)))
+                let t: Float = Float(j) / Float(nv)
+                let p: SIMD3<Float> = origin + s * u + t * v
+                positions.append(p)
             }
         }
         var indices: [UInt32] = []
@@ -84,9 +87,12 @@ enum MeshProcessingSelfTest {
     /// outward counter-clockwise winding (12 n^2 triangles).
     static func box(_ minimum: SIMD3<Float>, _ size: SIMD3<Float>, _ n: Int) -> TriangleMesh {
         let x = SIMD3<Float>(size.x, 0, 0), y = SIMD3<Float>(0, size.y, 0), z = SIMD3<Float>(0, 0, size.z)
+        let minX: SIMD3<Float> = minimum + x
+        let minY: SIMD3<Float> = minimum + y
+        let minZ: SIMD3<Float> = minimum + z
         let faces: [(SIMD3<Float>, SIMD3<Float>, SIMD3<Float>)] = [
-            (minimum, z, y), (minimum + x, y, z), (minimum, x, z),
-            (minimum + y, z, x), (minimum, y, x), (minimum + z, x, y)]
+            (minimum, z, y), (minX, y, z), (minimum, x, z),
+            (minY, z, x), (minimum, y, x), (minZ, x, y)]
         var mesh = TriangleMesh()
         for face in faces {
             mesh = mesh.merged(with: patch(face.0, face.1, face.2, n, n))
@@ -97,10 +103,12 @@ enum MeshProcessingSelfTest {
     /// Icosphere of `radius` around the origin: 20 * 4^subdivisions triangles, outward winding.
     static func icosphere(_ subdivisions: Int, radius: Float) -> TriangleMesh {
         let g: Float = (1 + Float(5).squareRoot()) / 2
-        var positions: [SIMD3<Float>] = [
-            SIMD3<Float>(-1, g, 0), SIMD3<Float>(1, g, 0), SIMD3<Float>(-1, -g, 0), SIMD3<Float>(1, -g, 0),
-            SIMD3<Float>(0, -1, g), SIMD3<Float>(0, 1, g), SIMD3<Float>(0, -1, -g), SIMD3<Float>(0, 1, -g),
-            SIMD3<Float>(g, 0, -1), SIMD3<Float>(g, 0, 1), SIMD3<Float>(-g, 0, -1), SIMD3<Float>(-g, 0, 1)].map { simd_normalize($0) }
+        let h: Float = -g
+        let corners: [SIMD3<Float>] = [
+            SIMD3<Float>(-1, g, 0), SIMD3<Float>(1, g, 0), SIMD3<Float>(-1, h, 0), SIMD3<Float>(1, h, 0),
+            SIMD3<Float>(0, -1, g), SIMD3<Float>(0, 1, g), SIMD3<Float>(0, -1, h), SIMD3<Float>(0, 1, h),
+            SIMD3<Float>(g, 0, -1), SIMD3<Float>(g, 0, 1), SIMD3<Float>(h, 0, -1), SIMD3<Float>(h, 0, 1)]
+        var positions: [SIMD3<Float>] = corners.map { (p: SIMD3<Float>) -> SIMD3<Float> in simd_normalize(p) }
         var indices: [UInt32] = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8,
                                  3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1]
         for _ in 0..<subdivisions {
@@ -111,7 +119,8 @@ enum MeshProcessingSelfTest {
                 let key = MeshTopology.edgeKey(a, b)
                 if let known = midpoints[key] { return known }
                 let index = UInt32(positions.count)
-                positions.append(simd_normalize(positions[Int(a)] + positions[Int(b)]))
+                let sum: SIMD3<Float> = positions[Int(a)] + positions[Int(b)]
+                positions.append(simd_normalize(sum))
                 midpoints[key] = index
                 return index
             }
@@ -137,7 +146,9 @@ enum MeshProcessingSelfTest {
 
     /// `mesh` with every face in class `faceClass` and a distinct color per vertex.
     static func attributed(_ mesh: TriangleMesh, _ faceClass: UInt8) -> MeshWithAttributes {
-        let colors = (0..<mesh.positions.count).map { SIMD4<UInt8>(UInt8(truncatingIfNeeded: $0), 128, 64, 255) }
+        let colors: [SIMD4<UInt8>] = (0..<mesh.positions.count).map { (i: Int) -> SIMD4<UInt8> in
+            SIMD4<UInt8>(UInt8(truncatingIfNeeded: i), 128, 64, 255)
+        }
         return MeshWithAttributes(mesh: mesh, faceClass: [UInt8](repeating: faceClass, count: mesh.triangleCount), vertexColor: colors)
     }
 
@@ -153,7 +164,9 @@ enum MeshProcessingSelfTest {
         var seen = Set<UInt64>()
         for t in 0..<mesh.triangleCount {
             for k in 0..<3 {
-                let key = UInt64(mesh.indices[3 * t + k]) << 32 | UInt64(mesh.indices[3 * t + (k + 1) % 3])
+                let from = UInt64(mesh.indices[3 * t + k])
+                let to = UInt64(mesh.indices[3 * t + (k + 1) % 3])
+                let key: UInt64 = from << 32 | to
                 if !seen.insert(key).inserted { return false }
             }
         }
@@ -162,7 +175,11 @@ enum MeshProcessingSelfTest {
 
     /// Total length of the boundary edges.
     static func boundaryLength(_ mesh: TriangleMesh) -> Float {
-        mesh.boundaryEdges.reduce(Float(0)) { $0 + simd_distance(mesh.positions[Int($1.0)], mesh.positions[Int($1.1)]) }
+        var total: Float = 0
+        for (from, to) in mesh.boundaryEdges {
+            total += simd_distance(mesh.positions[Int(from)], mesh.positions[Int(to)])
+        }
+        return total
     }
 
     /// Number of faces whose area vector points along +Y.
@@ -188,7 +205,8 @@ enum MeshProcessingSelfTest {
         let chunkA = MergeChunk(localMesh: TriangleMesh(positions: partA.mesh.positions.map { $0 - shiftA }, indices: partA.mesh.indices),
                                anchorTransform: rigid(matrix_identity_float3x3, shiftA),
                                faceClass: [UInt8](repeating: 1, count: partA.triangleCount), vertexColor: partA.vertexColor)
-        let localB = partB.mesh.positions.map { simd_mul(simd_transpose(turn), $0 - shiftB) }
+        let back: simd_float3x3 = simd_transpose(turn)
+        let localB: [SIMD3<Float>] = partB.mesh.positions.map { (p: SIMD3<Float>) -> SIMD3<Float> in simd_mul(back, p - shiftB) }
         let chunkB = MergeChunk(localMesh: TriangleMesh(positions: localB, indices: partB.mesh.indices),
                                anchorTransform: rigid(turn, shiftB),
                                faceClass: [UInt8](repeating: 2, count: partB.triangleCount), vertexColor: partB.vertexColor)

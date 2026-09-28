@@ -11,7 +11,7 @@ extension MeshProcessingSelfTest {
         let count = result.mesh.triangleCount
         r.check("simplify.sphereStart", sphere.triangleCount == 5120, "got \(sphere.triangleCount)")
         r.check("simplify.reachesTarget", count <= target && count >= target - 10, "got \(count)")
-        let radii = result.mesh.mesh.positions.map { simd_length($0) }
+        let radii: [Float] = result.mesh.mesh.positions.map { (p: SIMD3<Float>) -> Float in simd_length(p) }
         r.check("simplify.radius", radii.allSatisfy { $0 > 0.99 && $0 < 1.01 }, "range \(radii.min() ?? 0) to \(radii.max() ?? 0)")
         r.check("simplify.watertight", result.mesh.mesh.isWatertight && result.mesh.isConsistent, "")
         r.check("simplify.collapses", result.collapses > 0 && result.maxError >= 0, "")
@@ -26,7 +26,8 @@ extension MeshProcessingSelfTest {
         let onRim = reduced.mesh.boundaryEdges.allSatisfy { edge in
             [edge.0, edge.1].allSatisfy { i in
                 let p = reduced.mesh.positions[Int(i)]
-                return Swift.min(abs(p.x), abs(p.x - 1), abs(p.z), abs(p.z - 1)) < 1e-4
+                let rimDistance: Float = Swift.min(abs(p.x), abs(p.x - 1), abs(p.z), abs(p.z - 1))
+                return rimDistance < 1e-4
             }
         }
         r.check("simplify.boundaryOnRim", onRim, "")
@@ -41,7 +42,10 @@ extension MeshProcessingSelfTest {
         let grid = attributed(patch(.zero, SIMD3<Float>(0, 0, 1.4), SIMD3<Float>(2, 0, 0), nu, nv), 2)
         var keep = [Bool](repeating: true, count: grid.triangleCount)
         for i in 0..<nu {
-            for j in 0..<nv where (2..<4).contains(i) && (2..<4).contains(j) || (2..<22).contains(i) && (10..<30).contains(j) {
+            for j in 0..<nv {
+                let smallHole: Bool = (2..<4).contains(i) && (2..<4).contains(j)
+                let bigHole: Bool = (2..<22).contains(i) && (10..<30).contains(j)
+                guard smallHole || bigHole else { continue }
                 keep[2 * (i * nv + j)] = false
                 keep[2 * (i * nv + j) + 1] = false
             }
@@ -68,7 +72,12 @@ extension MeshProcessingSelfTest {
     /// Taubin smoothing keeps the volume and the boundary.
     static func smoothCases(_ r: Recorder) {
         let base = icosphere(3, radius: 1)
-        let bumpy = base.positions.enumerated().map { k, p in p * (1 + 0.01 * Float(sin(Double(k) * 12.9898))) }
+        let bumpy: [SIMD3<Float>] = base.positions.indices.map { (k: Int) -> SIMD3<Float> in
+            let p: SIMD3<Float> = base.positions[k]
+            let wave: Double = sin(Double(k) * 12.9898)
+            let scale: Float = 1 + 0.01 * Float(wave)
+            return p * scale
+        }
         let noisy = attributed(TriangleMesh(positions: bumpy, indices: base.indices), 3)
         let smooth = MeshSmooth.taubin(noisy)
         let v0 = noisy.mesh.signedVolume, v1 = smooth.mesh.signedVolume
@@ -76,21 +85,29 @@ extension MeshProcessingSelfTest {
         r.check("smooth.topology", smooth.mesh.indices == noisy.mesh.indices && smooth.mesh.positions.count == noisy.mesh.positions.count, "")
         r.check("smooth.attributes", smooth.faceClass == noisy.faceClass && smooth.vertexColor == noisy.vertexColor && smooth.isConsistent, "")
         func spread(_ points: [SIMD3<Float>]) -> Float {
-            let radii = points.map { simd_length($0) }
-            let mean = radii.reduce(0, +) / Float(radii.count)
-            return radii.reduce(Float(0)) { $0 + ($1 - mean) * ($1 - mean) } / Float(radii.count)
+            let radii: [Float] = points.map { (p: SIMD3<Float>) -> Float in simd_length(p) }
+            let mean: Float = radii.reduce(0, +) / Float(radii.count)
+            var squares: Float = 0
+            for radius in radii { squares += (radius - mean) * (radius - mean) }
+            return squares / Float(radii.count)
         }
         r.check("smooth.reducesNoise", spread(smooth.mesh.positions) < spread(noisy.mesh.positions), "")
 
         let flat = patch(.zero, SIMD3<Float>(0, 0, 1), SIMD3<Float>(1, 0, 0), 10, 10)
-        let wavy = flat.positions.enumerated().map { k, p in p + SIMD3<Float>(0, 0.01 * Float(sin(Double(k) * 7.31)), 0) }
+        let wavy: [SIMD3<Float>] = flat.positions.indices.map { (k: Int) -> SIMD3<Float> in
+            let p: SIMD3<Float> = flat.positions[k]
+            let wave: Double = sin(Double(k) * 7.31)
+            let lift: Float = 0.01 * Float(wave)
+            return p + SIMD3<Float>(0, lift, 0)
+        }
         let sheet = MeshWithAttributes(mesh: TriangleMesh(positions: wavy, indices: flat.indices))
         let smoothed = MeshSmooth.taubin(sheet).mesh.positions
         var rimFixed = smoothed.count == wavy.count
         var before: Float = 0, after: Float = 0
         for k in 0..<Swift.min(smoothed.count, wavy.count) {
             let p = wavy[k]
-            if Swift.min(p.x, p.z, 1 - p.x, 1 - p.z) < 1e-6 {
+            let rimDistance: Float = Swift.min(p.x, p.z, 1 - p.x, 1 - p.z)
+            if rimDistance < 1e-6 {
                 if smoothed[k] != p { rimFixed = false }
             } else {
                 before += p.y * p.y

@@ -47,7 +47,8 @@ extension SimplifyWorkspace {
     /// regions (all costs zero) collapse short edges first instead of in index order.
     func makeEntry(_ u: Int, _ v: Int) -> SimplifyHeapEntry {
         let value = cost(u, v).cost
-        let tieBreak = 1e-8 * simd_distance_squared(positions[u], positions[v]) * (weights[u] + weights[v])
+        let lengthSquared: Double = simd_distance_squared(positions[u], positions[v])
+        let tieBreak: Double = 1e-8 * lengthSquared * (weights[u] + weights[v])
         return SimplifyHeapEntry(key: Float(value + tieBreak), u: UInt32(u), v: UInt32(v),
                                  stampU: stamps[u], stampV: stamps[v])
     }

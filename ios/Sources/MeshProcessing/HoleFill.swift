@@ -31,7 +31,7 @@ enum HoleFill {
     }
 
     /// Outcome of `fillSmallHoles`.
-    struct Result {
+    struct FillResult {
         /// The mesh with the new faces appended after the existing ones.
         var mesh: MeshWithAttributes
         /// Number of loops that were closed.
@@ -55,12 +55,12 @@ enum HoleFill {
     /// false for existing faces); their class is the most common class of the faces along
     /// the loop. A fan fallback may add one vertex per loop (its color is the loop's mean
     /// color). The input is never mutated.
-    static func fillSmallHoles(_ input: MeshWithAttributes, maxPerimeter: Float = HoleFill.defaultMaxPerimeter) -> Result {
+    static func fillSmallHoles(_ input: MeshWithAttributes, maxPerimeter: Float = HoleFill.defaultMaxPerimeter) -> FillResult {
         let mesh = input.mesh
         let data = boundaryData(mesh)
         let faceCount = mesh.triangleCount
         guard !data.loops.isEmpty else {
-            return Result(mesh: input, filledLoops: 0, skippedLoops: 0, addedTriangles: 0)
+            return FillResult(mesh: input, filledLoops: 0, skippedLoops: 0, addedTriangles: 0)
         }
 
         // Undirected edges already in the mesh: ear diagonals must avoid them.
@@ -132,7 +132,7 @@ enum HoleFill {
 
         let addedTriangles = newIndices.count / 3
         guard addedTriangles > 0 else {
-            return Result(mesh: input, filledLoops: 0, skippedLoops: skipped, addedTriangles: 0)
+            return FillResult(mesh: input, filledLoops: 0, skippedLoops: skipped, addedTriangles: 0)
         }
         var inferred = input.isInferred ?? [Bool](repeating: false, count: faceCount)
         if inferred.count != faceCount {
@@ -152,7 +152,7 @@ enum HoleFill {
         let output = MeshWithAttributes(
             mesh: TriangleMesh(positions: positions, indices: Array(mesh.indices.prefix(3 * faceCount)) + newIndices),
             faceClass: classes, vertexColor: colors, isInferred: inferred)
-        return Result(mesh: output, filledLoops: filled, skippedLoops: skipped, addedTriangles: addedTriangles)
+        return FillResult(mesh: output, filledLoops: filled, skippedLoops: skipped, addedTriangles: addedTriangles)
     }
 
     // MARK: - Boundary extraction
@@ -261,7 +261,9 @@ enum HoleFill {
         var newell = SIMD3<Float>.zero
         let count = loop.count
         for i in 0..<count {
-            newell += simd_cross(positions[Int(loop[i])] - center, positions[Int(loop[(i + 1) % count])] - center)
+            let a: SIMD3<Float> = positions[Int(loop[i])] - center
+            let b: SIMD3<Float> = positions[Int(loop[(i + 1) % count])] - center
+            newell += simd_cross(a, b)
         }
         let area = 0.5 * simd_length(newell)
         return area.isFinite && area > Swift.max(1e-12, 1e-6 * perimeter * perimeter)

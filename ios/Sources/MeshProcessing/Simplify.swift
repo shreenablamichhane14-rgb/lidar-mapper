@@ -45,7 +45,7 @@ enum MeshSimplify {
     }
 
     /// Outcome of `simplify`.
-    struct Result {
+    struct SimplifyResult {
         /// The simplified mesh, compacted (dead faces and unused vertices dropped).
         var mesh: MeshWithAttributes
         /// Number of edge collapses performed.
@@ -83,9 +83,9 @@ enum MeshSimplify {
     /// about 3 to 4 s in total; 5 s is a safe figure. Peak memory is about 200 MB (edge
     /// table during setup, heap of up to about 2M entries of 20 bytes, 80-byte quadric per
     /// vertex).
-    static func simplify(_ input: MeshWithAttributes, options: Options) -> Result {
+    static func simplify(_ input: MeshWithAttributes, options: Options) -> SimplifyResult {
         guard options.targetTriangleCount != nil || options.maxError != nil else {
-            return Result(mesh: input, collapses: 0, maxError: 0)
+            return SimplifyResult(mesh: input, collapses: 0, maxError: 0)
         }
         let work = SimplifyWorkspace(input: input, options: options)
         work.run()
@@ -358,14 +358,14 @@ final class SimplifyWorkspace {
 
     /// The compacted output: moved vertices written back in Float, dead faces and unused
     /// vertices dropped with attributes following.
-    func result(input: MeshWithAttributes) -> MeshSimplify.Result {
+    func result(input: MeshWithAttributes) -> MeshSimplify.SimplifyResult {
         var outPositions = input.mesh.positions
         for i in 0..<outPositions.count where moved[i] {
             outPositions[i] = SIMD3<Float>(positions[i] + center)
         }
         var working = input
         working.mesh = TriangleMesh(positions: outPositions, indices: indices)
-        return MeshSimplify.Result(mesh: working.keepingFaces(faceAlive), collapses: collapses,
-                                   maxError: Float(maxErrorSeen))
+        return MeshSimplify.SimplifyResult(mesh: working.keepingFaces(faceAlive), collapses: collapses,
+                                           maxError: Float(maxErrorSeen))
     }
 }

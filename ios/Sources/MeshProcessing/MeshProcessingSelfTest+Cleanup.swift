@@ -58,8 +58,11 @@ extension MeshProcessingSelfTest {
 
         let sphere = icosphere(2, radius: 1)
         let normals = MeshCleanup.normals(sphere)
-        let aligned = normals.count == sphere.positions.count
-            && zip(normals, sphere.positions).allSatisfy { simd_dot($0, simd_normalize($1)) > 0.99 }
+        var aligned = normals.count == sphere.positions.count
+        for (normal, position) in zip(normals, sphere.positions) {
+            let cosine: Float = simd_dot(normal, simd_normalize(position))
+            if !(cosine > 0.99) { aligned = false }
+        }
         r.check("normals.sphere", aligned, "")
 
         let messy = attributed(flipped(cube) { $0 % 4 == 1 }, 1).appending(attributed(box(SIMD3<Float>(4, 0, 0), SIMD3<Float>(0.02, 0.02, 0.02), 1), 2))
@@ -94,8 +97,11 @@ extension MeshProcessingSelfTest {
         r.check("cleaned.empty", empty.triangleCount == 0 && empty.isConsistent, "")
 
         let normals = MeshCleanup.faceNormals(big)
-        let axisAligned = normals.count == big.triangleCount && normals.allSatisfy { n in
-            abs(simd_length(n) - 1) < 1e-5 && [abs(n.x), abs(n.y), abs(n.z)].filter { $0 > 0.999 }.count == 1
+        let axisAligned = normals.count == big.triangleCount && normals.allSatisfy { (n: SIMD3<Float>) -> Bool in
+            let length: Float = simd_length(n)
+            let magnitudes: [Float] = [abs(n.x), abs(n.y), abs(n.z)]
+            let dominant: Int = magnitudes.filter { $0 > 0.999 }.count
+            return abs(length - 1) < 1e-5 && dominant == 1
         }
         r.check("normals.faces", axisAligned, "")
         let outward = normals.count == big.triangleCount && (0..<big.triangleCount).allSatisfy { t in

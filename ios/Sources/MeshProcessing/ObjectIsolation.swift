@@ -114,7 +114,7 @@ enum ObjectIsolation {
     }
 
     /// An isolated object and its measurements.
-    struct Result {
+    struct IsolatedObject {
         /// The object mesh, winding made consistent (outward when closed).
         var mesh: MeshWithAttributes
         /// Gravity-aligned box: axis 0 along the width, axis 1 world up, axis 2 along the
@@ -145,7 +145,7 @@ enum ObjectIsolation {
     /// `removeBelowSupport`, everything under it, keep the largest component
     /// (`MeshCleanup.largestComponent`), fix the winding (`MeshCleanup.fixingWinding`) and
     /// measure. Nil when nothing is left. The input is never mutated.
-    static func isolate(_ input: MeshWithAttributes, selection: CropRegion, options: Options = Options()) -> Result? {
+    static func isolate(_ input: MeshWithAttributes, selection: CropRegion, options: Options = Options()) -> IsolatedObject? {
         let selected = MeshCrop.crop(input, region: selection, mode: .keepInside, test: options.faceTest)
         guard selected.triangleCount > 0 else { return nil }
         let support = findSupportPlane(selected.mesh, options: options.plane)
@@ -159,12 +159,12 @@ enum ObjectIsolation {
     }
 
     /// `isolate` with an oriented box selection.
-    static func isolate(_ input: MeshWithAttributes, box: OrientedBox, options: Options = Options()) -> Result? {
+    static func isolate(_ input: MeshWithAttributes, box: OrientedBox, options: Options = Options()) -> IsolatedObject? {
         isolate(input, selection: .orientedBox(box), options: options)
     }
 
     /// `isolate` with an axis-aligned box selection.
-    static func isolate(_ input: MeshWithAttributes, box: AABB3, options: Options = Options()) -> Result? {
+    static func isolate(_ input: MeshWithAttributes, box: AABB3, options: Options = Options()) -> IsolatedObject? {
         isolate(input, selection: .box(box), options: options)
     }
 
@@ -172,7 +172,7 @@ enum ObjectIsolation {
     /// horizontal side), surface area, height above `support`, and the volume when the
     /// mesh is watertight (Geometry's `isWatertight` and `signedVolume`), else a reason.
     /// Nil for a mesh without finite vertices.
-    static func measure(_ object: MeshWithAttributes, support: Plane?) -> Result? {
+    static func measure(_ object: MeshWithAttributes, support: Plane?) -> IsolatedObject? {
         guard let box = gravityAlignedBox(object.mesh.positions) else { return nil }
         var volume: Float?
         var reason: VolumeUnavailableReason?
@@ -189,9 +189,10 @@ enum ObjectIsolation {
         let above = support.map { plane in
             object.mesh.positions.reduce(-Float.infinity) { Swift.max($0, plane.signedDistance(to: $1)) }
         }
-        return Result(mesh: object, box: box, width: 2 * box.halfExtents.x, height: 2 * box.halfExtents.y,
-                      depth: 2 * box.halfExtents.z, heightAboveSupport: above, surfaceArea: object.mesh.surfaceArea,
-                      volume: volume, volumeUnavailableReason: reason, supportPlane: support)
+        let extents: SIMD3<Float> = 2 * box.halfExtents
+        return IsolatedObject(mesh: object, box: box, width: extents.x, height: extents.y, depth: extents.z,
+                              heightAboveSupport: above, surfaceArea: object.mesh.surfaceArea,
+                              volume: volume, volumeUnavailableReason: reason, supportPlane: support)
     }
 
     /// `OrientedBox.fit(_:gravityAligned: true)` with the axes reordered so axis 0 is the

@@ -44,7 +44,10 @@ struct MeshWithAttributes: Equatable {
     }
 
     /// Number of faces flagged inferred.
-    var inferredCount: Int { isInferred?.reduce(0) { $0 + ($1 ? 1 : 0) } ?? 0 }
+    var inferredCount: Int {
+        guard let flags = isInferred else { return 0 }
+        return flags.filter { $0 }.count
+    }
 
     /// The mesh with only the faces whose `keep` entry is true (missing entries count as
     /// false), with unused vertices dropped and indices, face and vertex attributes

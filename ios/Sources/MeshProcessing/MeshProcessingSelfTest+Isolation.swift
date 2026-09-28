@@ -30,10 +30,12 @@ extension MeshProcessingSelfTest {
         let center = SIMD3<Float>(0.5, 0, 0.5), halfExtents = SIMD3<Float>(0.25, 0.5, 0.25)
         let oriented = CropRegion.orientedBox(OrientedBox(center: center, axes: axes, halfExtents: halfExtents))
         var expected = 0
+        let toLocal: simd_float3x3 = simd_transpose(axes)
+        let slack: SIMD3<Float> = halfExtents + 1e-5
         for t in 0..<plate.triangleCount {
             guard let p = MeshTopology.centroid(plate.mesh, t) else { continue }
-            let local = simd_mul(simd_transpose(axes), p - center)
-            if all(simd_abs(local) .<= halfExtents + 1e-5) { expected += 1 }
+            let local: SIMD3<Float> = simd_mul(toLocal, p - center)
+            if all(simd_abs(local) .<= slack) { expected += 1 }
         }
         let orientedKept = MeshCrop.crop(plate, region: oriented, mode: .keepInside)
         r.check("crop.orientedBox", expected > 0 && orientedKept.triangleCount == expected && inside(oriented, .centroid) == expected,
@@ -76,8 +78,10 @@ extension MeshProcessingSelfTest {
             r.near("isolate.closedArea", result.surfaceArea, 0.52, 0.005)
             r.check("isolate.closedReason", result.volumeUnavailableReason == nil && result.mesh.mesh.isWatertight, "")
             r.near("isolate.raisedHeightAboveSupport", result.heightAboveSupport, 0.25, 0.005)
-            r.check("isolate.closedDimensions", abs(result.width - 0.4) < 0.01 && abs(result.depth - 0.3) < 0.01
-                        && abs(result.height - 0.2) < 0.01 && result.width >= result.depth, "")
+            let widthOK: Bool = abs(result.width - 0.4) < 0.01
+            let depthOK: Bool = abs(result.depth - 0.3) < 0.01
+            let heightOK: Bool = abs(result.height - 0.2) < 0.01
+            r.check("isolate.closedDimensions", widthOK && depthOK && heightOK && result.width >= result.depth, "")
         }
         let nothing = CropRegion.box(AABB3(min: SIMD3<Float>(10, 10, 10), max: SIMD3<Float>(11, 11, 11)))
         r.check("isolate.emptySelection", ObjectIsolation.isolate(resting, selection: nothing) == nil, "")
@@ -91,9 +95,11 @@ extension MeshProcessingSelfTest {
         let a = (0..<4).map { _ in first.next() }, b = (0..<4).map { _ in second.next() }
         let c = (0..<4).map { _ in other.next() }
         r.check("random.deterministic", a == b && a != c, "")
-        let draws = (0..<1000).map { _ in first.index(below: 7) }
-        r.check("random.indexRange", draws.allSatisfy { (0..<7).contains($0) } && Set(draws).count == 7
-                    && first.index(below: 1) == 0, "")
+        let draws: [Int] = (0..<1000).map { _ in first.index(below: 7) }
+        let inRange: Bool = draws.allSatisfy { $0 >= 0 && $0 < 7 }
+        let distinct: Int = Set(draws).count
+        let unitBound: Int = first.index(below: 1)
+        r.check("random.indexRange", inRange && distinct == 7 && unitBound == 0, "")
 
         let floor = attributed(patch(SIMD3<Float>(-1.5, 0, -1.5), SIMD3<Float>(0, 0, 3), SIMD3<Float>(3, 0, 0), 30, 30), 2)
         let size = SIMD3<Float>(0.4, 0.2, 0.3)
@@ -103,15 +109,27 @@ extension MeshProcessingSelfTest {
         var reseeded = ObjectIsolation.PlaneOptions()
         reseeded.seed = 7
         let replanned = ObjectIsolation.findSupportPlane(resting.mesh, options: reseeded)
-        r.check("isolate.otherSeedFloor", replanned.map { abs($0.signedDistance(to: .zero)) < 0.005 && $0.normal.y > 0.99 } == true, "")
+        var otherSeedFloor = false
+        if let found = replanned {
+            let offset: Float = abs(found.signedDistance(to: SIMD3<Float>(0, 0, 0)))
+            otherSeedFloor = offset < 0.005 && found.normal.y > 0.99
+        }
+        r.check("isolate.otherSeedFloor", otherSeedFloor, "")
         r.check("isolate.maxHeight", ObjectIsolation.findSupportPlane(resting.mesh, maxHeight: -0.5) == nil, "")
 
-        let turn = Float.pi / 6
-        let axes = simd_float3x3(SIMD3<Float>(cos(turn), 0, -sin(turn)), SIMD3<Float>(0, 1, 0), SIMD3<Float>(sin(turn), 0, cos(turn)))
+        let turn: Float = Float.pi / 6
+        let cosTurn: Float = cos(turn), sinTurn: Float = sin(turn)
+        let axes = simd_float3x3(SIMD3<Float>(cosTurn, 0, -sinTurn), SIMD3<Float>(0, 1, 0), SIMD3<Float>(sinTurn, 0, cosTurn))
         let selection = OrientedBox(center: SIMD3<Float>(0, 0.2, 0), axes: axes, halfExtents: SIMD3<Float>(0.35, 0.3, 0.3))
         let picked = ObjectIsolation.isolate(resting, box: selection)
-        r.check("isolate.orientedSelection", picked.map { abs($0.width - 0.4) < 0.01 && abs($0.depth - 0.3) < 0.01
-                    && abs($0.height - 0.2) < 0.01 } == true, "")
+        var pickedDimensions = false
+        if let found = picked {
+            let widthOK: Bool = abs(found.width - 0.4) < 0.01
+            let depthOK: Bool = abs(found.depth - 0.3) < 0.01
+            let heightOK: Bool = abs(found.height - 0.2) < 0.01
+            pickedDimensions = widthOK && depthOK && heightOK
+        }
+        r.check("isolate.orientedSelection", pickedDimensions, "")
 
         let spun = box(SIMD3<Float>(-0.2, 0, -0.15), size, 2)
         let rotated = TriangleMesh(positions: spun.positions.map { simd_mul(axes, $0) }, indices: spun.indices)
@@ -122,15 +140,22 @@ extension MeshProcessingSelfTest {
             r.near("isolate.rotatedWidth", result.width, 0.4, 0.01)
             r.near("isolate.rotatedDepth", result.depth, 0.3, 0.01)
             r.near("isolate.heightAboveSupport", result.heightAboveSupport, 0.2, 0.005)
-            let widthAxis = result.box.axes.columns.0
-            r.check("isolate.boxAxes", abs(abs(simd_dot(widthAxis, axes.columns.0)) - 1) < 1e-3
-                        && result.box.axes.columns.1 == ObjectIsolation.up, "width axis \(widthAxis)")
+            let widthAxis: SIMD3<Float> = result.box.axes.columns.0
+            let alignment: Float = abs(simd_dot(widthAxis, axes.columns.0))
+            let upright: Bool = result.box.axes.columns.1 == ObjectIsolation.up
+            r.check("isolate.boxAxes", abs(alignment - 1) < 1e-3 && upright, "width axis \(widthAxis)")
         }
 
         let closed = attributed(box(SIMD3<Float>(1, 1, 1), size, 1), 4)
         let measured = ObjectIsolation.measure(closed, support: nil)
-        r.check("measure.closedBox", measured.map { abs(($0.volume ?? 0) - 0.024) < 1e-4 && $0.heightAboveSupport == nil
-                    && $0.volumeUnavailableReason == nil } == true, "")
+        var closedBox = false
+        if let found = measured {
+            let volume: Float = found.volume ?? 0
+            let noHeight: Bool = found.heightAboveSupport == nil
+            let noReason: Bool = found.volumeUnavailableReason == nil
+            closedBox = abs(volume - 0.024) < 1e-4 && noHeight && noReason
+        }
+        r.check("measure.closedBox", closedBox, "")
         let corners = [SIMD3<Float>(0, 0, 0), SIMD3<Float>(1, 0, 0), SIMD3<Float>(0, 0, 1)]
         let sliver = ObjectIsolation.measure(MeshWithAttributes(mesh: TriangleMesh(positions: corners, indices: [0, 1, 2, 0, 2, 1])),
                                              support: nil)
