@@ -3,7 +3,22 @@ import ARKit
 import RoomPlan
 import RealityKit
 
-/// Placeholder first screen: proves the frameworks link and reports what this phone supports.
+/// One module's on-device self-test: a name and a function returning failing assertions.
+struct SelfTestSuite {
+    let name: String
+    let run: () -> [String]
+}
+
+/// Result of running one suite on this device.
+struct SelfTestResult: Identifiable {
+    let id = UUID()
+    let name: String
+    let failures: [String]
+    let seconds: Double
+}
+
+/// Placeholder first screen: reports what this phone supports and runs every module's
+/// self-test on the device, logging the results for `tools/phone_log.py`.
 struct ContentView: View {
     private var rows: [(String, Bool)] {
         [
@@ -15,66 +30,83 @@ struct ContentView: View {
         ]
     }
 
-    /// Failing assertions from the units module, run once on this device.
-    @State private var unitFailures: [String] = []
-    @State private var unitsChecked = false
-    /// Failing assertions from the geometry module, run once on this device.
-    @State private var geometryFailures: [String] = []
-    @State private var geometryChecked = false
+    /// Every module with a self-test. New modules add one line here.
+    private static let suites: [SelfTestSuite] = [
+        SelfTestSuite(name: "Units", run: UnitsSelfTest.run),
+        SelfTestSuite(name: "Geometry", run: GeometrySelfTest.run),
+        SelfTestSuite(name: "Export", run: ExportSelfTest.run),
+    ]
+
+    @State private var results: [SelfTestResult] = []
+    @State private var running = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Mapper").font(.largeTitle.bold())
-            Text("Build 2: capability check").foregroundStyle(.secondary)
-            ForEach(rows, id: \.0) { row in
-                HStack {
-                    Image(systemName: row.1 ? "checkmark.circle.fill" : "xmark.circle")
-                        .foregroundStyle(row.1 ? .green : .red)
-                    Text(row.0)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Mapper").font(.largeTitle.bold())
+                Text("Build 3: capability and self-test check").foregroundStyle(.secondary)
+                ForEach(rows, id: \.0) { row in
+                    HStack {
+                        Image(systemName: row.1 ? "checkmark.circle.fill" : "xmark.circle")
+                            .foregroundStyle(row.1 ? .green : .red)
+                        Text(row.0)
+                    }
+                }
+                Divider()
+                if running {
+                    HStack {
+                        ProgressView()
+                        Text("Running self-tests...")
+                    }
+                }
+                ForEach(results) { result in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: result.failures.isEmpty ? "checkmark.circle.fill" : "xmark.circle")
+                                .foregroundStyle(result.failures.isEmpty ? .green : .red)
+                            Text(result.failures.isEmpty
+                                 ? "\(result.name) self-test passed"
+                                 : "\(result.name) self-test: \(result.failures.count) failed")
+                            Spacer()
+                            Text(String(format: "%.2f s", result.seconds))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        ForEach(result.failures.prefix(5), id: \.self) { failure in
+                            Text(failure).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                if !results.isEmpty {
+                    Text("Example: \(LengthFormat.both(3.845, prefs: .standard))")
+                        .font(.callout)
                 }
             }
-            if unitsChecked {
-                HStack {
-                    Image(systemName: unitFailures.isEmpty ? "checkmark.circle.fill" : "xmark.circle")
-                        .foregroundStyle(unitFailures.isEmpty ? .green : .red)
-                    Text(unitFailures.isEmpty ? "Units self-test passed" : "Units self-test: \(unitFailures.count) failed")
-                }
-                ForEach(unitFailures.prefix(5), id: \.self) { failure in
-                    Text(failure).font(.caption).foregroundStyle(.secondary)
-                }
-                Text("Example: \(LengthFormat.both(3.845, prefs: .standard))")
-                    .font(.callout)
-            }
-            if geometryChecked {
-                HStack {
-                    Image(systemName: geometryFailures.isEmpty ? "checkmark.circle.fill" : "xmark.circle")
-                        .foregroundStyle(geometryFailures.isEmpty ? .green : .red)
-                    Text(geometryFailures.isEmpty ? "Geometry self-test passed" : "Geometry self-test: \(geometryFailures.count) failed")
-                }
-                ForEach(geometryFailures.prefix(5), id: \.self) { failure in
-                    Text(failure).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
+            .padding()
         }
-        .padding()
-        .onAppear {
-            let summary = rows.map { "\($0.0)=\($0.1)" }.joined(separator: ", ")
-            LogStore.shared.write("capabilities: \(summary)", category: "app")
-            let failures = UnitsSelfTest.run()
-            unitFailures = failures
-            unitsChecked = true
-            LogStore.shared.write("units self-test: \(failures.isEmpty ? "passed" : "\(failures.count) failed")", category: "app")
-            for failure in failures {
-                LogStore.shared.write("units self-test FAIL: \(failure)", category: "app")
-            }
-            let geometry = GeometrySelfTest.run()
-            geometryFailures = geometry
-            geometryChecked = true
-            LogStore.shared.write("geometry self-test: \(geometry.isEmpty ? "passed" : "\(geometry.count) failed")", category: "app")
-            for failure in geometry {
-                LogStore.shared.write("geometry self-test FAIL: \(failure)", category: "app")
+        .task {
+            await runAll()
+        }
+    }
+
+    /// Runs the suites off the main thread one after another and logs every failure.
+    private func runAll() async {
+        guard results.isEmpty, !running else { return }
+        running = true
+        let summary = rows.map { "\($0.0)=\($0.1)" }.joined(separator: ", ")
+        LogStore.shared.write("capabilities: \(summary)", category: "app")
+        for suite in ContentView.suites {
+            let result = await Task.detached(priority: .userInitiated) { () -> SelfTestResult in
+                let start = CFAbsoluteTimeGetCurrent()
+                let failures = suite.run()
+                return SelfTestResult(name: suite.name, failures: failures, seconds: CFAbsoluteTimeGetCurrent() - start)
+            }.value
+            results.append(result)
+            let status = result.failures.isEmpty ? "passed" : "\(result.failures.count) failed"
+            LogStore.shared.write("\(suite.name.lowercased()) self-test: \(status) in \(String(format: "%.2f", result.seconds)) s", category: "app")
+            for failure in result.failures {
+                LogStore.shared.write("\(suite.name.lowercased()) self-test FAIL: \(failure)", category: "app")
             }
         }
+        running = false
     }
 }
