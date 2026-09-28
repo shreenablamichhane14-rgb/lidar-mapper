@@ -1,5 +1,7 @@
 # Mapper research reference
 
+> Status: complete draft. All ten subsystem sections passed two checks (declarations against Apple documentation JSON, and fidelity to the input files). Unfinished: a final adversarial check of the synthesized parts (sections 1, 2, 4, 5 and 6) was started and stopped before it made any change, so those parts have not had an independent review yet. The open device tests are listed at the end of section 6.
+
 This is the single verified reference for the Mapper architecture and for every implementation agent. It is synthesized from `docs/research/raw/*.json` (first research pass, with first-pass verifier verdicts) and `docs/research/verify/*.json` (second pass, tie-breaker rulings and open-question answers). Each subsystem section was drafted from those files, then checked twice: once by re-fetching Apple's documentation JSON for every declaration and availability version, and once against the input files for refuted claims, missing facts and rulings.
 
 Platform facts that every section assumes:
