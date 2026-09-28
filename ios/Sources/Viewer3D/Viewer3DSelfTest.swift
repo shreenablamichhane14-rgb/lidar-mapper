@@ -101,7 +101,7 @@ enum Viewer3DSelfTest {
     }
 
     /// Float at a byte offset of packed data (offsets are multiples of 4).
-    static func float(_ data: Data, _ offset: Int) -> Float {
+    static func floatAt(_ data: Data, _ offset: Int) -> Float {
         guard offset >= 0, offset + 4 <= data.count else { return .nan }
         return data.withUnsafeBytes { $0.load(fromByteOffset: offset, as: Float.self) }
     }
@@ -211,7 +211,11 @@ enum Viewer3DSelfTest {
         let b = ViewerPart(id: "b", positions: [SIMD3<Float>(4, -2, 1)], indices: [],
                            material: .unlit(SIMD4<Float>(1, 1, 1, 1)), layer: .overlay)
         let content = ViewerContent(parts: [a, b])
-        r.check("content.boundsUnion", content.bounds.min == SIMD3<Float>(-1, -2, 0) && content.bounds.max == SIMD3<Float>(4, 3, 2))
+        let expectedMin = SIMD3<Float>(-1, -2, 0)
+        let expectedMax = SIMD3<Float>(4, 3, 2)
+        let minOK = content.bounds.min == expectedMin
+        let maxOK = content.bounds.max == expectedMax
+        r.check("content.boundsUnion", minOK && maxOK)
         r.check("content.emptyBounds", ViewerContent.empty.bounds.isEmpty && ViewerContent.empty.parts.isEmpty)
     }
 
@@ -221,28 +225,40 @@ enum Viewer3DSelfTest {
         let uvs = [SIMD2<Float>(0.1, 0.2), SIMD2<Float>(0.3, 0.4), SIMD2<Float>(0.5, 0.6)]
         let data = ViewerRenderMesh.pack(trianglePart(normals: normals, uvs: uvs))
         r.check("pack.stride32", data.count == 3 * 32 && ViewerRenderMesh.vertexStride == 32, "\(data.count)")
-        r.check("pack.position", float(data, 32) == 1 && float(data, 36) == 0 && float(data, 40) == 0)
-        r.check("pack.normalAt12", float(data, 32 + 12) == 0 && float(data, 32 + 16) == 0 && float(data, 32 + 20) == 1)
-        r.check("pack.uvAt24", float(data, 64 + 24) == 0.5 && float(data, 64 + 28) == 0.6)
+        let position = SIMD3<Float>(floatAt(data, 32), floatAt(data, 36), floatAt(data, 40))
+        r.check("pack.position", position == SIMD3<Float>(1, 0, 0), "\(position)")
+        let normal = SIMD3<Float>(floatAt(data, 32 + 12), floatAt(data, 32 + 16), floatAt(data, 32 + 20))
+        r.check("pack.normalAt12", normal == SIMD3<Float>(0, 0, 1), "\(normal)")
+        let uv = SIMD2<Float>(floatAt(data, 64 + 24), floatAt(data, 64 + 28))
+        r.check("pack.uvAt24", uv == SIMD2<Float>(0.5, 0.6), "\(uv)")
         let noUV = ViewerRenderMesh.pack(trianglePart(normals: normals))
-        r.check("pack.missingUVsZero", float(noUV, 24) == 0 && float(noUV, 28) == 0)
+        let zeroUV = SIMD2<Float>(floatAt(noUV, 24), floatAt(noUV, 28))
+        r.check("pack.missingUVsZero", zeroUV == SIMD2<Float>(0, 0))
 
         let zero = ViewerRenderMesh.resolvedNormals(trianglePart(normals: [SIMD3<Float>](repeating: .zero, count: 3)))
         r.check("pack.zeroNormalsComputed", zero.count == 3 && zero.allSatisfy { abs(abs($0.z) - 1) < 1e-5 })
-        let mixed = ViewerRenderMesh.resolvedNormals(trianglePart(normals: [SIMD3<Float>(0, 0, 2), .zero, SIMD3<Float>(0, 0, 1)]))
-        r.check("pack.oneZeroNormalComputed", mixed.count == 3 && abs(abs(mixed[1].z) - 1) < 1e-5 && mixed[0] == SIMD3<Float>(0, 0, 1))
+        let given: [SIMD3<Float>] = [SIMD3<Float>(0, 0, 2), SIMD3<Float>(0, 0, 0), SIMD3<Float>(0, 0, 1)]
+        let mixed = ViewerRenderMesh.resolvedNormals(trianglePart(normals: given))
+        let mixedOK = mixed.count == 3
+        let computedZ: Float = mixedOK ? abs(mixed[1].z) : 0
+        let keptUnit = mixedOK && mixed[0] == SIMD3<Float>(0, 0, 1)
+        r.check("pack.oneZeroNormalComputed", keptUnit && abs(computedZ - 1) < 1e-5)
         let absent = ViewerRenderMesh.resolvedNormals(trianglePart(normals: []))
         r.check("pack.absentNormalsComputed", absent.count == 3 && absent.allSatisfy { abs(simd_length($0) - 1) < 1e-5 })
 
         let empty = ViewerPart(id: "empty", positions: [], indices: [], material: .lit(SIMD4<Float>(1, 1, 1, 1)), layer: .raw)
-        r.check("pack.emptyPartSkipped", !ViewerRenderMesh.isRenderable(empty) && ViewerRenderMesh.pack(empty).isEmpty
-                && ViewerRenderMesh.packedPart(empty) == nil)
+        let emptyRenderable = ViewerRenderMesh.isRenderable(empty)
+        let emptyData = ViewerRenderMesh.pack(empty)
+        let emptyPacked = ViewerRenderMesh.packedPart(empty)
+        r.check("pack.emptyPartSkipped", !emptyRenderable && emptyData.isEmpty && emptyPacked == nil)
         var broken = trianglePart(normals: normals)
         broken.indices = [0, 1, 7]
         r.check("pack.badIndexSkipped", !ViewerRenderMesh.isRenderable(broken))
         let packed = ViewerContent(parts: [empty, trianglePart(normals: normals), broken]).parts.compactMap(ViewerRenderMesh.packedPart)
-        r.check("pack.onlyRenderableUploaded", packed.count == 1 && packed.first?.vertexCount == 3
-                && packed.first?.boundsMax == SIMD3<Float>(1, 1, 0))
+        let onlyOne = packed.count == 1
+        let firstVertexCount: Int = packed.first?.vertexCount ?? 0
+        let firstMax: SIMD3<Float> = packed.first?.boundsMax ?? SIMD3<Float>(0, 0, 0)
+        r.check("pack.onlyRenderableUploaded", onlyOne && firstVertexCount == 3 && firstMax == SIMD3<Float>(1, 1, 0))
     }
 
     /// `ViewerOrbitMath.lookAt`, `eye` and `ViewerOrbitState`.
@@ -256,7 +272,10 @@ enum Viewer3DSelfTest {
         let toTarget = simd_normalize(target - eye)
         r.check("lookAt.minusZToTarget", simd_distance(-z, toTarget) < 1e-5, "\(-z)")
         r.check("lookAt.upKept", abs(x.y) < 1e-5 && y.y > 0, "\(x) \(y)")
-        r.check("lookAt.orthonormal", abs(simd_dot(x, y)) < 1e-5 && abs(simd_dot(y, z)) < 1e-5 && abs(simd_length(x) - 1) < 1e-5)
+        let dotXY: Float = simd_dot(x, y)
+        let dotYZ: Float = simd_dot(y, z)
+        let lengthX: Float = simd_length(x)
+        r.check("lookAt.orthonormal", abs(dotXY) < 1e-5 && abs(dotYZ) < 1e-5 && abs(lengthX - 1) < 1e-5)
         r.check("lookAt.rightHanded", simd_distance(simd_cross(x, y), z) < 1e-5)
         r.check("lookAt.translation", m.columns.3 == SIMD4<Float>(3, 2, 4, 1))
         let down = ViewerOrbitMath.lookAt(eye: SIMD3<Float>(0, 5, 0), target: .zero)
@@ -331,13 +350,17 @@ enum Viewer3DSelfTest {
             r.check("projection.roundTrip", false, "nil")
         }
         let center = ViewerOrbitMath.project(state.target, cameraToWorld: pose, verticalFieldOfViewDegrees: 60, viewSize: size)
-        r.check("projection.targetCentered", center.map { abs($0.x - 195) < 0.01 && abs($0.y - 422) < 0.01 } ?? false)
+        let centerPoint: CGPoint = center ?? CGPoint(x: -1, y: -1)
+        let dx: CGFloat = abs(centerPoint.x - 195)
+        let dy: CGFloat = abs(centerPoint.y - 422)
+        r.check("projection.targetCentered", center != nil && dx < 0.01 && dy < 0.01)
         let behind = state.eye + (state.eye - state.target)
         r.check("projection.behindNil", ViewerOrbitMath.project(behind, cameraToWorld: pose, verticalFieldOfViewDegrees: 60, viewSize: size) == nil)
     }
 
     /// `ViewerPicking` nearest hit and layer filtering.
     static func pickingCases(_ r: Recorder) {
+        /// A pickable 2 x 2 m square facing +Z at depth `z`.
         func quad(_ id: String, z: Float, layer: ViewerLayer) -> ViewerPart {
             ViewerPart(id: id, positions: [SIMD3<Float>(-1, -1, z), SIMD3<Float>(1, -1, z), SIMD3<Float>(1, 1, z), SIMD3<Float>(-1, 1, z)],
                        indices: [0, 2, 1, 0, 3, 2], material: .lit(SIMD4<Float>(1, 1, 1, 1)), layer: layer, pickTag: .rawMesh)
@@ -348,9 +371,14 @@ enum Viewer3DSelfTest {
         r.check("pick.onlyTaggedParts", entries.count == 2)
         let ray = Ray(origin: SIMD3<Float>(0.2, 0.3, 5), direction: SIMD3<Float>(0, 0, -1))
         let hit = ViewerPicking.nearestHit(ray, entries: entries, visibleLayers: Set(ViewerLayer.allCases))
-        r.check("pick.nearest", hit?.partID == "near" && abs((hit?.position.z ?? 9) - 0) < 1e-5, "\(String(describing: hit?.partID))")
-        r.check("pick.normalFacesRay", (hit?.normal.z ?? 0) > 0.99)
-        r.check("pick.triangleAndTag", (hit?.triangle ?? -1) >= 0 && (hit?.triangle ?? 9) < 2 && hit?.pickTag == .rawMesh)
+        let hitPart: String = hit?.partID ?? "nil"
+        let hitZ: Float = hit?.position.z ?? 9
+        r.check("pick.nearest", hitPart == "near" && abs(hitZ) < 1e-5, hitPart)
+        let normalZ: Float = hit?.normal.z ?? 0
+        r.check("pick.normalFacesRay", normalZ > 0.99)
+        let hitTriangle: Int = hit?.triangle ?? -1
+        let hitTag: ViewerPickTag? = hit?.pickTag
+        r.check("pick.triangleAndTag", hitTriangle >= 0 && hitTriangle < 2 && hitTag == ViewerPickTag.rawMesh)
         let hidden = ViewerPicking.nearestHit(ray, entries: entries, visibleLayers: [.overlay])
         r.check("pick.hiddenLayerSkipped", hidden?.partID == "far")
         let miss = ViewerPicking.nearestHit(Ray(origin: SIMD3<Float>(5, 5, 5), direction: SIMD3<Float>(0, 0, -1)),
@@ -366,8 +394,11 @@ enum Viewer3DSelfTest {
             let content = try ViewerDiagnostics.uvCheckerContent(directory: folder)
             let part = content.parts.first
             r.check("checker.onePart", content.parts.count == 1 && part?.positions.count == 4 && part?.indices.count == 6)
-            r.check("checker.uvOriginLowerLeft", part?.uvs.first == SIMD2<Float>(0, 0) && part?.positions.first == SIMD3<Float>(-0.5, 0, 0)
-                    && part?.uvs[2] == SIMD2<Float>(1, 1))
+            let uvs: [SIMD2<Float>] = part?.uvs ?? []
+            let positions: [SIMD3<Float>] = part?.positions ?? []
+            let lowerLeftUV = uvs.count == 4 && uvs[0] == SIMD2<Float>(0, 0) && uvs[2] == SIMD2<Float>(1, 1)
+            let lowerLeftCorner = positions.count == 4 && positions[0] == SIMD3<Float>(-0.5, 0, 0)
+            r.check("checker.uvOriginLowerLeft", lowerLeftUV && lowerLeftCorner)
             guard case .texture(let url)? = part?.material else {
                 r.check("checker.textureMaterial", false)
                 return

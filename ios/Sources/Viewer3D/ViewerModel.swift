@@ -322,6 +322,9 @@ import simd
             await loadTextures(for: packed, token: token)
             guard isCurrent(token) else { stats.completed = false; return stats }
             for item in packed {
+                // A memory warning during the upload evicted this hidden layer; its parts are
+                // uploaded again (all of them) when the layer is shown.
+                if evictedLayers.contains(item.layer) { continue }
                 let material = ViewerRenderMesh.makeMaterial(item.material, textures: textures)
                 let before = ProcessInfo.processInfo.systemUptime
                 do {
