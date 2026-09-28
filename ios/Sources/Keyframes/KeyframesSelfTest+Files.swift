@@ -129,15 +129,19 @@ extension KeyframesSelfTest {
         let poses = PoseTrackRecorder()
         poses.beginRecording(into: folder, profile: profile, startTimestamp: 100)
         for frame in 0..<120 {
-            poses.ingest(PoseSample(timestamp: 100 + Double(frame) / 60, transform: moved(Float(frame) * 0.01),
-                                    tracking: 2, thermal: 0, exposureDuration: 1 / 120))
+            let timestamp: Double = 100 + Double(frame) / 60
+            let pose: simd_float4x4 = moved(Float(frame) * 0.01)
+            let exposure: Float = 1.0 / 120
+            poses.ingest(PoseSample(timestamp: timestamp, transform: pose, tracking: 2, thermal: 0, exposureDuration: exposure))
         }
         expect(&f, "life.poseFinish", waitFinish(poses))
         poses.ingest(PoseSample(timestamp: 105, transform: moved(0), tracking: 2, thermal: 0, exposureDuration: 0.01))
         let stored = (try? RawScanReader(folder: folder).poseSamples()) ?? []
         expect(&f, "life.poseSamples", stored.count == 20 && poses.stats.poseSamples == 20,
                "\(stored.count) stored, \(poses.stats.poseSamples) counted")
-        expect(&f, "life.poseFirst", stored.first?.timestamp == 100 && stored.first?.tracking == 2)
+        let firstSample: PoseSample? = stored.first
+        let firstMatches: Bool = firstSample.map { $0.timestamp == 100 && $0.tracking == 2 } ?? false
+        expect(&f, "life.poseFirst", firstMatches)
 
         let idle = PoseTrackRecorder()
         idle.beginRecording(into: empty, profile: profile, startTimestamp: 0)
@@ -212,7 +216,8 @@ extension KeyframesSelfTest {
             let bytes = base.assumingMemoryBound(to: UInt8.self)
             for row in 0..<rows {
                 for column in 0..<bytesPerRow {
-                    let value = (column * 7 + row * 13 + plane * 31 + seed * 17) & 0xFF
+                    let mixed: Int = column * 7 + row * 13 + plane * 31 + seed * 17
+                    let value: Int = mixed & 0xFF
                     bytes[row * bytesPerRow + column] = UInt8(value)
                 }
             }

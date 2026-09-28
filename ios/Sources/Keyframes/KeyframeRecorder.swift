@@ -303,8 +303,9 @@ final class KeyframeRecorder: ScanRecorder {
     /// Totals for the log: written, skipped, mean and slowest io job in milliseconds.
     private func summaryLine() -> String {
         locked { () -> String in
-            let mean = jobCount > 0 ? Double(jobNanos) / Double(jobCount) / 1_000_000 : 0
-            let slowest = Double(slowestJobNanos) / 1_000_000
+            let totalMillis: Double = Double(jobNanos) / 1_000_000
+            let mean: Double = jobCount > 0 ? totalMillis / Double(jobCount) : 0
+            let slowest: Double = Double(slowestJobNanos) / 1_000_000
             return "written \(writtenCount), skipped \(skippedCount), jobs \(jobCount), "
                 + "mean \(Int(mean.rounded())) ms, slowest \(Int(slowest.rounded())) ms"
         }

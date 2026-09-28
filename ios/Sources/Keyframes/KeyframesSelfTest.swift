@@ -175,9 +175,14 @@ enum KeyframesSelfTest {
     /// 3 samples round trip through `PoseTrackFile.decode`; 60 fps frames give 10 Hz samples;
     /// thermal codes are the ThermalLevel index.
     private static func checkPoseTrack(_ f: inout [String]) {
-        let samples = (0..<3).map { i -> PoseSample in
-            PoseSample(timestamp: 10 + Double(i) * 0.1, transform: simd_mul(moved(Float(i) * 0.5), turned(Float(i) * 30)),
-                       tracking: UInt8(i), thermal: UInt8(3 - i), exposureDuration: 1 / Float(60 + i))
+        var samples: [PoseSample] = []
+        for i in 0..<3 {
+            let step: Float = Float(i)
+            let timestamp: Double = 10 + Double(i) * 0.1
+            let pose: simd_float4x4 = simd_mul(moved(step * 0.5), turned(step * 30))
+            let exposure: Float = 1 / (60 + step)
+            samples.append(PoseSample(timestamp: timestamp, transform: pose, tracking: UInt8(i),
+                                      thermal: UInt8(3 - i), exposureDuration: exposure))
         }
         let data = KeyframeEncoding.poseTrackData(samples, includeHeader: true)
         let expectedSize = PoseTrackFile.headerSize + 3 * PoseTrackFile.recordSize

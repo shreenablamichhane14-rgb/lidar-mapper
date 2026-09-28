@@ -115,6 +115,8 @@ struct KeyframeGate {
     }
 }
 
+/// The pure gate helpers of `KeyframeRecorder` (selector thresholds, capture conditions,
+/// thermal interval, viewpoint distance), shared by `KeyframeGate` and the self-test.
 extension KeyframeRecorder {
     /// Minimum seconds between keyframes at thermal scale 1 when throttling applies; the
     /// thermal gate requires `thermalBaseInterval * scale` (1 s at `.serious`, ship-first 3.6).
