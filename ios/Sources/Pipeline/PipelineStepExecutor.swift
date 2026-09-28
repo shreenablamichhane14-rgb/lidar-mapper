@@ -5,8 +5,8 @@ import Foundation
 final class PipelineCancelFlag: @unchecked Sendable {
     /// The stop request.
     enum Reason: Equatable, Sendable {
-        /// Keep going.
-        case none
+        /// No stop requested: keep going.
+        case proceed
         /// The user cancelled (or the project is gone): the job ends as `.cancelled`.
         case cancelled
         /// `suspendAll`: the job stops and stays queued.
@@ -16,7 +16,7 @@ final class PipelineCancelFlag: @unchecked Sendable {
     /// Guards `value`.
     private let lock = NSLock()
     /// The current request.
-    private var value: Reason = .none
+    private var value: Reason = .proceed
 
     /// A flag with no request.
     init() {}
@@ -29,7 +29,7 @@ final class PipelineCancelFlag: @unchecked Sendable {
     }
 
     /// True when the job should stop.
-    var isSet: Bool { reason != .none }
+    var isSet: Bool { reason != .proceed }
 
     /// Requests a stop. A user cancel wins over a suspension; a suspension never downgrades
     /// a cancel.
@@ -37,12 +37,12 @@ final class PipelineCancelFlag: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         switch reason {
-        case .none:
+        case .proceed:
             return
         case .cancelled:
             value = .cancelled
         case .suspended:
-            if value == .none { value = .suspended }
+            if value == .proceed { value = .suspended }
         }
     }
 }

@@ -31,10 +31,15 @@ import Combine
 
     /// What one step run ended with.
     private enum StepResult {
+        /// The step ran and its stamp was recorded.
         case completed
+        /// The stamp was fresh.
         case skipped
+        /// The step failed or could not run; `reason` is for the log and the state.
         case failed(MapperError, reason: String)
+        /// The job was cancelled or suspended during the step (not a failure).
         case interrupted
+        /// The package folder no longer exists.
         case projectMissing
     }
 
@@ -208,7 +213,7 @@ import Combine
         case .cancelled:
             _ = queue.finishRunning(requeue: false)
             outcome = .cancelled
-        case .none:
+        case .proceed:
             _ = queue.finishRunning(requeue: false)
             outcome = ledger.outcome(cancelled: false)
         }
@@ -260,11 +265,11 @@ import Combine
         await waitForHeat(budget: plan.budget, projectID: projectID, name: name, flag: flag)
         if flag.isSet { return .interrupted }
 
-        let gate = await Task.detached(priority: .userInitiated) {
+        let gateResult = await Task.detached(priority: .userInitiated) {
             PipelineStepExecutor.gate(box: box, stepID: stepID, subject: subject, package: package, plan: plan, flag: flag)
         }.value
         let launch: PipelineStepExecutor.Launch
-        switch gate {
+        switch gateResult {
         case .projectMissing:
             return .projectMissing
         case .refused(let available):
@@ -334,7 +339,7 @@ import Combine
         progressToken = token
         let runner = self
         let sink = PipelineProgressSink(token: token) { stepToken, fraction in
-            Task { @MainActor in runner.receiveProgress(token: stepToken, fraction: fraction) }
+            _ = Task { @MainActor in runner.receiveProgress(token: stepToken, fraction: fraction) }
         }
         let task = Task.detached(priority: .userInitiated) {
             await PipelineStepExecutor.run(box: box, stepID: stepID, package: package, manifest: manifest,
