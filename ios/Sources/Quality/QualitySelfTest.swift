@@ -67,7 +67,9 @@ enum QualitySelfTest {
         let split = QualityInputs.boundaryWithWalls(for: curved)
         let pieces = split.wallIndex.filter { $0 == 0 }.count
         let firstStart = split.boundary.walls.first?.start ?? SIMD2<Float>(9, 9)
-        let lastPiece = split.boundary.walls[Swift.max(0, pieces - 1)].end
+        let lastIndex = Swift.max(0, pieces - 1)
+        let splitWalls = split.boundary.walls
+        let lastPiece = lastIndex < splitWalls.count ? splitWalls[lastIndex].end : SIMD2<Float>(9, 9)
         c.check("boundary.curvedWallSplit", pieces >= 3 && split.wallIndex.count == pieces + 3, "pieces \(pieces)")
         let startGap: Float = simd_distance(firstStart, SIMD2<Float>(0, 0))
         let endGap: Float = simd_distance(lastPiece, SIMD2<Float>(4, 0))

@@ -41,13 +41,19 @@ private struct QualityOpeningRect {
 
 /// Running sums of one cluster of unobserved samples.
 private struct QualityCluster {
-    /// First sample index (tie-breaker when sorting), class and sums of the cluster.
+    /// First sample index (tie-breaker when sorting).
     var first: Int
+    /// Surface class of the cluster's samples.
     var surface: SurfaceClass
+    /// Total sample area, square meters.
     var area: Float = 0
+    /// Sum of sample positions times their area.
     var weightedPosition = SIMD3<Float>(0, 0, 0)
+    /// Sum of sample normals times their area.
     var weightedNormal = SIMD3<Float>(0, 0, 0)
+    /// Normal of the first sample (fallback when the weighted normal cancels out).
     var firstNormal = SIMD3<Float>(0, 1, 0)
+    /// Number of samples added.
     var count = 0
 
     /// An empty cluster started by sample `first`.
