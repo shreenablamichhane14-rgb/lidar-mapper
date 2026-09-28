@@ -50,6 +50,7 @@ enum ProjectStore {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
+        encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
         try encoder.encode(report).write(to: folder.appendingPathComponent("report.json"), options: .atomic)
 
         do {
@@ -97,8 +98,13 @@ enum ProjectStore {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
+        encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
         try encoder.encode(report).write(to: folder.appendingPathComponent("report.json"), options: .atomic)
         try? FileManager.default.removeItem(at: folder.appendingPathComponent("Checkpoint", isDirectory: true))
+        if (size.max() ?? 0) > 1.0 {
+            report.notes = (report.notes ?? []) + ["This model is larger than 1 m, so part of the table or room was probably included. Use a plain background and keep the object in the middle."]
+            try encoder.encode(report).write(to: folder.appendingPathComponent("report.json"), options: .atomic)
+        }
         LogStore.shared.write("saved object \(folder.lastPathComponent): size \(size)", category: "project")
         return SavedProject(folder: folder, report: report)
     }
@@ -109,6 +115,7 @@ enum ProjectStore {
         guard let folders = try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { return [] }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
+        decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
         return folders.compactMap { folder in
             guard let data = try? Data(contentsOf: folder.appendingPathComponent("report.json")),
                   let report = try? decoder.decode(RoomReport.self, from: data) else { return nil }

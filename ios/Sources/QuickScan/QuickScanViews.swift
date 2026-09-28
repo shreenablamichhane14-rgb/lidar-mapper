@@ -83,6 +83,7 @@ struct HomeView: View {
         }
         .fullScreenCover(isPresented: $scanning) {
             RoomScanView(onFinished: { room in
+                LogStore.shared.write("room save tapped: walls \(room.walls.count)", category: "project")
                 do {
                     let project = try ProjectStore.save(room: room)
                     projects = ProjectStore.list()
@@ -90,6 +91,7 @@ struct HomeView: View {
                     scanning = false
                     path = [project]
                 } catch {
+                    LogStore.shared.write("room save FAILED: \(error)", category: "project")
                     saveError = "Could not save the scan: \(error.localizedDescription)"
                     scanning = false
                 }

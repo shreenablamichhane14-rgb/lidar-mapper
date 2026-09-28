@@ -181,7 +181,9 @@ enum ObjectReconstruction {
         configuration.isObjectMaskingEnabled = true
         configuration.featureSensitivity = .high
         configuration.sampleOrdering = .sequential
-        let session = try PhotogrammetrySession(input: images, configuration: configuration)
+        let samples = TurntableSamples(folder: images)
+        LogStore.shared.write("turntable reconstruction: \(samples.urls.count) photos, masking each with Vision", category: "turntable")
+        let session = try PhotogrammetrySession(input: samples, configuration: configuration)
         try session.process(requests: [.modelFile(url: modelURL)])
         var failure: Error?
         outputLoop: for try await output in session.outputs {

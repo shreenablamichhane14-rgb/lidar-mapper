@@ -89,6 +89,7 @@ final class RoomCaptureViewController: UIViewController, RoomCaptureViewDelegate
     }
 
     @objc private func cancelTapped() {
+        LogStore.shared.write("room scan cancelled by user (result ready: \(finalResult != nil))", category: "scan")
         stopSession()
         onCancel?()
     }

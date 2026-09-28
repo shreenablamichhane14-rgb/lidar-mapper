@@ -85,7 +85,9 @@ struct ObjectScanView: View {
         VStack(spacing: 12) {
             HStack {
                 Button("Cancel") {
+                    LogStore.shared.write("object capture cancelled by user after \(session.numberOfShotsTaken) shots", category: "object")
                     session.cancel()
+                    if let folder { try? FileManager.default.removeItem(at: folder) }
                     onCancel()
                 }
                 .buttonStyle(.bordered).tint(.white)
