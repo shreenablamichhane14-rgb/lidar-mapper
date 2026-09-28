@@ -86,9 +86,9 @@ enum StoreSelfTest {
             t.check("jsonl.roundTrip3", firstRead == records, "\(firstRead.count) read")
             t.check("writer.counters", writer.bytesWritten > 0 && writer.failureCount == 0)
 
-            var unsafe = keyframe(4)
-            unsafe.imageFile = "../../etc/x"
-            writer.appendJSONLine(unsafe, to: folder.keyframesLogURL)
+            var badPath = keyframe(4)
+            badPath.imageFile = "../../etc/x"
+            writer.appendJSONLine(badPath, to: folder.keyframesLogURL)
             writer.appendBytes(Data("{\"index\":5,\"timest".utf8), to: folder.keyframesLogURL)
             _ = waitFlush(writer)
             let rawLines = try RawScanReader.jsonLines(KeyframeRecord.self, at: folder.keyframesLogURL)
