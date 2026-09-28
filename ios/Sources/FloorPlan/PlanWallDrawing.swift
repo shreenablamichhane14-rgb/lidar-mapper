@@ -12,6 +12,7 @@ enum PlanWallDrawing {
 
     /// One straight wall in plan coordinates.
     private struct WallGeometry {
+        /// The wall and its endpoints, plan meters.
         let wall: PlanWall
         let a: SIMD2<Float>
         let b: SIMD2<Float>
@@ -20,6 +21,7 @@ enum PlanWallDrawing {
         /// Unit normal toward the room (left of a->b) and away from it.
         let left: SIMD2<Float>
         let right: SIMD2<Float>
+        /// Length a->b and drawn thickness (0 when not finite), meters.
         let length: Float
         let thickness: Float
 
@@ -31,8 +33,10 @@ enum PlanWallDrawing {
 
     /// Where the outer face starts and ends along the wall and whether each end joins another wall.
     private struct OuterExtent {
+        /// Outer face start and end, meters along the wall from a (may extend past the ends).
         var start: Float
         var end: Float
+        /// True when that end meets another wall.
         var joinedStart: Bool
         var joinedEnd: Bool
     }

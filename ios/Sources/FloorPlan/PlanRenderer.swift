@@ -130,6 +130,7 @@ enum PlanRenderer {
 
     /// Outlines a selected element in the accent color (segment thick, polygon outlined).
     static func drawHighlight(_ hit: PlanHit, in ctx: CGContext, viewport: PlanViewport, lineWidth: CGFloat) {
+        /// Screen point of a Float plan point.
         func screen(_ p: SIMD2<Float>) -> CGPoint { viewport.toScreen(SIMD2<Double>(Double(p.x), Double(p.y))) }
         ctx.saveGState()
         ctx.setStrokeColor(UIColor.systemBlue.cgColor)

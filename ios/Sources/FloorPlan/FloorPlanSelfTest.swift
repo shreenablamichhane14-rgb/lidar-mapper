@@ -127,11 +127,13 @@ enum FloorPlanSelfTest {
     private static func editChecks(_ log: inout FloorPlanSelfTestLog) {
         typealias F = FloorPlanSelfTestFixtures
         let base = rectanglePlan()
+        /// The fixture plan with one operation applied, and its result.
         func applied(_ op: EditOperation) -> (ok: Bool, plan: PlanModel) {
             var plan = base
             let ok = plan.apply(op)
             return (ok, plan)
         }
+        /// The first level of a plan.
         func level(_ plan: PlanModel) -> PlanLevel? { plan.levels.first }
 
         let renamed = applied(.renameRoom(room: F.roomID, name: "Den"))

@@ -171,6 +171,7 @@ enum PlanSymbols {
     /// A fixture's local frame: `across` runs along its back, `forward` points from its back
     /// to its front; `point(x, y)` is in meters from the center (y = -halfDepth is the back).
     private struct SymbolFrame {
+        /// Center, unit axes and half sizes, plan meters.
         var center: SIMD2<Float>
         var across: SIMD2<Float>
         var forward: SIMD2<Float>
