@@ -9,6 +9,7 @@ import Foundation
 /// Color class of one quality row: good at 0.9 and above, okay at 0.7 and above, poor below
 /// (the `QualityVerdict` thresholds, so a row's color agrees with the verdict rule).
 enum QualityTint: Equatable, Sendable {
+    /// Green (0.9 and above), orange (0.7 and above) and red (below 0.7).
     case good, okay, poor
 
     /// The tint of a 0...1 score. NaN and infinities count as 0 (poor), as in `QualityVerdict.from`.
