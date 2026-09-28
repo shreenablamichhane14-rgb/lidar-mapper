@@ -1,4 +1,5 @@
 import ARKit
+import simd
 
 /// Per-callback work of `ARSessionHub` on its queue: frames, anchors, tracking, the watchdog,
 /// the identity check, monitor changes, events and the throttled status.

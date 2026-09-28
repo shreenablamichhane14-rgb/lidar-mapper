@@ -1,5 +1,6 @@
 import ARKit
 import UIKit
+import simd
 
 /// Summary the hub publishes at most 4 times a second on its queue.
 struct HubStatus: Equatable, Sendable {

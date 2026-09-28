@@ -1,5 +1,6 @@
 import ARKit
 import UIKit
+import simd
 
 /// First-run and per-second diagnostics (D22), logged with category "capture". Hub queue
 /// (except `init`). Answers the open device questions of ARCHITECTURE 15: effective

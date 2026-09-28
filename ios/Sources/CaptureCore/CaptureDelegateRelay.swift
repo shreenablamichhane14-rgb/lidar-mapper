@@ -100,6 +100,6 @@ extension SettingsKey {
 
     /// Reads `captureRelay` (absent means on).
     static var captureRelayEnabled: Bool {
-        UserDefaults.standard.object(forKey: captureRelay) as? Bool ?? true
+        (UserDefaults.standard.object(forKey: captureRelay) as? Bool) ?? true
     }
 }
