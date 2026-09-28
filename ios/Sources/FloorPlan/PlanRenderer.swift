@@ -17,13 +17,19 @@ struct PlanViewport: Equatable, Sendable {
 
     /// Screen point of a plan point.
     func toScreen(_ p: SIMD2<Double>) -> CGPoint {
-        CGPoint(x: origin.x + CGFloat(p.x) * pointsPerMeter, y: origin.y - CGFloat(p.y) * pointsPerMeter)
+        let px: CGFloat = CGFloat(p.x)
+        let py: CGFloat = CGFloat(p.y)
+        let x: CGFloat = origin.x + px * pointsPerMeter
+        let y: CGFloat = origin.y - py * pointsPerMeter
+        return CGPoint(x: x, y: y)
     }
 
     /// Plan point of a screen point (inverse of `toScreen`).
     func toPlan(_ p: CGPoint) -> SIMD2<Double> {
-        let k = pointsPerMeter != 0 && pointsPerMeter.isFinite ? pointsPerMeter : 1
-        return SIMD2<Double>(Double((p.x - origin.x) / k), Double((origin.y - p.y) / k))
+        let k: CGFloat = pointsPerMeter != 0 && pointsPerMeter.isFinite ? pointsPerMeter : 1
+        let x: CGFloat = (p.x - origin.x) / k
+        let y: CGFloat = (origin.y - p.y) / k
+        return SIMD2<Double>(Double(x), Double(y))
     }
 
     /// The same viewport scaled by `factor` about the screen point `anchor` (it stays fixed).
@@ -159,11 +165,15 @@ enum PlanRenderer {
     static func pngData(_ plan: Plan2D, pixelWidth: Int) -> Data? {
         guard plan.entities.isEmpty == false, let bounds = plan.bounds(), pixelWidth >= 16 else { return nil }
         let width = CGFloat(Swift.min(pixelWidth, maxPixels))
-        let margin = (width * 0.04).rounded()
-        let extentX = Swift.max(bounds.max.x - bounds.min.x, 0.5)
-        let extentY = Swift.max(bounds.max.y - bounds.min.y, 0.5)
-        let rawHeight = Double(width - 2 * margin) * extentY / extentX + Double(2 * margin)
-        let height = CGFloat(Swift.min(Double(maxPixels), Swift.max(16, rawHeight.isFinite ? rawHeight.rounded(.up) : 16)))
+        let margin: CGFloat = (width * 0.04).rounded()
+        let extentX: Double = Swift.max(bounds.max.x - bounds.min.x, 0.5)
+        let extentY: Double = Swift.max(bounds.max.y - bounds.min.y, 0.5)
+        let innerWidth = Double(width - 2 * margin)
+        let margins = Double(2 * margin)
+        let rawHeight: Double = innerWidth * extentY / extentX + margins
+        let roundedHeight: Double = rawHeight.isFinite ? rawHeight.rounded(.up) : 16
+        let clampedHeight: Double = Swift.min(Double(maxPixels), Swift.max(16, roundedHeight))
+        let height = CGFloat(clampedHeight)
         let size = CGSize(width: width, height: height)
         let viewport = PlanViewport.fitting(min: bounds.min, max: bounds.max, in: size, margin: margin)
         let renderer = UIGraphicsImageRenderer(size: size, format: imageFormat())

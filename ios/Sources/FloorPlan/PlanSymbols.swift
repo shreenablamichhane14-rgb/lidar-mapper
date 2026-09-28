@@ -254,10 +254,14 @@ enum PlanSymbols {
         case .bathtub:
             let inset = min(w, h) * 0.18
             let chamfer = min(w, h) * 0.3
-            let inner = [f.point(-w + inset + chamfer, -h + inset), f.point(w - inset - chamfer, -h + inset),
-                         f.point(w - inset, -h + inset + chamfer), f.point(w - inset, h - inset - chamfer),
-                         f.point(w - inset - chamfer, h - inset), f.point(-w + inset + chamfer, h - inset),
-                         f.point(-w + inset, h - inset - chamfer), f.point(-w + inset, -h + inset + chamfer)]
+            let x0: Float = -w + inset
+            let x1: Float = w - inset
+            let y0: Float = -h + inset
+            let y1: Float = h - inset
+            let inner: [SIMD2<Float>] = [f.point(x0 + chamfer, y0), f.point(x1 - chamfer, y0),
+                                         f.point(x1, y0 + chamfer), f.point(x1, y1 - chamfer),
+                                         f.point(x1 - chamfer, y1), f.point(x0 + chamfer, y1),
+                                         f.point(x0, y1 - chamfer), f.point(x0, y0 + chamfer)]
             sketch.polyline(layer, inner, closed: true)
             sketch.circle(layer, center: f.point(w - inset - chamfer * 0.6, 0), radius: min(0.03, inset))
         case .stove:
@@ -277,7 +281,9 @@ enum PlanSymbols {
         case .washerDryer:
             sketch.circle(layer, center: f.center, radius: min(w, h) * 0.7)
         case .fireplace:
-            let mouth = [f.point(-w * 0.6, -h), f.point(w * 0.6, -h), f.point(w * 0.4, -h + h * 1.2), f.point(-w * 0.4, -h + h * 1.2)]
+            let mouthTop: Float = h * 0.2
+            let mouth: [SIMD2<Float>] = [f.point(-w * 0.6, -h), f.point(w * 0.6, -h),
+                                         f.point(w * 0.4, mouthTop), f.point(-w * 0.4, mouthTop)]
             sketch.polyline(layer, mouth, closed: true)
         case .stairs:
             drawStairs(f, layer: layer, into: &sketch)
