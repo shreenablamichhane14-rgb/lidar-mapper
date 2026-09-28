@@ -36,7 +36,7 @@ enum QualityEvaluator {
     static let longExposureSeconds: Double = 1.0 / 30
     /// Most mesh faces one evaluation scores; larger meshes use every n-th face (keeps the Done
     /// check near its 5 s budget on the A15).
-    static let maxEvaluationFaces = 150_000
+    static let maxEvaluationFaces = 100_000
     /// Wall samples within this distance of a door, window or opening count as inside it, meters.
     static let openingMargin: Float = 0.05
     /// Log category of the module.

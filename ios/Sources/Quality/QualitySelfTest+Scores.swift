@@ -105,9 +105,12 @@ extension QualitySelfTest {
         c.near("log.trackingFraction", logged.evaluation.evidence.trackingNormalFraction, 0.75, 1e-6)
         c.check("log.relocalizations", logged.evaluation.evidence.relocalizations == 2)
         c.check("log.degradedMode", logged.evaluation.degraded == .depthStripped)
-        c.check("degraded.rules", QualityEvaluator.degradedMode(roomUsable: false, log: nil, meshFaceCount: 9) == .roomPlanFailed
-                && QualityEvaluator.degradedMode(roomUsable: true, log: nil, meshFaceCount: 0) == .meshStripped
-                && QualityEvaluator.degradedMode(roomUsable: true, log: nil, meshFaceCount: 9) == .allGood)
+        let failedMode: DegradedMode = QualityEvaluator.degradedMode(roomUsable: false, log: nil, meshFaceCount: 9)
+        let strippedMode: DegradedMode = QualityEvaluator.degradedMode(roomUsable: true, log: nil, meshFaceCount: 0)
+        let goodMode: DegradedMode = QualityEvaluator.degradedMode(roomUsable: true, log: nil, meshFaceCount: 9)
+        c.check("degraded.noRoom", failedMode == DegradedMode.roomPlanFailed)
+        c.check("degraded.noMesh", strippedMode == DegradedMode.meshStripped)
+        c.check("degraded.allGood", goodMode == DegradedMode.allGood)
 
         c.check("percent.half", QualityEvaluator.fraction(percent: 50) == 0.5)
         c.check("percent.clampHigh", QualityEvaluator.fraction(percent: 150) == 1)

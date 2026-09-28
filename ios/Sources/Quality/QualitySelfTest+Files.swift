@@ -62,8 +62,9 @@ extension QualitySelfTest {
         stray.roomID = Fx.fixedID(99)
         try QualityStore.save(stray, package: package)
         let rooms = try ManifestWriter.read(package).rooms
-        c.check("store.roomNotListedWritesFileOnly", QualityStore.load(package, room: stray.roomID) != nil
-                && rooms.count == 1 && rooms.first?.id == roomID)
+        let strayWritten = QualityStore.load(package, room: stray.roomID) != nil
+        let roomsUnchanged = rooms.count == 1 && rooms.first?.id == roomID
+        c.check("store.roomNotListedWritesFileOnly", strayWritten && roomsUnchanged)
         c.check("store.missingIsNil", QualityStore.load(package, room: Fx.fixedID(98)) == nil)
         try ProjectStore.ensureDirectory(package.derivedRoomURL(Fx.fixedID(97)))
         try Data("not json".utf8).write(to: QualityStore.url(package, room: Fx.fixedID(97)))
@@ -87,8 +88,10 @@ extension QualitySelfTest {
         c.check("step.fastMeshWithoutConsolidated", (stepped?.summary.shape ?? 0) >= 0.9)
         let afterStep = try ManifestWriter.read(package)
         c.check("step.updatesRoomRecord", afterStep.rooms.first?.quality == stepped?.summary)
-        c.check("step.idAndBudgets", step.id == .quality && step.memoryBudgetBytes == 300 * 1024 * 1024
-                && step.reducedMemoryBudgetBytes == 150 * 1024 * 1024)
+        let fullBudget: UInt64 = 300 * 1024 * 1024
+        let reducedBudget: UInt64 = 150 * 1024 * 1024
+        c.check("step.id", step.id == PipelineStepID.quality)
+        c.check("step.budgets", step.memoryBudgetBytes == fullBudget && step.reducedMemoryBudgetBytes == reducedBudget)
         c.check("step.reducedBelowFullBudget", QualityStep.usesReducedVariant(availableMemory: 200_000_000)
                 && !QualityStep.usesReducedVariant(availableMemory: 400_000_000))
         let cancelled = StepContext(package: package, manifest: ctx.manifest, availableMemory: 2_000_000_000,

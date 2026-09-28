@@ -30,6 +30,15 @@ private struct QualityCellKey: Hashable {
     var j: Int32
 }
 
+/// One door, window or opening as a rectangle in (distance along the wall, height above the
+/// floor), meters, margin included.
+private struct QualityOpeningRect {
+    /// Lower corner.
+    var lo: SIMD2<Float>
+    /// Upper corner.
+    var hi: SIMD2<Float>
+}
+
 /// Running sums of one cluster of unobserved samples.
 private struct QualityCluster {
     /// First sample index (tie-breaker when sorting), class and sums of the cluster.
@@ -69,7 +78,7 @@ extension QualityEvaluator {
         let wallCount = room.walls.count
         var origins = [SIMD2<Float>](repeating: .zero, count: wallCount)
         var directions = [SIMD2<Float>](repeating: .zero, count: wallCount)
-        var rectangles = [[(lo: SIMD2<Float>, hi: SIMD2<Float>)]](repeating: [], count: wallCount)
+        var rectangles = [[QualityOpeningRect]](repeating: [], count: wallCount)
         for (w, wall) in room.walls.enumerated() {
             let a = PlanAxes.toPlan(wall.start.simd)
             let d = PlanAxes.toPlan(wall.end.simd) - a
@@ -88,7 +97,7 @@ extension QualityEvaluator {
                   end > start, opening.headHeight > opening.sillHeight else { continue }
             let lo = SIMD2<Float>(start - m, opening.sillHeight - m)
             let hi = SIMD2<Float>(end + m, opening.headHeight + m)
-            rectangles[w].append((lo: lo, hi: hi))
+            rectangles[w].append(QualityOpeningRect(lo: lo, hi: hi))
         }
         for (k, s) in samples.enumerated() where s.surface == .wall && s.element >= 0 && s.element < boundary.wallIndex.count {
             let w = boundary.wallIndex[s.element]

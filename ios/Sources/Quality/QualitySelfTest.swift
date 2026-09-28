@@ -58,8 +58,9 @@ enum QualitySelfTest {
         let firstStart = split.boundary.walls.first?.start ?? SIMD2<Float>(9, 9)
         let lastPiece = split.boundary.walls[Swift.max(0, pieces - 1)].end
         c.check("boundary.curvedWallSplit", pieces >= 3 && split.wallIndex.count == pieces + 3, "pieces \(pieces)")
-        c.check("boundary.curvedWallEnds", simd_distance(firstStart, SIMD2<Float>(0, 0)) < 1e-4
-                && simd_distance(lastPiece, SIMD2<Float>(4, 0)) < 1e-4, "\(firstStart) \(lastPiece)")
+        let startGap: Float = simd_distance(firstStart, SIMD2<Float>(0, 0))
+        let endGap: Float = simd_distance(lastPiece, SIMD2<Float>(4, 0))
+        c.check("boundary.curvedWallEnds", startGap < 1e-4 && endGap < 1e-4, "\(firstStart) \(lastPiece)")
 
         let mesh = Fx.boxMesh()
         let faces = QualityInputs.faces(mesh)
@@ -68,8 +69,9 @@ enum QualitySelfTest {
         c.near("faces.totalArea", totalArea, 85, 0.01)
         let unit = faces.allSatisfy { abs(simd_length($0.normal) - 1) < 1e-3 }
         c.check("faces.unitNormals", unit)
-        c.check("faces.classes", faces.filter { $0.surface == .wall }.count == 2340
-                && faces.filter { $0.surface == .ceiling }.count == 1000)
+        let wallFaces = faces.filter { $0.surface == SurfaceClass.wall }.count
+        let ceilingFaces = faces.filter { $0.surface == SurfaceClass.ceiling }.count
+        c.check("faces.classes", wallFaces == 2340 && ceilingFaces == 1000, "\(wallFaces) \(ceilingFaces)")
         let inward = faces.allSatisfy { simd_dot($0.normal, Fx.eye - $0.centroid) > 0 }
         c.check("faces.crossProductNormalsFaceRoom", inward)
 
