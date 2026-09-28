@@ -56,6 +56,7 @@ struct ObjectScanView: View {
         }
         var configuration = ObjectCaptureSession.Configuration()
         configuration.checkpointDirectory = checkpoint
+        configuration.isOverCaptureEnabled = true
         let newSession = ObjectCaptureSession()
         newSession.start(imagesDirectory: images, configuration: configuration)
         folder = base
@@ -116,7 +117,7 @@ struct ObjectScanView: View {
             VStack(spacing: 8) {
                 instruction(detectionFailed
                             ? "Could not find the object. Put it on a table or the floor, point at it, and try again."
-                            : "Place the object on a table or the floor with space around it. Point the circle at it.")
+                            : "Place the object on a table or the floor with space around it. Point the circle at it. Clear or shiny objects scan poorly: a label or strip of tape and soft light help.")
                 primaryButton("Continue") {
                     detectionFailed = !session.startDetecting()
                 }
@@ -227,6 +228,8 @@ struct ObjectScanView: View {
         do {
             var configuration = PhotogrammetrySession.Configuration()
             configuration.checkpointDirectory = folder.appendingPathComponent("Checkpoint/", isDirectory: true)
+            configuration.featureSensitivity = .high      // helps smooth, low-texture surfaces
+            configuration.sampleOrdering = .sequential    // photos were taken in order around the object
             let photogrammetry = try PhotogrammetrySession(input: images, configuration: configuration)
             try photogrammetry.process(requests: [.modelFile(url: modelURL)])
             outputLoop: for try await output in photogrammetry.outputs {
@@ -270,7 +273,12 @@ struct ObjectResultView: View {
         List {
             Section {
                 Button { showModel = true } label: { Label("View 3D model", systemImage: "cube.transparent") }
-                    .disabled(!FileManager.default.fileExists(atPath: project.objectModelURL.path))
+                    .disabled(!FileManager.default.fileExists(atPath: project.objectViewURL.path))
+            }
+            if let notes = project.report.notes, !notes.isEmpty {
+                Section("Cleanup") {
+                    ForEach(notes, id: \.self) { Text($0).font(.callout) }
+                }
             }
             if let size = project.report.objectSize, size.count == 3 {
                 Section("Size (box around the object)") {
@@ -285,9 +293,11 @@ struct ObjectResultView: View {
                 }
             }
             Section("Export") {
-                share("3D model with photo texture (USDZ)", project.objectModelURL)
-                share("3D model (OBJ)", project.folder.appendingPathComponent("object.obj"))
+                share("Cleaned 3D model (USDZ, iPhone and Mac)", project.objectCleanModelURL)
+                share("Cleaned 3D model (GLB, web and most apps)", project.folder.appendingPathComponent("object-clean.glb"))
+                share("OBJ with texture (zip)", project.folder.appendingPathComponent("object-obj.zip"))
                 share("For 3D printing (STL)", project.folder.appendingPathComponent("object.stl"))
+                share("Original from the scan (USDZ)", project.objectModelURL)
             }
             Section {
                 Picker("Units", selection: $prefs.system) {
@@ -301,7 +311,7 @@ struct ObjectResultView: View {
         .navigationTitle(project.report.name)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showModel) {
-            QuickLookView(url: project.objectModelURL).ignoresSafeArea()
+            QuickLookView(url: project.objectViewURL).ignoresSafeArea()
         }
     }
 

@@ -40,6 +40,8 @@ struct RoomReport: Codable {
     var kind: String?
     /// Object scans: bounding box size [width, height, depth] in meters.
     var objectSize: [Double]?
+    /// Plain-language notes about automatic cleanup (object scans).
+    var notes: [String]?
 
     var isObject: Bool { kind == "object" }
 
@@ -55,6 +57,7 @@ struct RoomReport: Codable {
         wallArea = 0
         kind = "object"
         objectSize = size
+        notes = nil
     }
 
     /// Builds the report from RoomPlan's result.
@@ -82,6 +85,7 @@ struct RoomReport: Codable {
         wallArea = max(0, walls.reduce(0.0) { $0 + $1.length * $1.height } - openingArea)
         kind = "room"
         objectSize = nil
+        notes = nil
     }
 
     private static func confidenceText(_ confidence: CapturedRoom.Confidence) -> String {

@@ -14,6 +14,11 @@ struct SavedProject: Identifiable, Hashable {
     var dxfURL: URL { folder.appendingPathComponent("floorplan.dxf") }
     var svgURL: URL { folder.appendingPathComponent("floorplan.svg") }
     var objectModelURL: URL { folder.appendingPathComponent("object.usdz") }
+    var objectCleanModelURL: URL { folder.appendingPathComponent("object-clean.usdz") }
+    /// The cleaned model when it exists, else Apple's original.
+    var objectViewURL: URL {
+        FileManager.default.fileExists(atPath: objectCleanModelURL.path) ? objectCleanModelURL : objectModelURL
+    }
 
     static func == (lhs: SavedProject, rhs: SavedProject) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
@@ -70,22 +75,25 @@ enum ProjectStore {
     /// Saves an object scan whose photos and model are already in `folder`: measures the
     /// model's bounding box, writes OBJ and STL copies (best effort) and report.json.
     static func saveObject(folder: URL, modelURL: URL) throws -> SavedProject {
-        let asset = MDLAsset(url: modelURL)
-        let box = asset.boundingBox
-        let extent = box.maxBounds - box.minBounds
-        let size = [Double(extent.x), Double(extent.y), Double(extent.z)]
-        for ext in ["obj", "stl"] where MDLAsset.canExportFileExtension(ext) {
-            do {
-                try asset.export(to: folder.appendingPathComponent("object.\(ext)"))
-            } catch {
-                LogStore.shared.write("object \(ext) export failed: \(error.localizedDescription)", category: "project")
+        var size: [Double]
+        var notes: [String] = []
+        if let polished = ObjectPolish.polish(modelURL: modelURL, folder: folder) {
+            size = [polished.width, polished.height, polished.depth]
+            if polished.removedTriangles > 0 {
+                notes.append("Removed \(polished.removedTriangles) stray surface triangles (reflections or background) so the size is measured on the object only.")
             }
+        } else {
+            let box = MDLAsset(url: modelURL).boundingBox
+            let extent = box.maxBounds - box.minBounds
+            size = [Double(extent.x), Double(extent.y), Double(extent.z)]
+            notes.append("Automatic cleanup was not possible; the size includes everything in the model.")
         }
         let title = DateFormatter()
         title.dateStyle = .medium
         title.timeStyle = .short
         let date = Date()
-        let report = RoomReport(objectName: "Object \(title.string(from: date))", date: date, size: size)
+        var report = RoomReport(objectName: "Object \(title.string(from: date))", date: date, size: size)
+        report.notes = notes
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
