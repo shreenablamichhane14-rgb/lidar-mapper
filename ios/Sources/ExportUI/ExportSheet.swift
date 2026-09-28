@@ -288,7 +288,9 @@ struct ExportSheet: View {
         let id = projectID
         exportTask = Task {
             do {
-                let package = try ProjectStore.package(for: id)
+                let package = try await Task.detached(priority: .userInitiated) {
+                    try ProjectStore.package(for: id)
+                }.value
                 let prefs = UnitPreferences.load()
                 let url = try await ExportRunner.run(option, settings: exportSettings, viewState: state, projectID: id,
                                                      package: package, prefs: prefs)
