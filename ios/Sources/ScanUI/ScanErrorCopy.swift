@@ -99,9 +99,12 @@ enum ScanErrorCopy {
         }
     }
 
+    /// Identifier of the paused prompt (closed by Resume, Done or the engine scanning again).
+    static let pausedPromptID = "prompt.paused"
+
     /// The paused prompt after 30 seconds: Finish Now or Resume.
     static func pausedPrompt() -> ScanAlert {
-        ScanAlert(id: "prompt.paused", title: Copy.ScanUI.pausedFinishPrompt, body: Copy.Scanning.paused,
+        ScanAlert(id: pausedPromptID, title: Copy.ScanUI.pausedFinishPrompt, body: Copy.Scanning.paused,
                   actions: [.finishNow, .resume])
     }
 
