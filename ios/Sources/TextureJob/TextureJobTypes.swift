@@ -192,7 +192,7 @@ extension TexturedMesh {
     /// Textured area over total area of the faces (area weighted, 0...1): a face counts as
     /// textured when its page is below `pageCount`. Faces with an out-of-range index or a
     /// non-finite area are ignored; 0 when there is no area at all.
-    static func coverage(positions: [SIMD3<Float>], indices: [UInt32], faceAtlas: [UInt16], pageCount: Int) -> Float {
+    static func areaCoverage(positions: [SIMD3<Float>], indices: [UInt32], faceAtlas: [UInt16], pageCount: Int) -> Float {
         let faces = Swift.min(indices.count / 3, faceAtlas.count)
         let vertexCount = positions.count
         var total: Double = 0

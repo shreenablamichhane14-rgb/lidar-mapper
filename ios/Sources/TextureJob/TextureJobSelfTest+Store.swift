@@ -45,7 +45,7 @@ extension TextureJobSelfTest {
             let zero = SIMD2<Float>(0, 0)
             r.check("store.untexturedZero", loaded.texcoords.count == 9
                     && loaded.texcoords[6] == zero && loaded.texcoords[7] == zero && loaded.texcoords[8] == zero)
-            r.check("store.pageURLs", loaded.pageURLs.map { $0.lastPathComponent } == ["page_0.jpg", "page_1.jpg"])
+            r.check("store.pageURLs", loaded.pageURLs.map({ $0.lastPathComponent }) == ["page_0.jpg", "page_1.jpg"])
             r.near("store.coverage", loaded.coverage, 2.0 / 3.0, 1e-5)
             r.check("store.parts", loaded.pageParts().count == 2)
             let chunk = try MeshChunkFile.decode(try Data(contentsOf: TextureStore.meshURL(package, room: room)))

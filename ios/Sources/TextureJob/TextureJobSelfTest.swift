@@ -164,7 +164,8 @@ enum TextureJobSelfTest {
         r.check("parts.positionsPage0", parts[0].positions == [p[0], p[1], p[2], p[1], p[4], p[2]])
         r.check("parts.positionsPage1", parts[1].positions == [p[0], p[2], p[3]])
         r.check("parts.indices", parts[0].indices == [0, 1, 2, 3, 4, 5] && parts[1].indices == [0, 1, 2])
-        r.check("parts.untexturedSkipped", parts.reduce(0) { $0 + $1.positions.count } == 9)
+        let drawnVertices = parts.reduce(0, { $0 + $1.positions.count })
+        r.check("parts.untexturedSkipped", drawnVertices == 9, "\(drawnVertices) vertices")
         r.check("parts.texturedFaceCount", mesh.texturedFaceCount == 3, "\(mesh.texturedFaceCount)")
 
         var beyond = mesh
@@ -228,7 +229,7 @@ enum TextureJobSelfTest {
                 && TextureDensity.photoRealistic.stepID == .textureHigh)
         r.check("density.folders", TextureDensity.textured.folderName == "texture"
                 && TextureDensity.photoRealistic.folderName == "texture-high")
-        r.check("density.rawValues", TextureDensity.allCases.map { $0.rawValue } == ["textured", "photoRealistic"])
+        r.check("density.rawValues", TextureDensity.allCases.map({ $0.rawValue }) == ["textured", "photoRealistic"])
     }
 
     /// `TexturedMesh.coverage` is area weighted and ignores pages beyond the page count.
@@ -237,13 +238,13 @@ enum TextureJobSelfTest {
                                          SIMD3<Float>(0, 0, 1), SIMD3<Float>(3, 0, 1), SIMD3<Float>(0, 1, 1)]
         let indices: [UInt32] = [0, 1, 2, 3, 4, 5]
         let u = TexturedMesh.untexturedPage
-        r.near("coverage.areaWeighted", TexturedMesh.coverage(positions: positions, indices: indices,
+        r.near("coverage.areaWeighted", TexturedMesh.areaCoverage(positions: positions, indices: indices,
                                                               faceAtlas: [0, u], pageCount: 1), 0.25, 1e-5)
-        r.near("coverage.big", TexturedMesh.coverage(positions: positions, indices: indices,
+        r.near("coverage.big", TexturedMesh.areaCoverage(positions: positions, indices: indices,
                                                      faceAtlas: [u, 0], pageCount: 1), 0.75, 1e-5)
-        r.near("coverage.pageBeyond", TexturedMesh.coverage(positions: positions, indices: indices,
+        r.near("coverage.pageBeyond", TexturedMesh.areaCoverage(positions: positions, indices: indices,
                                                             faceAtlas: [0, 1], pageCount: 1), 0.25, 1e-5)
-        r.near("coverage.empty", TexturedMesh.coverage(positions: [], indices: [], faceAtlas: [], pageCount: 1), 0, 0)
+        r.near("coverage.empty", TexturedMesh.areaCoverage(positions: [], indices: [], faceAtlas: [], pageCount: 1), 0, 0)
     }
 
     // MARK: - Fixtures

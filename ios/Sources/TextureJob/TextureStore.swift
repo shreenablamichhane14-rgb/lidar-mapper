@@ -213,7 +213,7 @@ enum TextureStore {
             LogStore.shared.write("texture room \(room.uuidString): \(missing.count) page file(s) missing, \(lost) faces shown untextured",
                                   category: logCategory)
         }
-        let coverage = TexturedMesh.coverage(positions: world.mesh.positions, indices: world.mesh.indices,
+        let coverage = TexturedMesh.areaCoverage(positions: world.mesh.positions, indices: world.mesh.indices,
                                              faceAtlas: faceAtlas, pageCount: pageURLs.count)
         return TexturedMesh(positions: world.mesh.positions, indices: world.mesh.indices, texcoords: decoded.texcoords,
                             faceAtlas: faceAtlas, pageURLs: pageURLs, coverage: coverage)

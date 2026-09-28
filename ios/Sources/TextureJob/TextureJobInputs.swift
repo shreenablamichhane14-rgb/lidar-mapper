@@ -217,18 +217,18 @@ enum TextureMeshLoader {
         }
         if let mesh = view, mesh.triangleCount > 0 {
             if let target = viewTarget, mesh.triangleCount > target {
-                return (simplified(mesh, target: target), .viewSimplified)
+                return (mesh: simplified(mesh, target: target), source: .viewSimplified)
             }
-            return (mesh, .view)
+            return (mesh: mesh, source: .view)
         }
         guard let measured = try MeshModelStore.loadMeasured(package, room: room), measured.triangleCount > 0 else {
             return nil
         }
         let target = Swift.min(fallbackTarget, viewTarget ?? fallbackTarget)
         if measured.triangleCount > target {
-            return (simplified(measured, target: target), .measuredSimplified)
+            return (mesh: simplified(measured, target: target), source: .measuredSimplified)
         }
-        return (measured, .measured)
+        return (mesh: measured, source: .measured)
     }
 
     /// `mesh` simplified with `MeshSimplify` to at most about `target` triangles (class

@@ -19,7 +19,7 @@ extension TextureJobSelfTest {
         r.check("loader.subsampleOne", KeyframeLoader.subsample(count: 7, max: 1) == [3])
         let big = KeyframeLoader.subsample(count: 1000, max: 150)
         var increasing = true
-        for i in 1..<big.count where big[i] <= big[i - 1] { increasing = false }
+        for i in 1..<Swift.max(1, big.count) where big[i] <= big[i - 1] { increasing = false }
         r.check("loader.subsampleSpread", big.count == 150 && big.first == 0 && big.last == 999 && increasing,
                 "\(big.count) picks, first \(String(describing: big.first)), last \(String(describing: big.last))")
 
