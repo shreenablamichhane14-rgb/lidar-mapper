@@ -84,6 +84,7 @@ enum MeshModelSelfTest {
             let anchorX = fixedID(10)
             let anchorY = fixedID(11)
             let halves = cubeHalves()
+            /// `source` under another anchor id and update count.
             func version(_ source: MeshChunk, id: UUID, update: UInt32) -> MeshChunk {
                 var copy = source
                 copy.anchorID = id

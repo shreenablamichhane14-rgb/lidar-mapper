@@ -202,6 +202,7 @@ extension MeshModelSelfTest {
             try writeChunk(halves[1], into: folderB, fileName: "b.mchk")
             try ProjectStore.sealRawFolder(folderA.url, now: epoch)
             try ProjectStore.sealRawFolder(folderB.url, now: epoch)
+            /// A never-cancelled context for `manifest` with plenty of memory.
             func context(_ manifest: ProjectManifest) -> StepContext {
                 StepContext(package: package, manifest: manifest, availableMemory: 2_000_000_000,
                             isCancelled: { false }, progress: { _ in })

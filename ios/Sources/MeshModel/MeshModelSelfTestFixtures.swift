@@ -166,6 +166,7 @@ extension MeshModelSelfTest {
         }
         positions.append(SIMD3<Float>(0, -radius, 0))
         let south = UInt32(positions.count - 1)
+        /// Index of vertex `j` (wrapping) on latitude ring `ring` (1 ..< bands).
         func ringVertex(_ ring: Int, _ j: Int) -> UInt32 {
             UInt32(1 + (ring - 1) * segments + (j % segments))
         }

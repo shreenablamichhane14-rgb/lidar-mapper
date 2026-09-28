@@ -106,16 +106,17 @@ enum MeshExportAdapter {
 
     // MARK: - Helpers
 
-    /// Class value of face `t`, or `inferredKey` when the face is flagged inferred.
+    /// Class value of face `t` (values above 7 count as unclassified), or `inferredKey` when
+    /// the face is flagged inferred.
     private static func colorKey(_ mesh: MeshWithAttributes, face t: Int) -> UInt8 {
         if let flags = mesh.isInferred, t < flags.count, flags[t] { return inferredKey }
-        if let classes = mesh.faceClass, t < classes.count { return classes[t] }
+        if let classes = mesh.faceClass, t < classes.count, classes[t] <= 7 { return classes[t] }
         return MeshWithAttributes.unclassified
     }
 
     /// The mesh without faces that have an out-of-range index or a non-finite corner, with
-    /// unused vertices dropped; the input itself when every face is valid and the attribute
-    /// arrays are consistent.
+    /// unused vertices dropped; the input itself when every face is valid, every vertex is used
+    /// and the attribute arrays are consistent.
     private static func sanitized(_ mesh: MeshWithAttributes) -> MeshWithAttributes {
         let faces = mesh.triangleCount
         var keep = [Bool](repeating: true, count: faces)
