@@ -52,22 +52,6 @@ struct RoomScanResult: Equatable, Sendable {
     var stoppedBySystem: Bool
 }
 
-/// A recorder the engine can pause without knowing its type (dependency inversion: the engine
-/// never names a MeshRecord or Keyframes type). ScanUI declares the conformance of Keyframes'
-/// `KeyframeRecorder`, whose `isPaused` stops keyframes while the scan is paused.
-protocol PausableScanRecorder: AnyObject {
-    /// Any thread. While true the recorder takes no keyframes.
-    var isPaused: Bool { get set }
-}
-
-/// Why a capture is being abandoned.
-enum RoomAbandonKind: Equatable, Sendable {
-    /// `cancel()`: ordered stop, raw stays in InProgress for recovery.
-    case cancel
-    /// `discard()`: ordered stop, then the InProgress folder is deleted.
-    case discard
-}
-
 /// Engine state confined to `hub.queue`: the engine's private copy of its phase and every
 /// per-room value. Read and written only on the hub queue.
 struct RoomEngineQueueState {
@@ -198,11 +182,18 @@ final class RoomScanEngine: NSObject, ScanEngine {
         q = RoomEngineQueueState(target: target)
         super.init()
         controller.engine = self
+        installHubClosures()
+        RoomScanLog.write("room engine init, room \(target.roomID), \(recorders.count) recorders")
+    }
+
+    /// Sets the four hub closures with weak captures. Nonisolated on purpose: closures formed
+    /// inside the main-actor `init` would inherit main-actor isolation, yet the hub calls them
+    /// on its own queue.
+    private func installHubClosures() {
         hub.onStatus = { [weak self] status in self?.handleStatus(status) }
         hub.onCaptureEvent = { [weak self] event in self?.handleCaptureEvent(event) }
         hub.onFrame = { [weak self] frame in self?.handleFrameTimestamp(frame.timestamp) }
         hub.onMemoryPressure = { [weak self] in self?.handleMemoryPressure() }
-        RoomScanLog.write("room engine init, room \(target.roomID), \(recorders.count) recorders")
     }
 
     /// Logs "room engine deinit". A view still held (teardown never ran) is released on main.

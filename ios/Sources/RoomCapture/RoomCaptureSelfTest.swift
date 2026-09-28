@@ -104,8 +104,13 @@ enum RoomCaptureSelfTest {
         check(&failures, "counts.openings", c.openings == 1, "\(c.openings)")
         check(&failures, "counts.objects", c.objects == 2, "\(c.objects)")
         let live = RoomLiveCounts(c)
-        check(&failures, "counts.live", live.walls == 3 && live.doors == 2 && live.windows == 1
-              && live.openings == 1 && live.objects == 2, "\(live)")
+        var expectedLive = RoomLiveCounts()
+        expectedLive.walls = 3
+        expectedLive.doors = 2
+        expectedLive.windows = 1
+        expectedLive.openings = 1
+        expectedLive.objects = 2
+        check(&failures, "counts.live", live == expectedLive, "\(live)")
 
         var tracker = RoomDetectionTracker()
         tracker.observe(room)
@@ -215,14 +220,18 @@ enum RoomCaptureSelfTest {
         stats.keyframes = 7
         stats.photos = 2
         let s = RoomScanStats.snapshot(timestamp: 42, status: status, counts: counts, recorders: stats, guidance: .doorDetected)
-        check(&failures, "snapshot.counts", s.wallCount == 4 && s.doorCount == 2 && s.windowCount == 1
-              && s.openingCount == 1 && s.objectCount == 3, "\(s)")
+        let wallsAndDoors: Bool = s.wallCount == 4 && s.doorCount == 2
+        let windowsAndRest: Bool = s.windowCount == 1 && s.openingCount == 1 && s.objectCount == 3
+        check(&failures, "snapshot.counts", wallsAndDoors && windowsAndRest, "\(s)")
         check(&failures, "snapshot.degraded", s.degraded == .depthStripped, "\(s.degraded)")
         check(&failures, "snapshot.guidance", s.guidanceRawValue == "doorDetected" && s.guidance == .doorDetected,
               "\(String(describing: s.guidanceRawValue))")
         check(&failures, "snapshot.recorders", s.meshFaceCount == 1000 && s.keyframeCount == 7 && s.photoCount == 2, "\(s)")
-        check(&failures, "snapshot.device", s.thermal == .fair && s.freeBytes == 5_000_000_000
-              && s.availableMemory == 1_000_000_000 && s.elapsed == 12 && s.timestamp == 42, "\(s)")
+        let expectedFree: Int64 = 5_000_000_000
+        let expectedMemory: UInt64 = 1_000_000_000
+        let storageOK: Bool = s.freeBytes == expectedFree && s.availableMemory == expectedMemory
+        let timesOK: Bool = s.elapsed == 12 && s.timestamp == 42
+        check(&failures, "snapshot.device", s.thermal == .fair && storageOK && timesOK, "\(s)")
         let none = RoomScanStats.snapshot(timestamp: 0, status: status, counts: counts, recorders: stats, guidance: nil)
         check(&failures, "snapshot.noGuidance", none.guidanceRawValue == nil, "\(String(describing: none.guidanceRawValue))")
     }
@@ -313,6 +322,13 @@ enum RoomCaptureSelfTest {
         var noDataIsRoomPlan = false
         if case .roomPlanFailed? = noData { noDataIsRoomPlan = true }
         check(&failures, "notice.noData", noDataIsRoomPlan, "\(String(describing: noData))")
+        let configNotice = RoomScanStats.mapError(RoomCaptureSession.CaptureError.invalidARConfiguration)
+        check(&failures, "notice.droppedWhenBuilt", RoomScanStats.finalNotice(configNotice, roomBuilt: true) == nil,
+              "roomPlanFailed sent although the room was built")
+        check(&failures, "notice.keptWhenNotBuilt", RoomScanStats.finalNotice(configNotice, roomBuilt: false) == configNotice,
+              "roomPlanFailed dropped without a room")
+        check(&failures, "notice.otherKept", RoomScanStats.finalNotice(.sceneTooLarge, roomBuilt: true) == .sceneTooLarge,
+              "sceneTooLarge dropped")
     }
 
     /// World map rule, throttles and elapsed time.

@@ -380,7 +380,9 @@ extension RoomScanEngine {
                                     photoCount: stats.photos, frameLink: .projectFrame(sessionID: context.target.sessionID),
                                     capturedAt: Date(), stoppedBySystem: context.systemStop != nil)
         var events: [ScanEngineEvent] = [.roomFinished(roomID: context.target.roomID)]
-        if let notice = context.notice { events.append(.failed(notice)) }
+        if let notice = RoomScanStats.finalNotice(context.notice, roomBuilt: capturedRoomID != nil) {
+            events.append(.failed(notice))
+        }
         RoomScanLog.write("room \(context.target.roomID) finished: \(stats.keyframes) keyframes, \(stats.photos) photos, "
                           + "degraded \(context.log.degraded.rawValue), system stop \(context.systemStop?.copyKey ?? "none"); "
                           + RoomScanLog.deviceLine())

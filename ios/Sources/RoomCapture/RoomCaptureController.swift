@@ -56,8 +56,8 @@ final class RoomCaptureController: NSObject, RoomCaptureSessionDelegate, RoomCap
     /// The full live room: counts, detections, the live room file and the build 5 hook. Never
     /// the final room (RoomBuilder's output is, RESEARCH 3.2 gotcha 6).
     func captureSession(_ session: RoomCaptureSession, didUpdate room: CapturedRoom) {
-        let copy = room
-        forward("didUpdate") { engine in engine.roomPlanDidUpdate(copy) }
+        let liveRoom = room
+        forward("didUpdate") { engine in engine.roomPlanDidUpdate(liveRoom) }
     }
 
     /// RoomPlan's coaching instruction: the engine keeps the coaching flag for the guidance
@@ -71,9 +71,9 @@ final class RoomCaptureController: NSObject, RoomCaptureSessionDelegate, RoomCap
     /// Fires after every stop, synchronously on an undocumented thread: the values are copied
     /// and the engine runs the whole finish sequence in one task.
     func captureSession(_ session: RoomCaptureSession, didEndWith data: CapturedRoomData, error: (any Error)?) {
-        let copy = data
+        let roomData = data
         let endError = error
-        forward("didEndWith") { engine in engine.roomPlanDidEnd(data: copy, error: endError) }
+        forward("didEndWith") { engine in engine.roomPlanDidEnd(data: roomData, error: endError) }
     }
 
     // MARK: - RoomCaptureViewDelegate (verbatim, RESEARCH 3.10)

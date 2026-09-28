@@ -31,8 +31,26 @@ enum RoomEngineSignal: Equatable, Sendable {
 
 /// One step of the finish sequence, in the order `RoomScanStats.finishSteps` lists them.
 enum RoomFinishStep: String, CaseIterable, Sendable {
+    /// The 11 steps of docs/MODULES.md 3.21, "Finish sequence", in that order.
     case writeRoomData, buildRoom, saveWorldMap, detachRecorders, finishRecorders, writeLogs,
          flushWriter, closeWriter, seal, pauseIfSystemStop, emitRoomFinished
+}
+
+/// A recorder the engine can pause without knowing its type (dependency inversion: the engine
+/// never names a MeshRecord or Keyframes type). Keyframes' `KeyframeRecorder` already has a
+/// matching `isPaused`; the conformance (`extension KeyframeRecorder: PausableScanRecorder {}`)
+/// is declared by the module that imports both (ScanUI), so keyframes stop while paused.
+protocol PausableScanRecorder: AnyObject {
+    /// Any thread. While true the recorder takes no keyframes.
+    var isPaused: Bool { get set }
+}
+
+/// Why a capture is being abandoned.
+enum RoomAbandonKind: Equatable, Sendable {
+    /// `cancel()`: ordered stop, raw stays in InProgress for recovery.
+    case cancel
+    /// `discard()`: ordered stop, then the InProgress folder is deleted.
+    case discard
 }
 
 /// Live element counts of the room being scanned (from the latest `didUpdate`).
@@ -147,6 +165,14 @@ enum RoomScanStats {
         if let error { return mapError(error) }
         if let pending { return pending }
         return hasRoomData ? nil : .roomPlanFailed("no room data")
+    }
+
+    /// The notice actually sent after the seal: a `.roomPlanFailed` notice ("Walls couldn't be
+    /// found") is dropped when RoomBuilder still produced the room (for example after
+    /// `invalidARConfiguration`, ARCHITECTURE 4.2), because the room then has walls and a plan.
+    static func finalNotice(_ notice: MapperError?, roomBuilt: Bool) -> MapperError? {
+        guard roomBuilt, case .roomPlanFailed? = notice else { return notice }
+        return nil
     }
 
     /// Room counts of a RoomInput: walls, doors (closed or open), windows, openings, objects.
