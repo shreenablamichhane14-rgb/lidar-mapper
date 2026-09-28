@@ -61,14 +61,20 @@ struct HomeScreen: View {
     @State var showModePicker = false
     /// The mode picked in the sheet, reported to `onNewScan` after the sheet has closed.
     @State var pickedMode: ScanMode?
-    /// The project being renamed.
+    /// The project being renamed (kept after the alert closes; replaced by the next rename).
     @State var renameTarget: ProjectManifest?
     /// Text of the rename field.
     @State var renameText = ""
+    /// Drives the rename alert.
+    @State var isRenameAlertShown = false
     /// The project whose delete confirmation is up.
     @State var deleteTarget: ProjectManifest?
-    /// The error alert shown, if any.
+    /// Drives the delete confirmation.
+    @State var isDeleteDialogShown = false
+    /// The error alert's texts.
     @State var errorAlert: HomeErrorAlert?
+    /// Drives the error alert.
+    @State var isErrorShown = false
 
     // MARK: Deletes
 

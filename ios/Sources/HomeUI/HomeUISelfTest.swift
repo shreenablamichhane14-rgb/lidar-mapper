@@ -263,7 +263,10 @@ enum HomeUISelfTest {
     /// "Sep 28" within the year, the year added otherwise, the time zone respected, formatters
     /// cached.
     private static func dateChecks(_ failures: inout [String]) {
-        let gmt = TimeZone.gmt
+        guard let gmt = TimeZone(secondsFromGMT: 0) else {
+            check(&failures, "date.timeZone.gmt", false, "GMT time zone missing")
+            return
+        }
         let sameYear = HomePresentation.dateText(sep28, now: sep28.addingTimeInterval(86_400), locale: english, timeZone: gmt)
         let sameOK = sameYear.contains("Sep") && sameYear.contains("28") && !sameYear.contains("2026")
         check(&failures, "date.sameYear", sameOK, "got \(sameYear)")

@@ -19,21 +19,21 @@ extension HomeScreen {
                 })
                 .presentationDetents([.medium, .large])
             }
-            .alert(Copy.Project.renameTitle, isPresented: isRenaming, presenting: renameTarget) { target in
+            .alert(Copy.Project.renameTitle, isPresented: $isRenameAlertShown, presenting: renameTarget) { target in
                 TextField(Copy.HomeUI.namePlaceholder, text: $renameText)
                     .textInputAutocapitalization(.words)
                 Button(Copy.Errors.ok) { commitRename(target) }
-                Button(Copy.Project.cancel, role: .cancel) { renameTarget = nil }
+                Button(Copy.Project.cancel, role: .cancel) {}
             }
-            .confirmationDialog(deleteDialogTitle, isPresented: isConfirmingDelete, titleVisibility: .visible,
+            .confirmationDialog(deleteDialogTitle, isPresented: $isDeleteDialogShown, titleVisibility: .visible,
                                 presenting: deleteTarget) { target in
                 Button(Copy.Project.deleteConfirm, role: .destructive) { requestDelete(target) }
-                Button(Copy.Project.cancel, role: .cancel) { deleteTarget = nil }
+                Button(Copy.Project.cancel, role: .cancel) {}
             } message: { _ in
                 Text(Copy.Project.deleteBody)
             }
-            .alert(errorAlert?.title ?? "", isPresented: isShowingError, presenting: errorAlert) { _ in
-                Button(Copy.Errors.ok, role: .cancel) { errorAlert = nil }
+            .alert(errorAlert?.title ?? "", isPresented: $isErrorShown, presenting: errorAlert) { _ in
+                Button(Copy.Errors.ok, role: .cancel) {}
             } message: { alert in
                 Text(alert.message)
             }
@@ -46,27 +46,6 @@ extension HomeScreen {
             .onChange(of: library.projects) { handleProjectsChange() }
             .onChange(of: runner.states) { finishPendingDeletes() }
             .task { await allowEmptyStateAfterFirstListing() }
-    }
-
-    /// Presents the rename alert while `renameTarget` is set.
-    private var isRenaming: Binding<Bool> {
-        Binding(get: { renameTarget != nil }, set: { presented in
-            if !presented { renameTarget = nil }
-        })
-    }
-
-    /// Presents the delete confirmation while `deleteTarget` is set.
-    private var isConfirmingDelete: Binding<Bool> {
-        Binding(get: { deleteTarget != nil }, set: { presented in
-            if !presented { deleteTarget = nil }
-        })
-    }
-
-    /// Presents the error alert while `errorAlert` is set.
-    private var isShowingError: Binding<Bool> {
-        Binding(get: { errorAlert != nil }, set: { presented in
-            if !presented { errorAlert = nil }
-        })
     }
 
     /// `Delete "{name}"?` for the project awaiting confirmation.
@@ -89,25 +68,26 @@ extension HomeScreen {
         guard !pendingDeletes.contains(manifest.id) else { return }
         renameText = manifest.name
         renameTarget = manifest
+        isRenameAlertShown = true
     }
 
     /// Shows the delete confirmation.
     func confirmDelete(_ manifest: ProjectManifest) {
         guard !pendingDeletes.contains(manifest.id) else { return }
         deleteTarget = manifest
+        isDeleteDialogShown = true
     }
 
     /// Stores the new name through `ProjectLibrary.rename` (it trims and caps the length). A
     /// blank or unchanged name does nothing; a failure shows `Copy.Errors.saveFailed`.
     private func commitRename(_ target: ProjectManifest) {
-        renameTarget = nil
         guard let name = HomePresentation.proposedName(renameText), name != target.name else { return }
         do {
             try library.rename(target.id, to: name)
             log("renamed project \(short(target.id))")
         } catch {
             log("rename of \(short(target.id)) failed: \(StoreFiles.describe(error))")
-            errorAlert = HomeErrorAlert(title: Copy.Errors.saveFailed.title, message: Copy.Errors.saveFailed.body)
+            showError(HomeErrorAlert(title: Copy.Errors.saveFailed.title, message: Copy.Errors.saveFailed.body))
         }
     }
 
@@ -117,7 +97,6 @@ extension HomeScreen {
     /// (a waiting job ends at once, a running one at its next cancellation check) and deletes as
     /// soon as no job runs for it.
     private func requestDelete(_ target: ProjectManifest) {
-        deleteTarget = nil
         let id = target.id
         guard !pendingDeletes.contains(id) else { return }
         pendingDeletes.insert(id)
@@ -163,7 +142,7 @@ extension HomeScreen {
             log("deleted project \(short(id)), bytes freed \(bytes)")
         } catch {
             log("delete of \(short(id)) failed: \(StoreFiles.describe(error))")
-            errorAlert = HomeErrorAlert(title: Copy.Errors.generic.title, message: Copy.Errors.generic.body)
+            showError(HomeErrorAlert(title: Copy.Errors.generic.title, message: Copy.Errors.generic.body))
         }
         pendingDeletes.remove(id)
         deletesInFlight.remove(id)
@@ -227,6 +206,12 @@ extension HomeScreen {
         let milliseconds = Int((elapsed * 1000).rounded())
         let listed = HomePresentation.filtered(library.projects, query: "", showArchived: true).count
         log("project list shown: \(listed) projects after \(milliseconds) ms")
+    }
+
+    /// Shows an error alert.
+    private func showError(_ alert: HomeErrorAlert) {
+        errorAlert = alert
+        isErrorShown = true
     }
 
     // MARK: - Log
