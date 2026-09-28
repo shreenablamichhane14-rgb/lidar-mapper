@@ -51,6 +51,7 @@ struct ContentView: View {
         SelfTestSuite(name: "Mesh record", run: MeshRecordSelfTest.run),
         SelfTestSuite(name: "Home UI", run: HomeUISelfTest.run),
         SelfTestSuite(name: "Texture job", run: TextureJobSelfTest.run),
+        SelfTestSuite(name: "Keyframes", run: KeyframesSelfTest.run),
     ]
 
     @State private var results: [SelfTestResult] = []
