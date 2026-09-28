@@ -187,7 +187,7 @@ struct HomeScreen: View {
         let label = HomePresentation.accessibilityLabel(for: manifest, dateText: dateText, badge: badge)
         let value = HomePresentation.accessibilityValue(for: manifest, dateText: dateText, badge: badge)
         return Button {
-            open(manifest)
+            openProject(manifest)
         } label: {
             HomeProjectRow(manifest: manifest,
                            name: HomePresentation.displayName(for: manifest, dateText: dateText),

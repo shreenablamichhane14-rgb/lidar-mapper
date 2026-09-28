@@ -268,11 +268,17 @@ enum HomeUISelfTest {
             return
         }
         let sameYear = HomePresentation.dateText(sep28, now: sep28.addingTimeInterval(86_400), locale: english, timeZone: gmt)
-        let sameOK = sameYear.contains("Sep") && sameYear.contains("28") && !sameYear.contains("2026")
+        let sameHasMonth: Bool = sameYear.contains("Sep")
+        let sameHasDay: Bool = sameYear.contains("28")
+        let sameHasYear: Bool = sameYear.contains("2026")
+        let sameOK = sameHasMonth && sameHasDay && !sameHasYear
         check(&failures, "date.sameYear", sameOK, "got \(sameYear)")
 
         let lastYear = HomePresentation.dateText(sep28LastYear, now: sep28, locale: english, timeZone: gmt)
-        let lastOK = lastYear.contains("Sep") && lastYear.contains("28") && lastYear.contains("2025")
+        let lastHasMonth: Bool = lastYear.contains("Sep")
+        let lastHasDay: Bool = lastYear.contains("28")
+        let lastHasYear: Bool = lastYear.contains("2025")
+        let lastOK = lastHasMonth && lastHasDay && lastHasYear
         check(&failures, "date.otherYear", lastOK, "got \(lastYear)")
 
         let lateEvening = sep28.addingTimeInterval(11.5 * 3600)
@@ -309,7 +315,9 @@ enum HomeUISelfTest {
 
         let objectOnly = HomePresentation.modeEntries(availableModes: [.advancedObject])
         let advanced = objectOnly.last
-        let advancedOK = advanced?.mode == .advancedObject && advanced?.isEnabled == true
+        let advancedMode: ScanMode? = advanced?.mode
+        let advancedEnabled: Bool = advanced?.isEnabled ?? false
+        let advancedOK = advancedMode == ScanMode.advancedObject && advancedEnabled
         check(&failures, "modes.advancedObjectOnly", advancedOK, "got \(String(describing: advanced))")
 
         let none = HomePresentation.modeEntries(availableModes: [])

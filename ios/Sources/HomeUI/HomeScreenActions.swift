@@ -1,8 +1,8 @@
 import SwiftUI
 
-// Dialogs, lifecycle and user actions of `HomeScreen` (split from HomeScreen.swift to keep both
-// files short; the state they touch is internal for that reason). Everything runs on the main
-// actor; disk work goes to detached tasks.
+/// Dialogs, lifecycle and user actions of `HomeScreen` (split from HomeScreen.swift to keep both
+/// files short; the state they touch is internal for that reason). Everything runs on the main
+/// actor; disk work goes to detached tasks.
 @MainActor
 extension HomeScreen {
     // MARK: - Dialogs and lifecycle
@@ -59,7 +59,7 @@ extension HomeScreen {
     // MARK: - Rows
 
     /// Opens a project; never a `.capturing` one or one being deleted.
-    func open(_ manifest: ProjectManifest) {
+    func openProject(_ manifest: ProjectManifest) {
         guard HomePresentation.canOpen(manifest), !pendingDeletes.contains(manifest.id) else { return }
         onOpen(manifest.id)
     }
@@ -102,8 +102,9 @@ extension HomeScreen {
         guard !pendingDeletes.contains(id) else { return }
         pendingDeletes.insert(id)
         let state = runner.state(for: id)
+        // Always cancel first (MODULES.md 3.28); without a job this does nothing.
+        runner.cancel(projectID: id)
         if state.isRunning || state.isQueued {
-            runner.cancel(projectID: id)
             log("delete of \(short(id)) cancels its processing job first")
         }
         finishPendingDeletes()

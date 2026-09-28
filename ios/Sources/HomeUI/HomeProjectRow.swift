@@ -191,7 +191,8 @@ final class HomeThumbnailCache: @unchecked Sendable {
               let modified = attributes[.modificationDate] as? Date
         else { return nil }
         let pixels = max(Int(maxPixels.rounded()), 1)
-        let key = "\(projectID.uuidString)|\(modified.timeIntervalSinceReferenceDate)|\(pixels)" as NSString
+        let keyText = "\(projectID.uuidString)|\(modified.timeIntervalSinceReferenceDate)|\(pixels)"
+        let key = NSString(string: keyText)
         if let hit = cache.object(forKey: key) { return hit }
         guard let full = UIImage(contentsOfFile: url.path) else {
             LogStore.shared.write("home: thumbnail of \(projectID.uuidString.prefix(8)) could not be decoded", category: "home")
