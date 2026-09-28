@@ -10,7 +10,7 @@ enum MeshProcessingSelfTest {
     private static let minimumChecks = 45
 
     /// Collects failing assertions and counts every check.
-    private final class Recorder {
+    final class Recorder {
         /// Failure lines, "name: detail".
         var failures: [String] = []
         /// Number of checks run so far.
@@ -58,7 +58,7 @@ enum MeshProcessingSelfTest {
 
     /// Grid patch with vertex (i, j) at `origin + u * i / nu + v * j / nv`. Cell (i, j) owns
     /// faces `2 * (i * nv + j)` and the next one; every face normal points along cross(u, v).
-    private static func patch(_ origin: SIMD3<Float>, _ u: SIMD3<Float>, _ v: SIMD3<Float>, _ nu: Int, _ nv: Int) -> TriangleMesh {
+    static func patch(_ origin: SIMD3<Float>, _ u: SIMD3<Float>, _ v: SIMD3<Float>, _ nu: Int, _ nv: Int) -> TriangleMesh {
         var positions: [SIMD3<Float>] = []
         positions.reserveCapacity((nu + 1) * (nv + 1))
         for i in 0...nu {
@@ -80,7 +80,7 @@ enum MeshProcessingSelfTest {
 
     /// Closed, welded box from `minimum` with edge lengths `size`, `n` cells per face side,
     /// outward counter-clockwise winding (12 n^2 triangles).
-    private static func box(_ minimum: SIMD3<Float>, _ size: SIMD3<Float>, _ n: Int) -> TriangleMesh {
+    static func box(_ minimum: SIMD3<Float>, _ size: SIMD3<Float>, _ n: Int) -> TriangleMesh {
         let x = SIMD3<Float>(size.x, 0, 0), y = SIMD3<Float>(0, size.y, 0), z = SIMD3<Float>(0, 0, size.z)
         let faces: [(SIMD3<Float>, SIMD3<Float>, SIMD3<Float>)] = [
             (minimum, z, y), (minimum + x, y, z), (minimum, x, z),
@@ -93,7 +93,7 @@ enum MeshProcessingSelfTest {
     }
 
     /// Icosphere of `radius` around the origin: 20 * 4^subdivisions triangles, outward winding.
-    private static func icosphere(_ subdivisions: Int, radius: Float) -> TriangleMesh {
+    static func icosphere(_ subdivisions: Int, radius: Float) -> TriangleMesh {
         let g: Float = (1 + Float(5).squareRoot()) / 2
         var positions: [SIMD3<Float>] = [
             SIMD3<Float>(-1, g, 0), SIMD3<Float>(1, g, 0), SIMD3<Float>(-1, -g, 0), SIMD3<Float>(1, -g, 0),
@@ -125,7 +125,7 @@ enum MeshProcessingSelfTest {
     }
 
     /// `mesh` with corners 1 and 2 swapped on every face `t` where `which(t)` is true.
-    private static func flipped(_ mesh: TriangleMesh, _ which: (Int) -> Bool) -> TriangleMesh {
+    static func flipped(_ mesh: TriangleMesh, _ which: (Int) -> Bool) -> TriangleMesh {
         var result = mesh
         for t in 0..<mesh.triangleCount where which(t) {
             result.indices.swapAt(3 * t + 1, 3 * t + 2)
@@ -134,20 +134,20 @@ enum MeshProcessingSelfTest {
     }
 
     /// `mesh` with every face in class `faceClass` and a distinct color per vertex.
-    private static func attributed(_ mesh: TriangleMesh, _ faceClass: UInt8) -> MeshWithAttributes {
+    static func attributed(_ mesh: TriangleMesh, _ faceClass: UInt8) -> MeshWithAttributes {
         let colors = (0..<mesh.positions.count).map { SIMD4<UInt8>(UInt8(truncatingIfNeeded: $0), 128, 64, 255) }
         return MeshWithAttributes(mesh: mesh, faceClass: [UInt8](repeating: faceClass, count: mesh.triangleCount), vertexColor: colors)
     }
 
     /// Rigid transform with the given rotation columns and translation.
-    private static func rigid(_ rotation: simd_float3x3, _ translation: SIMD3<Float>) -> simd_float4x4 {
+    static func rigid(_ rotation: simd_float3x3, _ translation: SIMD3<Float>) -> simd_float4x4 {
         simd_float4x4(SIMD4<Float>(rotation.columns.0, 0), SIMD4<Float>(rotation.columns.1, 0),
                       SIMD4<Float>(rotation.columns.2, 0), SIMD4<Float>(translation, 1))
     }
 
     /// True when no directed edge appears twice, which on a closed manifold mesh means the
     /// winding is consistent.
-    private static func directedEdgesUnique(_ mesh: TriangleMesh) -> Bool {
+    static func directedEdgesUnique(_ mesh: TriangleMesh) -> Bool {
         var seen = Set<UInt64>()
         for t in 0..<mesh.triangleCount {
             for k in 0..<3 {
@@ -159,19 +159,19 @@ enum MeshProcessingSelfTest {
     }
 
     /// Total length of the boundary edges.
-    private static func boundaryLength(_ mesh: TriangleMesh) -> Float {
+    static func boundaryLength(_ mesh: TriangleMesh) -> Float {
         mesh.boundaryEdges.reduce(Float(0)) { $0 + simd_distance(mesh.positions[Int($1.0)], mesh.positions[Int($1.1)]) }
     }
 
     /// Number of faces whose area vector points along +Y.
-    private static func upFaces(_ mesh: TriangleMesh, from start: Int = 0) -> Int {
+    static func upFaces(_ mesh: TriangleMesh, from start: Int = 0) -> Int {
         (start..<mesh.triangleCount).filter { MeshTopology.areaVector(mesh, $0).y > 0 }.count
     }
 
     // MARK: - Cases
 
     /// Chunk merge, degenerate and duplicate removal, and weldMap.
-    private static func mergeCases(_ r: Recorder) {
+    static func mergeCases(_ r: Recorder) {
         let offset = SIMD3<Float>(2, 0, 1)
         let world = attributed(box(offset, SIMD3<Float>(1, 1, 1), 2), 0)
         var inA: [Bool] = [], inB: [Bool] = []
@@ -217,247 +217,5 @@ enum MeshProcessingSelfTest {
         let weld = weldInput.weldMap(tolerance: 0.005)
         r.check("weldMap.remap", weld.remap == [0, 0, 1, 0, 2, 3], "got \(weld.remap)")
         r.check("weldMap.positions", weld.positions.count == 4 && weld.positions[1] == SIMD3<Float>(1, 0, 0), "")
-    }
-
-    /// Connected components, floaters, largest component and non-manifold edges.
-    private static func componentCases(_ r: Recorder) {
-        let big = attributed(box(.zero, SIMD3<Float>(1, 1, 1), 4), 1)
-        let small = attributed(box(SIMD3<Float>(3, 0, 0), SIMD3<Float>(0.05, 0.05, 0.05), 1), 2)
-        let fan = attributed(TriangleMesh(positions: [SIMD3<Float>(5, 0, 0), SIMD3<Float>(6, 0, 0), SIMD3<Float>(5, 1, 0),
-                                                      SIMD3<Float>(4, 0, 0), SIMD3<Float>(5, -1, 0)], indices: [0, 1, 2, 0, 3, 4]), 3)
-        let all = big.appending(small).appending(fan)
-        let components = MeshCleanup.connectedComponents(all.mesh)
-        r.check("components.count", components.count == 4, "got \(components.count)")
-        r.check("components.ids", components.faceComponent.count == all.triangleCount
-                    && components.faceComponent.allSatisfy { $0 >= 0 && Int($0) < components.count }, "")
-        let broken = TriangleMesh(positions: all.mesh.positions, indices: all.mesh.indices + [0, 1, 999_999])
-        let brokenComponents = MeshCleanup.connectedComponents(broken)
-        r.check("components.outOfRange", brokenComponents.faceComponent.last == -1 && brokenComponents.count == 4, "")
-
-        let noFloaters = MeshCleanup.removingFloaters(all)
-        r.check("floaters.removed", noFloaters.triangleCount == big.triangleCount, "got \(noFloaters.triangleCount)")
-        r.near("floaters.area", noFloaters.mesh.surfaceArea, 6, 1e-3)
-        r.check("floaters.consistent", noFloaters.isConsistent && noFloaters.faceClass?.allSatisfy { $0 == 1 } == true, "")
-        r.check("floaters.keepsLargest", MeshCleanup.removingFloaters(small).triangleCount == small.triangleCount, "")
-        let lenient = MeshCleanup.removingFloaters(all, minimumArea: 0.001, minimumTriangles: 10)
-        r.check("floaters.thresholds", lenient.triangleCount == big.triangleCount + small.triangleCount, "got \(lenient.triangleCount)")
-        r.check("components.largest", MeshCleanup.largestComponent(all).triangleCount == big.triangleCount, "")
-
-        let finPoints: [SIMD3<Float>] = [SIMD3<Float>(0, 0, 0), SIMD3<Float>(1, 0, 0), SIMD3<Float>(0, 1, 0),
-                                         SIMD3<Float>(0.5, 0, 2), SIMD3<Float>(0.5, 0, -4)]
-        let fins = MeshWithAttributes(mesh: TriangleMesh(positions: finPoints, indices: [0, 1, 2, 1, 0, 3, 0, 1, 4]), faceClass: [1, 2, 3])
-        let manifold = MeshCleanup.removingNonManifoldEdges(fins)
-        r.check("nonManifold.keepsTwoLargest", manifold.triangleCount == 2 && manifold.faceClass == [2, 3], "got \(manifold.faceClass ?? [])")
-        r.near("nonManifold.area", manifold.mesh.surfaceArea, 3, 1e-4)
-        r.check("nonManifold.cubeUnchanged", MeshCleanup.removingNonManifoldEdges(big).triangleCount == big.triangleCount, "")
-    }
-
-    /// Winding repair, normals and the combined cleanup.
-    private static func windingCases(_ r: Recorder) {
-        let cube = box(.zero, SIMD3<Float>(1, 1, 1), 2)
-        let mixed = attributed(flipped(cube) { $0 % 3 == 0 }, 1)
-        let snapshot = mixed
-        let fixed = MeshCleanup.fixingWinding(mixed)
-        r.check("winding.inputInconsistent", !directedEdgesUnique(mixed.mesh), "")
-        r.check("winding.consistent", directedEdgesUnique(fixed.mesh), "")
-        r.check("winding.watertight", fixed.mesh.isWatertight, "")
-        r.near("winding.volume", fixed.mesh.signedVolume, 1, 1e-4)
-        var sameCorners = fixed.triangleCount == mixed.triangleCount && fixed.mesh.positions == mixed.mesh.positions
-        for t in 0..<Swift.min(fixed.triangleCount, mixed.triangleCount) {
-            let a = fixed.mesh.indices[(3 * t)..<(3 * t + 3)].sorted(), b = mixed.mesh.indices[(3 * t)..<(3 * t + 3)].sorted()
-            if a != b { sameCorners = false }
-        }
-        r.check("winding.onlyCornerOrder", sameCorners && fixed.faceClass == mixed.faceClass && fixed.isConsistent, "")
-        r.check("winding.inputUnchanged", mixed == snapshot, "")
-        let inverted = MeshCleanup.fixingWinding(MeshWithAttributes(mesh: flipped(cube) { _ in true }))
-        r.near("winding.invertedVolume", inverted.mesh.signedVolume, 1, 1e-4)
-
-        let sphere = icosphere(2, radius: 1)
-        let normals = MeshCleanup.normals(sphere)
-        let aligned = normals.count == sphere.positions.count
-            && zip(normals, sphere.positions).allSatisfy { simd_dot($0, simd_normalize($1)) > 0.99 }
-        r.check("normals.sphere", aligned, "")
-
-        let messy = attributed(flipped(cube) { $0 % 4 == 1 }, 1).appending(attributed(box(SIMD3<Float>(4, 0, 0), SIMD3<Float>(0.02, 0.02, 0.02), 1), 2))
-        let clean = MeshCleanup.cleaned(messy)
-        r.check("cleaned.cube", clean.triangleCount == cube.triangleCount && clean.mesh.isWatertight && clean.isConsistent, "got \(clean.triangleCount)")
-        r.near("cleaned.volume", clean.mesh.signedVolume, 1, 1e-4)
-    }
-
-    /// Quadric simplification: sphere radius, target count, plane boundary.
-    private static func simplifyCases(_ r: Recorder) {
-        let sphere = attributed(icosphere(4, radius: 1), 0)
-        let target = 1000
-        let result = MeshSimplify.simplify(sphere, options: MeshSimplify.Options(targetTriangleCount: target))
-        let count = result.mesh.triangleCount
-        r.check("simplify.sphereStart", sphere.triangleCount == 5120, "got \(sphere.triangleCount)")
-        r.check("simplify.reachesTarget", count <= target && count >= target - 10, "got \(count)")
-        let radii = result.mesh.mesh.positions.map { simd_length($0) }
-        r.check("simplify.radius", radii.allSatisfy { $0 > 0.99 && $0 < 1.01 }, "range \(radii.min() ?? 0) to \(radii.max() ?? 0)")
-        r.check("simplify.watertight", result.mesh.mesh.isWatertight && result.mesh.isConsistent, "")
-        r.check("simplify.collapses", result.collapses > 0 && result.maxError >= 0, "")
-        let untouched = MeshSimplify.simplify(sphere, options: MeshSimplify.Options())
-        r.check("simplify.noLimits", untouched.mesh == sphere && untouched.collapses == 0, "")
-
-        let plate = attributed(patch(.zero, SIMD3<Float>(0, 0, 1), SIMD3<Float>(1, 0, 0), 20, 20), 2)
-        let reduced = MeshSimplify.simplify(plate, options: MeshSimplify.Options(targetTriangleCount: 100)).mesh
-        r.check("simplify.plateTarget", reduced.triangleCount <= 100 && reduced.triangleCount > 0, "got \(reduced.triangleCount)")
-        r.near("simplify.boundaryLength", boundaryLength(reduced.mesh), 4, 1e-3)
-        r.near("simplify.plateArea", reduced.mesh.surfaceArea, 1, 1e-3)
-        let onRim = reduced.mesh.boundaryEdges.allSatisfy { edge in
-            [edge.0, edge.1].allSatisfy { i in
-                let p = reduced.mesh.positions[Int(i)]
-                return Swift.min(abs(p.x), abs(p.x - 1), abs(p.z), abs(p.z - 1)) < 1e-4
-            }
-        }
-        r.check("simplify.boundaryOnRim", onRim, "")
-        r.check("simplify.plateFlat", reduced.mesh.positions.allSatisfy { abs($0.y) < 1e-5 } && upFaces(reduced.mesh) == reduced.triangleCount, "")
-        let bounded = MeshSimplify.simplify(plate, options: MeshSimplify.Options(maxError: 1e-4))
-        r.check("simplify.maxError", bounded.maxError <= 1e-4 && bounded.mesh.triangleCount < plate.triangleCount, "error \(bounded.maxError)")
-    }
-
-    /// Hole filling: a 10 cm hole is filled and flagged, a 1 m hole stays open.
-    private static func holeCases(_ r: Recorder) {
-        let nu = 28, nv = 40
-        let grid = attributed(patch(.zero, SIMD3<Float>(0, 0, 1.4), SIMD3<Float>(2, 0, 0), nu, nv), 2)
-        var keep = [Bool](repeating: true, count: grid.triangleCount)
-        for i in 0..<nu {
-            for j in 0..<nv where (2..<4).contains(i) && (2..<4).contains(j) || (2..<22).contains(i) && (10..<30).contains(j) {
-                keep[2 * (i * nv + j)] = false
-                keep[2 * (i * nv + j) + 1] = false
-            }
-        }
-        let holed = grid.keepingFaces(keep)
-        let loops = HoleFill.boundaryLoops(holed.mesh)
-        r.check("holes.loopCount", loops.count == 3, "got \(loops.count)")
-        r.check("holes.smallLoop", loops.contains { abs($0.perimeter - 0.4) < 1e-3 && $0.vertices.count == 8 }, "")
-        let fill = HoleFill.fillSmallHoles(holed)
-        let out = fill.mesh
-        let before = holed.triangleCount
-        r.check("holes.filledOne", fill.filledLoops == 1 && fill.skippedLoops == 2, "filled \(fill.filledLoops), skipped \(fill.skippedLoops)")
-        r.check("holes.added", fill.addedTriangles >= 6 && out.triangleCount == before + fill.addedTriangles, "added \(fill.addedTriangles)")
-        r.check("holes.inferredFlags", out.inferredCount == fill.addedTriangles && out.isInferred?.prefix(before).allSatisfy { !$0 } == true, "")
-        r.near("holes.filledArea", out.mesh.surfaceArea - holed.mesh.surfaceArea, 0.01, 1e-4)
-        r.check("holes.windingMatches", upFaces(out.mesh, from: before) == fill.addedTriangles && directedEdgesUnique(out.mesh), "")
-        r.check("holes.class", out.faceClass?.suffix(fill.addedTriangles).allSatisfy { $0 == 2 } == true, "")
-        r.check("holes.consistent", out.isConsistent, "")
-        let remaining = HoleFill.boundaryLoops(out.mesh)
-        r.check("holes.bigStaysOpen", remaining.count == 2 && remaining.contains { abs($0.perimeter - 4) < 1e-3 }, "got \(remaining.count) loops")
-        r.check("holes.inputUnchanged", holed.isInferred == nil && holed.triangleCount == before, "")
-    }
-
-    /// Taubin smoothing keeps the volume and the boundary.
-    private static func smoothCases(_ r: Recorder) {
-        let base = icosphere(3, radius: 1)
-        let bumpy = base.positions.enumerated().map { k, p in p * (1 + 0.01 * Float(sin(Double(k) * 12.9898))) }
-        let noisy = attributed(TriangleMesh(positions: bumpy, indices: base.indices), 3)
-        let smooth = MeshSmooth.taubin(noisy)
-        let v0 = noisy.mesh.signedVolume, v1 = smooth.mesh.signedVolume
-        r.check("smooth.volume", v0 > 0 && abs(v1 / v0 - 1) < 0.02, "from \(v0) to \(v1)")
-        r.check("smooth.topology", smooth.mesh.indices == noisy.mesh.indices && smooth.mesh.positions.count == noisy.mesh.positions.count, "")
-        r.check("smooth.attributes", smooth.faceClass == noisy.faceClass && smooth.vertexColor == noisy.vertexColor && smooth.isConsistent, "")
-        func spread(_ points: [SIMD3<Float>]) -> Float {
-            let radii = points.map { simd_length($0) }
-            let mean = radii.reduce(0, +) / Float(radii.count)
-            return radii.reduce(Float(0)) { $0 + ($1 - mean) * ($1 - mean) } / Float(radii.count)
-        }
-        r.check("smooth.reducesNoise", spread(smooth.mesh.positions) < spread(noisy.mesh.positions), "")
-
-        let flat = patch(.zero, SIMD3<Float>(0, 0, 1), SIMD3<Float>(1, 0, 0), 10, 10)
-        let wavy = flat.positions.enumerated().map { k, p in p + SIMD3<Float>(0, 0.01 * Float(sin(Double(k) * 7.31)), 0) }
-        let sheet = MeshWithAttributes(mesh: TriangleMesh(positions: wavy, indices: flat.indices))
-        let smoothed = MeshSmooth.taubin(sheet).mesh.positions
-        var rimFixed = smoothed.count == wavy.count
-        var before: Float = 0, after: Float = 0
-        for k in 0..<Swift.min(smoothed.count, wavy.count) {
-            let p = wavy[k]
-            if Swift.min(p.x, p.z, 1 - p.x, 1 - p.z) < 1e-6 {
-                if smoothed[k] != p { rimFixed = false }
-            } else {
-                before += p.y * p.y
-                after += smoothed[k].y * smoothed[k].y
-            }
-        }
-        r.check("smooth.boundaryFixed", rimFixed, "")
-        r.check("smooth.flattensInterior", after < before, "from \(before) to \(after)")
-    }
-
-    /// Cropping by box, oriented box and half-space in both modes.
-    private static func cropCases(_ r: Recorder) {
-        let plate = attributed(patch(.zero, SIMD3<Float>(0, 0, 1), SIMD3<Float>(1, 0, 0), 10, 10), 2)
-        let snapshot = plate
-        let region = CropRegion.box(AABB3(min: SIMD3<Float>(-1, -1, -1), max: SIMD3<Float>(0.55, 1, 1)))
-        func inside(_ region: CropRegion, _ test: MeshCrop.FaceTest) -> Int {
-            MeshCrop.insideMask(plate.mesh, region: region, test: test).filter { $0 }.count
-        }
-        r.check("crop.centroid", inside(region, .centroid) == 110, "got \(inside(region, .centroid))")
-        r.check("crop.allCorners", inside(region, .allCorners) == 100, "got \(inside(region, .allCorners))")
-        r.check("crop.anyCorner", inside(region, .anyCorner) == 120, "got \(inside(region, .anyCorner))")
-        let kept = MeshCrop.crop(plate, region: region, mode: .keepInside)
-        let removed = MeshCrop.crop(plate, region: region, mode: .removeInside)
-        r.check("crop.boxKeep", kept.triangleCount == 110 && kept.isConsistent, "got \(kept.triangleCount)")
-        r.check("crop.boxRemove", removed.triangleCount == 90 && removed.isConsistent, "got \(removed.triangleCount)")
-        r.check("crop.boxRemoveSide", removed.mesh.positions.allSatisfy { $0.x >= 0.5 - 1e-6 }, "")
-
-        let half = CropRegion.halfSpace(Plane(point: SIMD3<Float>(0, 0, 0.3), normal: SIMD3<Float>(0, 0, 1)))
-        r.check("crop.halfSpaceKeep", MeshCrop.crop(plate, region: half, mode: .keepInside).triangleCount == 140, "")
-        r.check("crop.halfSpaceRemove", MeshCrop.crop(plate, region: half, mode: .removeInside).triangleCount == 60, "")
-        r.check("crop.containsOnPlane", MeshCrop.contains(half, SIMD3<Float>(0, 0, 0.3)) && !MeshCrop.contains(half, SIMD3<Float>(0, 0, 0.29)), "")
-
-        let c = Float(0.5).squareRoot()
-        let axes = simd_float3x3(SIMD3<Float>(c, 0, -c), SIMD3<Float>(0, 1, 0), SIMD3<Float>(c, 0, c))
-        let center = SIMD3<Float>(0.5, 0, 0.5), halfExtents = SIMD3<Float>(0.25, 0.5, 0.25)
-        let oriented = CropRegion.orientedBox(OrientedBox(center: center, axes: axes, halfExtents: halfExtents))
-        var expected = 0
-        for t in 0..<plate.triangleCount {
-            guard let p = MeshTopology.centroid(plate.mesh, t) else { continue }
-            let local = simd_mul(simd_transpose(axes), p - center)
-            if all(simd_abs(local) .<= halfExtents + 1e-5) { expected += 1 }
-        }
-        let orientedKept = MeshCrop.crop(plate, region: oriented, mode: .keepInside)
-        r.check("crop.orientedBox", expected > 0 && orientedKept.triangleCount == expected && inside(oriented, .centroid) == expected,
-                "expected \(expected), got \(orientedKept.triangleCount)")
-        r.check("crop.inputUnchanged", plate == snapshot, "")
-    }
-
-    /// Object isolation of a 0.4 x 0.2 x 0.3 m box on a 3 x 3 m floor.
-    private static func isolationCases(_ r: Recorder) {
-        let floor = attributed(patch(SIMD3<Float>(-1.5, 0, -1.5), SIMD3<Float>(0, 0, 3), SIMD3<Float>(3, 0, 0), 30, 30), 2)
-        let size = SIMD3<Float>(0.4, 0.2, 0.3)
-        let resting = floor.appending(attributed(box(SIMD3<Float>(-0.2, 0, -0.15), size, 4), 4))
-        let raised = floor.appending(attributed(box(SIMD3<Float>(-0.2, 0.05, -0.15), size, 4), 4))
-        let selection = CropRegion.box(AABB3(min: SIMD3<Float>(-0.35, -0.1, -0.3), max: SIMD3<Float>(0.35, 0.5, 0.3)))
-
-        let plane = ObjectIsolation.findSupportPlane(resting.mesh)
-        r.check("isolate.supportPlaneFound", plane != nil, "")
-        if let plane = plane {
-            r.check("isolate.supportPlaneFloor", abs(plane.normal.y) > 0.99 && abs(plane.signedDistance(to: .zero)) < 0.005,
-                    "normal \(plane.normal), d \(plane.d)")
-        }
-
-        let onFloor = ObjectIsolation.isolate(resting, selection: selection)
-        r.check("isolate.restingFound", onFloor != nil, "")
-        if let result = onFloor {
-            r.near("isolate.width", result.width, 0.4, 0.01)
-            r.near("isolate.depth", result.depth, 0.3, 0.01)
-            r.near("isolate.height", result.height, 0.2, 0.01)
-            r.near("isolate.openArea", result.surfaceArea, 0.40, 0.005)
-            var open = false
-            if case .notWatertight? = result.volumeUnavailableReason { open = true }
-            r.check("isolate.openNoVolume", result.volume == nil && open, "")
-            r.check("isolate.restingConsistent", result.mesh.isConsistent && result.supportPlane != nil, "")
-        }
-
-        let lifted = ObjectIsolation.isolate(raised, selection: selection)
-        r.check("isolate.raisedFound", lifted != nil, "")
-        if let result = lifted {
-            r.near("isolate.volume", result.volume, 0.024, 2e-4)
-            r.near("isolate.closedArea", result.surfaceArea, 0.52, 0.005)
-            r.check("isolate.closedReason", result.volumeUnavailableReason == nil && result.mesh.mesh.isWatertight, "")
-            r.check("isolate.closedDimensions", abs(result.width - 0.4) < 0.01 && abs(result.depth - 0.3) < 0.01
-                        && abs(result.height - 0.2) < 0.01 && result.width >= result.depth, "")
-        }
-        let nothing = CropRegion.box(AABB3(min: SIMD3<Float>(10, 10, 10), max: SIMD3<Float>(11, 11, 11)))
-        r.check("isolate.emptySelection", ObjectIsolation.isolate(resting, selection: nothing) == nil, "")
     }
 }
