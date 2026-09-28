@@ -46,6 +46,7 @@ struct ContentView: View {
         SelfTestSuite(name: "Measure core", run: MeasureCoreSelfTest.run),
         SelfTestSuite(name: "Viewer3D", run: Viewer3DSelfTest.run),
         SelfTestSuite(name: "Capture core", run: CaptureCoreSelfTest.run),
+        SelfTestSuite(name: "Room model", run: RoomModelSelfTest.run),
     ]
 
     @State private var results: [SelfTestResult] = []
