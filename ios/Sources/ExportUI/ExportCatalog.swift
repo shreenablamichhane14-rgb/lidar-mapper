@@ -160,7 +160,7 @@ enum ExportCatalog {
     /// The Copy.Export.formats entry whose label is `key`; the key itself with no detail when the
     /// catalog lacks it (a Copy change the self-test reports).
     private static func formatEntry(_ key: String) -> (label: String, detail: String) {
-        Copy.Export.formats.first { $0.label == key } ?? (key, "")
+        Copy.Export.formats.first(where: { $0.label == key }) ?? (label: key, detail: "")
     }
 
     /// True when a raw text-format export (OBJ, USDZ) uses the simplified view mesh, so the sheet

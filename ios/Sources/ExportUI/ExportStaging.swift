@@ -83,7 +83,7 @@ extension ExportRunner {
 
     /// `removeStagingFolder` on a utility queue, for callers on the main thread (the share sheet).
     static func removeStagingFolderLater(_ folder: URL) {
-        cleanupQueue.async { removeStagingFolder(folder) }
+        cleanupQueue.async { ExportRunner.removeStagingFolder(folder) }
     }
 
     /// At launch (AppShell): deletes `exports/<stamp>/` staging folders older than 24 hours in

@@ -39,8 +39,8 @@ enum ExportRunner {
     static func run(_ option: ExportOption, settings: ExportSettings, viewState: ExportViewState, projectID: UUID,
                     package: ProjectPackage, prefs: UnitPreferences) async throws -> URL {
         let task = Task.detached(priority: .userInitiated) { () throws -> URL in
-            try perform(option, settings: settings, viewState: viewState, projectID: projectID, package: package,
-                        prefs: prefs, now: Date())
+            try ExportRunner.perform(option, settings: settings, viewState: viewState, projectID: projectID,
+                                     package: package, prefs: prefs, now: Date())
         }
         return try await withTaskCancellationHandler {
             try await task.value

@@ -121,16 +121,16 @@ enum ExportUISelfTest {
         log.expect("staging.simpleNeverStale",
                    !ExportRunner.isStale(folderName: "simple", olderThan: day, now: F.date.addingTimeInterval(10 * day)))
 
-        func rule(rooms: Int = 1, final: Bool = true, edits: Bool = false, furniture: Bool = true, hide: Bool = false,
+        func rule(rooms: Int = 1, finalRoom: Bool = true, edits: Bool = false, furniture: Bool = true, hide: Bool = false,
                   includeHidden: Bool = false, hidden: Bool = false) -> Bool {
-            ExportRunner.usesRoomPlanUSDZ(roomCount: rooms, hasFinalCapturedRoom: final, hasActiveEdits: edits,
+            ExportRunner.usesRoomPlanUSDZ(roomCount: rooms, hasFinalCapturedRoom: finalRoom, hasActiveEdits: edits,
                                           keepsFurniture: furniture, hideFurniture: hide, includeHidden: includeHidden,
                                           hasHiddenObjects: hidden)
         }
         log.expect("roomPlanUSDZ.eligible", rule())
         log.expect("roomPlanUSDZ.hideFurniture", !rule(hide: true))
         log.expect("roomPlanUSDZ.includeHidden", rule(hide: true, includeHidden: true))
-        log.expect("roomPlanUSDZ.rejects", !rule(rooms: 2) && !rule(final: false) && !rule(edits: true)
+        log.expect("roomPlanUSDZ.rejects", !rule(rooms: 2) && !rule(finalRoom: false) && !rule(edits: true)
                    && !rule(furniture: false) && !rule(hidden: true))
 
         let error = ExportError.writeFailed(path: "Private Name.usdz", reason: "disk")
