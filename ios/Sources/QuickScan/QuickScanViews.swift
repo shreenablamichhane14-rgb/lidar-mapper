@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var projects: [SavedProject] = ProjectStore.list()
     @State private var scanning = false
     @State private var objectScanning = false
+    @State private var turntableScanning = false
     @State private var path: [SavedProject] = []
     @State private var saveError: String?
 
@@ -26,9 +27,17 @@ struct HomeView: View {
                     Button {
                         objectScanning = true
                     } label: {
-                        Label("Scan an object", systemImage: "cube")
-                            .font(.title3.bold())
-                            .frame(maxWidth: .infinity, minHeight: 56)
+                        Label("Scan an object (walk around it)", systemImage: "cube")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                    }
+                    .buttonStyle(.bordered)
+                    Button {
+                        turntableScanning = true
+                    } label: {
+                        Label("Scan an object (phone on a stand, turn the object)", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 50)
                     }
                     .buttonStyle(.bordered)
                     if !RoomCaptureSession.isSupported {
@@ -88,6 +97,16 @@ struct HomeView: View {
                 scanning = false
             })
             .ignoresSafeArea()
+        }
+        .fullScreenCover(isPresented: $turntableScanning) {
+            TurntableScanView(onFinished: { project in
+                projects = ProjectStore.list()
+                turntableScanning = false
+                path = [project]
+            }, onCancel: {
+                turntableScanning = false
+                projects = ProjectStore.list()
+            })
         }
         .fullScreenCover(isPresented: $objectScanning) {
             ObjectScanView(onFinished: { project in
