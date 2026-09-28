@@ -1,0 +1,177 @@
+{
+  "topic": "floorplan-cad",
+  "verdicts": [
+    {
+      "claim": "CapturedRoom.floors[].polygonCorners (iOS 17) is the floor outline polygon and is the correct source for room area/perimeter; polygonCorners are expressed in the surface's LOCAL plane coordinates, so each corner must be transformed by that floor's transform (world = transform * SIMD4(x, y, z, 1)) before use. Walls also get polygonCorners for non-rectangular (slanted/beamed) walls; Apple: 'Floor is now represented as a rectangle during scanning and is beautified as a polygon when scanning ends.'",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroom/surface/polygoncorners.json",
+      "reasoning": "polygonCorners is declared `var polygonCorners: [simd_float3] { get }`, introduced iOS 17.0, not deprecated. The abstract says 'A 2D polygon that represents nonuniform wall heights and floor shapes' and the discussion says it 'describes the polygon in local plane coordinates', which supports transforming by the surface transform. CapturedRoom.floors is `[CapturedRoom.Surface]`, iOS 17.0 (https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroom/floors.json). The quoted sentence is confirmed word for word in the WWDC23 session 10192 transcript (https://developer.apple.com/videos/play/wwdc2023/10192/), not in the reference docs. That session also says non-uniform walls can be rendered as polygons using polygonCorners. The docs do not say that it is the 'correct source for area/perimeter'. That is a sound inference, but it is ours, not Apple's. The docs also do not say which local axes the polygon lies in, so we must check on a device whether the local y (or z) component is about 0."
+    },
+    {
+      "claim": "Wall endpoints in plan: RoomPlan uses a right-handed Y-up world (ARKit). A surface's transform.columns.3 is its center, columns.0 is the along-width (local X) direction, columns.1 the up direction, columns.2 the normal; dimensions.x = width (length along the wall), dimensions.y = height, dimensions.z ~ 0 for surfaces. Endpoints = transform * SIMD4(±dimensions.x/2, 0, 0, 1); plan coordinates are world (x, z) with Y dropped.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroom/surface/transform.json",
+      "reasoning": "The docs only say that transform is 'A matrix that defines the surface's position and orientation in the scene' (simd_float4x4, iOS 16) and that dimensions is 'A bounding box that contains the surface' (simd_float3, iOS 16). They do not say which column is the width, up or normal direction, or which dimensions component is width or height. The column and axis mapping and the endpoint formula therefore cannot be confirmed from official docs. They match common practice and should be checked against a real scan. The right-handed, Y-up world is supported by the ARKit worldAlignment .gravity doc (https://developer.apple.com/tutorials/data/documentation/arkit/arconfiguration/worldalignment-swift.enum/gravity.json): (0,-1,0) points down, -z is the camera direction, and x follows the right hand rule. So dropping Y and using (x, z) gives a valid top-down plan. Nothing in the docs contradicts the claim."
+    },
+    {
+      "claim": "Doors, windows and openings are child surfaces of a wall: parentIdentifier == wall.identifier (iOS 17). They carry their own transform/dimensions (width = dimensions.x, height = dimensions.y, sill/head height from center y ± dimensions.y/2); project their two endpoints onto the parent wall segment to cut the opening. The only door-specific data is Category.door(isOpen: Bool) (whether the door was open at scan time). There is NO hinge side, swing direction, opening side, or door type in the API; Surface has no attributes and none of the CapturedRoomAttribute types describe doors.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroom/surface.json",
+      "reasoning": "parentIdentifier is `var parentIdentifier: UUID? { get }`, iOS 17.0: 'identifies a surface's parent surface ... the parent of a window is the wall surface on which the window rests'. Doors and openings are not named explicitly, and the value is optional, so code must handle nil. Surface's full member list is identifier, parentIdentifier, category, confidence, transform, dimensions, story, completedEdges, Edge, curve, Curve, polygonCorners, init(from:) and encode(to:). There is no attributes member (only CapturedRoom.Object has attributes and attribute(of:)). The only door case is `case door(isOpen: Bool)`, iOS 16.0. CapturedRoomAttribute's conforming types are ChairArmType, ChairBackType, ChairLegType, ChairType, SofaType, StorageType, TableShapeType and TableType, all furniture and none for doors (https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroomattribute.json). The docs do not state the width=x and height=y mapping. We checked the current doc JSON, which reflects the iOS 26 SDK: Surface lists no new members, and no page we fetched carries an iOS 26 introducedAt, so iOS 26 adds no hinge, swing or door-type data."
+    },
+    {
+      "claim": "Wall thickness is not provided by RoomPlan: surfaces are 2D planes, dimensions.z is ~0 (bounding box of a plane). Any thickness on the plan is our rendering/CAD choice.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroom/surface/dimensions.json",
+      "reasoning": "Surface's abstract says 'A 2D area in a room that the framework identifies as a surface' (https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroom/surface.json). dimensions is 'A bounding box that contains the surface'. No Surface member (see its full member list) exposes thickness or depth. The docs do not state that dimensions.z is about 0; that is implied by a planar surface's bounding box but not written down. Note that USDZ export draws walls with visible thickness, which is a rendering choice and not a data field. So any thickness in our plan is our choice."
+    },
+    {
+      "claim": "Multi-room: StructureBuilder.capturedStructure(from:) (iOS 17) merges [CapturedRoom] into a CapturedStructure whose rooms/walls/doors/windows/openings/objects/floors/sections are all in ONE shared world coordinate space. It succeeds only if the rooms 'share compatible world space': either the same ARSession was kept alive between rooms (RoomCaptureSession.stop(pauseARSession: false), then run(configuration:) again on the same session) or a new session was relocalized against a saved ARWorldMap (RoomCaptureSession(arSession:) with ARWorldTrackingConfiguration.initialWorldMap). Otherwise it throws StructureBuilder.BuildError.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/structurebuilder/capturedstructure(from:).json",
+      "reasoning": "Apple docs confirm: func capturedStructure(from rooms: [CapturedRoom]) async throws -> CapturedStructure, iOS 17.0; StructureBuilder is created with init(options: StructureBuilder.ConfigurationOptions) (pass .beautifyObjects or []). The discussion states it succeeds only when rooms share compatible world space, via either passing the same ARSession to each RoomCaptureSession after stop(pauseARSession: false) (iOS 17, default true) or loading a saved ARWorldMap; init(arSession: ARSession? = nil) is iOS 17. BuildError cases are deviceNotSupported, exceedSceneSizeLimit, insufficientInput, internalError, invalidInput, invalidRoomLocation, and CapturedStructure exposes rooms, walls, doors, windows, openings, objects, floors and sections. Precision notes, not refutations: the docs frame path 1 as handing the same ARSession to a subsequent RoomCaptureSession (typically a new RoomCaptureSession(arSession:)), and for the world-map path the docs require waiting until tracking state changes from relocalizing to normal before starting the next room."
+    },
+    {
+      "claim": "Foundation can format a single length with locale-aware units but CANNOT produce architectural feet-inches with fractions (12' 7 3/8\"): Measurement.FormatStyle / MeasurementFormatter have unit width and usage options only; the only mixed ft+in output is the .personHeight usage (whole inches, person-height context). A custom formatter is required for imperial architectural output; use Foundation for metric and unit conversion.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/foundation/measurement/formatstyle.json",
+      "reasoning": "Measurement.FormatStyle (iOS 15) exposes width, usage, numberFormatStyle, hidesScaleName and locale; MeasurementFormatter (iOS 10) exposes unitOptions (providedUnit, naturalScale, temperatureWithoutUnit), unitStyle, locale and numberFormatter. None offers fractional-inch output, so the core conclusion (custom formatter for 12' 7 3/8\") holds. Imprecisions: the options also include numberFormatStyle/numberFormatter (not width and usage only), and the legacy LengthFormatter.isForPersonHeightUse (iOS 8) is a second person-height path; the 'whole inches' detail is not stated in Apple docs and could not be verified without a device."
+    },
+    {
+      "claim": "Vector PDF export at scale: UIGraphicsPDFRenderer (iOS 10) writes multi-page vector PDF from CGContext drawing (Path/CGPath strokes stay vector; text via NSAttributedString.draw(at:) or CoreText); page size in points (72 pt/in). For 1/4\" = 1' the plan scale factor is 1:48, so points-per-meter = 39.3701 * 72 / 48 = 59.055. Alternatively CGContext(consumer:mediaBox:_:) + beginPDFPage/endPDFPage/closePDF. ImageRenderer (iOS 16) can render a SwiftUI view (incl. a Canvas) into a CGContext for PDF too, but rasterizes some content; prefer drawing directly.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/uikit/uigraphicspdfrenderer.json",
+      "reasoning": "UIGraphicsPDFRenderer is iOS 10 with pdfData(actions:) and writePDF(to:withActions:) and supports multi-page output. CGContext init?(consumer:mediaBox:_:) (iOS 2) creates a PDF context that emits PDF drawing commands. ImageRenderer (iOS 16) has render(rasterizationScale:renderer:) that draws into a caller-provided CGContext, and its docs say output only includes views SwiftUI draws itself (platform views are not rendered), consistent with the caution. Arithmetic checks: 1/4 in = 12 in gives 1:48, and 39.3701 * 72 / 48 = 59.055 pt per meter."
+    },
+    {
+      "claim": "Minimal DXF that CAD tools import: use DXF R12 (\"$ACADVER\" = \"AC1009\"), which requires only a HEADER (optional) + ENTITIES section, no TABLES/handles/subclass markers, and supports LINE, ARC, CIRCLE, TEXT and POLYLINE+VERTEX+SEQEND entities on named layers (group 8). A hand-written R12 file with $ACADVER, $INSUNITS=6, LINE, ARC, TEXT and a POLYLINE loads in ezdxf 1.4.4 with 0 audit errors. R2000 (AC1015) LWPOLYLINE requires the 100/AcDbEntity and 100/AcDbPolyline subclass markers and handles (group 5) or it is rejected ('missing AcDbPolyline subclass').",
+      "lens": "official-docs",
+      "refuted": true,
+      "correction": "Two parts are wrong. (1) $INSUNITS is not an R12 header variable: it was introduced with DXF R2000 (ezdxf defines it mindxf=DXF2000) and ezdxf warns 'Drawing units ($INSUNITS) are not exported for DXF R12' and drops it on save, so a true R12 reader will ignore it; an R12 file carries no reliable unit declaration, so the unit (meters) must be documented or the exporter should also offer an R2000+ file. ezdxf does read the variable leniently from a hand-written AC1009 file (0 audit errors confirmed). (2) Handles are not required for ezdxf to accept an R2000 LWPOLYLINE: a file with 100/AcDbEntity and 100/AcDbPolyline but no group 5 loads with 0 audit errors (ezdxf assigns a handle). Only the missing AcDbPolyline subclass marker triggers the rejection. Whether AutoCAD itself accepts a handle-less R2000 file is a separate question and should be tested in real CAD tools.",
+      "evidence_url": "https://raw.githubusercontent.com/mozman/ezdxf/master/src/ezdxf/sections/headervars.py",
+      "reasoning": "Autodesk and ezdxf docs sites were blocked by the sandbox proxy (403), so I used ezdxf's source and ran ezdxf 1.4.4 in a venv. A hand-written AC1009 file with $INSUNITS=6, LINE, ARC, CIRCLE, TEXT and POLYLINE/VERTEX/SEQEND on named layers loaded with 0 audit errors, which confirms the R12 part. An R2000 LWPOLYLINE without subclass markers failed with DXFStructureError \"missing 'AcDbPolyline' subclass\" under both readfile and recover. The same entity with the markers and no handle loaded cleanly. Saving the R12 document dropped $INSUNITS with an explicit warning, and the header definition gives mindxf=DXF2000."
+    },
+    {
+      "claim": "CapturedRoom.floors[].polygonCorners (iOS 17) is the floor outline polygon and is the correct source for room area/perimeter; polygonCorners are expressed in the surface's LOCAL plane coordinates, so each corner must be transformed by that floor's transform (world = transform * SIMD4(x, y, z, 1)) before use. Walls also get polygonCorners for non-rectangular (slanted/beamed) walls; Apple: 'Floor is now represented as a rectangle during scanning and is beautified as a polygon when scanning ends.'",
+      "lens": "reality",
+      "refuted": true,
+      "correction": "The local-coordinates part, the full-matrix transform and the WWDC23 quote are correct. The 'correct source for room area/perimeter' part is wrong in practice: in a real encoded CapturedRoom (version 2, iOS 17+ format, laanlabs/openPlan3D test-roomplan.json) the single floor polygon is a 4-corner rectangle (6.43 x 7.43 m, 47.7 m2) equal to the bounding box of an L-shaped, multi-section scan (2 bedrooms + bathroom), while the 20 walls chain into a non-rectangular outline missing about 6.4 m2 of that rectangle. There is one floor per CapturedRoom, not one per section/room. Compute area/perimeter from the closed wall loop (endpoints from wall transforms), use the floor polygon only as a fallback or cross-check, and flag a mismatch. Also: rectangular walls have polygonCorners == [] (all 20 walls in the sample), so wall code must fall back to transform + dimensions.",
+      "evidence_url": "https://github.com/laanlabs/openPlan3D/blob/main/test-roomplan.json",
+      "reasoning": "Apple docs say polygonCorners is 'in local plane coordinates' and the WWDC23 10192 transcript contains the quoted sentence verbatim, plus 'Non-uniform walls can be rendered as polygons using the polygonCorner variable'. Real data shows floor corners as (x, y, 0) in local space that map correctly to world only through the full 4x4 transform. But in that same real capture the floor polygon is the bounding rectangle of the whole scan, not the true outline of the L-shaped room, so trusting it for area would overstate by about 13 percent. The sample's origin iOS version is unknown, so it may reflect a case where beautification produced a rectangle; either way the claim that it is reliably the correct area source does not hold."
+    },
+    {
+      "claim": "Wall endpoints in plan: RoomPlan uses a right-handed Y-up world (ARKit). A surface's transform.columns.3 is its center, columns.0 is the along-width (local X) direction, columns.1 the up direction, columns.2 the normal; dimensions.x = width (length along the wall), dimensions.y = height, dimensions.z ~ 0 for surfaces. Endpoints = transform * SIMD4(±dimensions.x/2, 0, 0, 1); plan coordinates are world (x, z) with Y dropped.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://github.com/laanlabs/openPlan3D/blob/main/test-roomplan.json",
+      "reasoning": "In the real capture, all 20 walls, 4 doors and 4 windows have columns.1 = (0, 1, 0), columns.0 horizontal, columns.2 horizontal (normal), dimensions.z = 0 exactly, and the computed endpoints transform * (±dimensions.x/2, 0, 0, 1) chain into shared corners within about 1 cm; door bottoms (center y - dimensions.y/2) equal the floor y exactly (-1.486). Apple forum thread 718576 gives the same recipe (drop Y, center = columns.3.x/z, direction from columns.0). Caveats: this applies to walls/doors/windows/openings only; the floor surface uses a different local frame (columns.2 = world up, dimensions = (width, depth, 0)). Also the direction of columns.0 (and therefore the sign of the normal) is not consistent from wall to wall, so wall winding must be derived from connectivity, not from column signs."
+    },
+    {
+      "claim": "Doors, windows and openings are child surfaces of a wall: parentIdentifier == wall.identifier (iOS 17). They carry their own transform/dimensions (width = dimensions.x, height = dimensions.y, sill/head height from center y ± dimensions.y/2); project their two endpoints onto the parent wall segment to cut the opening. The only door-specific data is Category.door(isOpen: Bool) (whether the door was open at scan time). There is NO hinge side, swing direction, opening side, or door type in the API; Surface has no attributes and none of the CapturedRoomAttribute types describe doors.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://github.com/laanlabs/openPlan3D/blob/main/test-roomplan.json",
+      "reasoning": "In the real capture every door and window has parentIdentifier equal to a wall identifier, shares that wall's rotation, and its center lies on the wall segment. Door JSON is {'door': {'isOpen': Bool}} with no other door data, and surfaces have no 'attributes' key while objects do. The iOS 26 doc JSON lists Surface members with no attributes, and CapturedRoomAttribute's conforming types are only chair, sofa, storage and table types. Community floor-plan code (RoomPlanDemo) adds its own user-toggled OpenDirection, which confirms swing is not in the API. Heights are sill = center.y - dimensions.y/2 relative to the floor y, not to zero."
+    },
+    {
+      "claim": "Wall thickness is not provided by RoomPlan: surfaces are 2D planes, dimensions.z is ~0 (bounding box of a plane). Any thickness on the plan is our rendering/CAD choice.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://github.com/laanlabs/openPlan3D/blob/main/test-roomplan.json",
+      "reasoning": "In the real capture dimensions.z is exactly 0 for every wall, door, window and the floor; only objects have a non-zero third dimension. The Surface API has no thickness member. No evidence was found of RoomPlan walls with non-zero depth in CapturedRoom data; the thin slabs in the USDZ export are generated at export time. Interior partitions appear as separate single-plane walls (for example 0.30 m and 0.45 m stubs), so thickness must be inferred or chosen by us."
+    },
+    {
+      "claim": "Multi-room: StructureBuilder.capturedStructure(from:) (iOS 17) merges [CapturedRoom] into a CapturedStructure whose rooms/walls/doors/windows/openings/objects/floors/sections are all in ONE shared world coordinate space. It succeeds only if the rooms 'share compatible world space': either the same ARSession was kept alive between rooms (RoomCaptureSession.stop(pauseARSession: false), then run(configuration:) again on the same session) or a new session was relocalized against a saved ARWorldMap (RoomCaptureSession(arSession:) with ARWorldTrackingConfiguration.initialWorldMap). Otherwise it throws StructureBuilder.BuildError.",
+      "lens": "reality",
+      "refuted": true,
+      "correction": "The two ways to get a shared frame (continuous ARSession via stop(pauseARSession: false), or relocalizing with ARWorldTrackingConfiguration.initialWorldMap on the session's arSession) are correct, per WWDC23 10192. What is wrong is 'otherwise it throws'. There is no documented check that the rooms share a coordinate frame. In practice, rooms from separate unrelocalized sessions (each with its origin at its own scan start) merge without an error and come out stacked on top of each other. BuildError has cases deviceNotSupported, exceedSceneSizeLimit, insufficientInput, internalError, invalidInput and invalidRoomLocation ('one or more rooms reside in a different vicinity'). Only the last one is about location, and it only catches rooms that are far apart. It does not catch rooms that overlap. The app must enforce a shared frame itself: keep one ARSession, check ARFrame.worldMappingStatus and tracking state, and confirm relocalization before starting the next room. Also, do not assume rooms keep their exact input transforms after merging: developers report the merged output being moved, and room and floor identifiers are regenerated.",
+      "evidence_url": "https://developer.apple.com/forums/thread/733945",
+      "reasoning": "Forum thread 733945: an app created a new RoomCaptureViewController (a new ARSession) for each scan. StructureBuilder returned a floorplan with 'rooms stacked on top of each other' and did not throw. Fixing session continuity fixed it. The BuildError doc (developer.apple.com/documentation/roomplan/structurebuilder/builderror) lists no coordinate-frame mismatch error. Thread 760952 reports that after merging, 'the first room will be transformed and thus moved around to fit in the world space'. WWDC23 10192 confirms both methods for a shared frame and recommends single-floor homes up to about 186 m2."
+    },
+    {
+      "claim": "Foundation can format a single length with locale-aware units but CANNOT produce architectural feet-inches with fractions (12' 7 3/8\"): Measurement.FormatStyle / MeasurementFormatter have unit width and usage options only; the only mixed ft+in output is the .personHeight usage (whole inches, person-height context). A custom formatter is required for imperial architectural output; use Foundation for metric and unit conversion.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/documentation/foundation/measurement/formatstyle",
+      "reasoning": "Measurement.FormatStyle has four settings: width, locale, usage and an optional FloatingPointFormatStyle numberFormatStyle. There is no fraction or compound-unit setting, so the best Foundation can do is decimals such as 12.6 ft. MeasurementFormatter (unitOptions, unitStyle, numberFormatter) has the same limit. The only built-in mixed ft+in output comes from the personHeight usage, and it depends on locale. The small detail about whole inches could not be checked without a device, but no Foundation API outputs fractions like 3/8. The repo already has a custom formatter in ios/Sources/Units/, which matches this conclusion."
+    },
+    {
+      "claim": "Vector PDF export at scale: UIGraphicsPDFRenderer (iOS 10) writes multi-page vector PDF from CGContext drawing (Path/CGPath strokes stay vector; text via NSAttributedString.draw(at:) or CoreText); page size in points (72 pt/in). For 1/4\" = 1' the plan scale factor is 1:48, so points-per-meter = 39.3701 * 72 / 48 = 59.055. Alternatively CGContext(consumer:mediaBox:_:) + beginPDFPage/endPDFPage/closePDF. ImageRenderer (iOS 16) can render a SwiftUI view (incl. a Canvas) into a CGContext for PDF too, but rasterizes some content; prefer drawing directly.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/documentation/swiftui/imagerenderer",
+      "reasoning": "The arithmetic is correct: 39.3701 * 72 / 48 = 59.055 pt per meter. UIGraphicsPDFRenderer, CGContext(consumer:mediaBox:_:), beginPDFPage, endPDFPage and closePDF are long-standing, well-used APIs. One detail about ImageRenderer: Apple's docs say PDF output keeps text, symbol images, lines, shapes and fills as vectors. Views composited by Core Animation (complex controls, most UIKit-backed views) are replaced by a placeholder image, not rasterized. The advice to draw directly into the CGContext still stands."
+    },
+    {
+      "claim": "Minimal DXF that CAD tools import: use DXF R12 (\"$ACADVER\" = \"AC1009\"), which requires only a HEADER (optional) + ENTITIES section, no TABLES/handles/subclass markers, and supports LINE, ARC, CIRCLE, TEXT and POLYLINE+VERTEX+SEQEND entities on named layers (group 8). A hand-written R12 file with $ACADVER, $INSUNITS=6, LINE, ARC, TEXT and a POLYLINE loads in ezdxf 1.4.4 with 0 audit errors. R2000 (AC1015) LWPOLYLINE requires the 100/AcDbEntity and 100/AcDbPolyline subclass markers and handles (group 5) or it is rejected ('missing AcDbPolyline subclass').",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "Minor: handles are not needed for ezdxf to load the file. An AC1015 LWPOLYLINE with both subclass markers and no group 5 loaded with 0 audit errors, and ezdxf assigned the handles. Only the missing subclass markers cause the rejection. Also, $INSUNITS is an R2000+ header variable (libdxfrw writes it only when the version is newer than AC1014). Some readers still take it from an R12 file, but it is outside the R12 spec, so the export should also state the units some other way, such as a units note on the drawing.",
+      "evidence_url": "https://github.com/mozman/ezdxf/blob/master/src/ezdxf/entities/lwpolyline.py",
+      "reasoning": "Tested locally with ezdxf 1.4.4. The hand-written R12 file (HEADER with AC1009 and $INSUNITS 6, then LINE, ARC, TEXT, POLYLINE/VERTEX/SEQEND on named layers, no TABLES) loaded with 0 audit errors and 0 fixes, and $INSUNITS read back as 6. An ENTITIES-only file also loaded. The R2000 LWPOLYLINE without subclass markers failed with DXFStructureError \"missing 'AcDbPolyline' subclass in LWPOLYLINE(#None)\". With both markers and no handles it loaded cleanly. LibreCAD's libdxfrw, compiled from source and run on the same files, read all of them, including the R2000 LWPOLYLINE with no subclass markers, so strictness varies by importer and ezdxf is on the strict side."
+    }
+  ],
+  "open_question_answers": [
+    {
+      "question": "(a) Exact local-axis convention of Surface.polygonCorners for floors (x,z vs x,y in the plane) and for walls",
+      "answer": "Floors: local x,y with z = 0. Real sample corners are (+-3.215, +-3.713, 0) = (+-dimensions.x/2, +-dimensions.y/2, 0), and the floor transform has columns.2 = (0, 1, 0) (local Z is world up) with columns.0 and columns.1 horizontal. The Apple forum report that a floor's eulerAngles y and z are 'always 0' is explained by this: with local Z mapped to world Y the common Euler extraction hits gimbal lock (x = -pi/2), so yaw is not lost, it is just invisible to that formula. Use the full 4x4 multiply. Walls: rectangular walls return an empty array; for non-uniform walls no real sample was found, but since walls use local X = along wall and local Y = up with dimensions.z = 0, the corners are most likely (x, y, 0) in the wall plane too.",
+      "evidence_url": "https://github.com/laanlabs/openPlan3D/blob/main/test-roomplan.json",
+      "confidence": "verified"
+    },
+    {
+      "question": "(b) Whether wall transform columns.1 is always world up and columns.0 along the wall length",
+      "answer": "In the real sample, yes for all 20 walls and all doors/windows: columns.1 = (0, 1, 0) and columns.0 is horizontal along the wall; endpoints from +-dimensions.x/2 along columns.0 meet neighbouring walls. The sign of columns.0 varies arbitrarily between walls. Community code (denniswave RoomPlan-2D, forum 713409) uses zRotation = -(eulerAngles.z - eulerAngles.y) with z = atan2(m[0][1], m[1][1]), a term that is only non-zero if columns.1 is not +Y, so it is defensive and was not needed in this sample. Guard anyway: if abs(columns.1.y) < 0.99, log it and fall back to the horizontal projection of columns.0. Floors are the exception (columns.2 is up).",
+      "evidence_url": "https://developer.apple.com/forums/thread/713409?page=1",
+      "confidence": "likely"
+    },
+    {
+      "question": "Any evidence of RoomPlan walls with non-zero depth",
+      "answer": "None found. dimensions.z = 0 exactly for all surfaces in a real encoded CapturedRoom; the thickness in the USDZ export is added at export time and is not in the data.",
+      "evidence_url": "https://github.com/laanlabs/openPlan3D/blob/main/test-roomplan.json",
+      "confidence": "verified"
+    },
+    {
+      "question": "(a) How does StructureBuilder assign story, and do rooms in CapturedStructure keep the shared world frame or are they re-based?",
+      "answer": "The docs say only that story is 'the story, floor number, or level on which the captured room resides within a larger structure' (iOS 17). They do not say how it is assigned. In Apple's sample MyHome data, all 10 rooms have story 0, and their walls are already in one shared frame (wall centers range from x -7.6 to 9.1 and z -2 to 17.5). Apple positions MultiRoom for single-floor homes, so treat story as advisory and let the user assign floors. On re-basing: developers report that after merging, 'the first room will be transformed and thus moved around to fit in the world space' (thread 760952). Room and floor identifiers are regenerated, while wall, door, window, opening and object identifiers are kept (thread 739599). So keep your own copy of the input rooms, and match merged output back to them through the kept surface identifiers or centroids. Do not assume the output transforms equal the input transforms.",
+      "evidence_url": "https://developer.apple.com/forums/thread/760952",
+      "confidence": "likely"
+    },
+    {
+      "question": "(b) Does the Merging-multiple-scans sample contain plan alignment logic?",
+      "answer": "No. RoomTableViewController.swift decodes the bundled MyHome/<Room>/capturedRoom.json files with JSONDecoder, builds StructureBuilder(options: [.beautifyObjects]), awaits capturedStructure(from:), shows an alert on any error, and exports USDZ and JSON. It has no capture code, no ARSession or ARWorldMap handling and no transform math. The bundled rooms were captured already in a shared frame.",
+      "evidence_url": "https://github.com/gromb57/ios-wwdc23__MergingMultipleScansIntoASingleStructure/blob/main/RoomPlanMultiscanMerging/RoomTableViewController.swift",
+      "confidence": "verified"
+    },
+    {
+      "question": "(c) Which CAD importers honor $INSUNITS in an R12 file (AutoCAD, LibreCAD, SketchUp, QCAD)?",
+      "answer": "LibreCAD: yes. libdxfrw stores every $-variable in the HEADER whatever the file version. RS_FilterDXFRW::addHeader copies them into the drawing, and the drawing unit is read from $INSUNITS (lc_graphicvariables.cpp, rs_graphic.cpp). My compiled libdxfrw harness reported INSUNITS=6 from the R12 file. ezdxf: yes, it reads it (doc.units == 6). AutoCAD: $INSUNITS came in with AutoCAD 2000 and is not an R12 variable. AutoCAD's handling of it in an AC1009 file is untested here, so do not rely on it. SketchUp: its DXF importer (Pro) has a units choice in the import options that the user sets, so it probably does not rely on $INSUNITS. QCAD: not tested. dxflib reads header variables generically, so it probably does.",
+      "evidence_url": "https://github.com/LibreCAD/LibreCAD/blob/master/librecad/src/lib/engine/document/lc_graphicvariables.cpp",
+      "confidence": "unsure"
+    },
+    {
+      "question": "(d) Does a StructureBuilder merge of rooms scanned in separate unrelocalized sessions actually throw, or silently produce overlapping rooms?",
+      "answer": "It silently produces overlapping rooms. In forum thread 733945, an app accidentally created a new RoomCaptureViewController (a new ARSession) for each scan, and the merged floorplan had 'rooms stacked on top of each other', with no error reported. Each session's world origin is where that scan started, so the rooms overlap near the origin. BuildError.invalidRoomLocation ('one or more rooms reside in a different vicinity') seems aimed at rooms that are far apart, not overlapping ones. The app must check frame continuity itself before merging.",
+      "evidence_url": "https://developer.apple.com/forums/thread/733945",
+      "confidence": "likely"
+    }
+  ]
+}

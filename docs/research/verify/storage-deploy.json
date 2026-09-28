@@ -1,0 +1,171 @@
+{
+  "topic": "storage-deploy",
+  "verdicts": [
+    {
+      "claim": "UIRequiredDeviceCapabilities has NO value for LiDAR. The complete value list is: accelerometer, arkit, armv7, arm64, auto-focus-camera, bluetooth-le, camera-flash, driverkit, front-facing-camera, gamekit, gps, gyroscope, healthkit, iphone-performance-gaming-tier, iphone-ipad-minimum-performance-a12, location-services, magnetometer, metal, microphone, nfc, opengles-1/2/3, peer-peer, sms, still-camera, telephony, video-camera, wifi. Use `arkit` (and optionally `metal`, `arm64`) and gate LiDAR at runtime with RoomCaptureSession.isSupported / ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh).",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/bundleresources/information-property-list/uirequireddevicecapabilities.json",
+      "reasoning": "The possibleValues section of the doc JSON lists exactly 29 values, which match the claimed list item by item (opengles-1, -2, -3 as three separate keys). No lidar, depth or scene-reconstruction key exists. RoomCaptureSession.isSupported (iOS 16.0) and ARWorldTrackingConfiguration.supportsSceneReconstruction(_:) (iOS 13.4) both exist and are not deprecated, so the runtime gate is valid."
+    },
+    {
+      "claim": "RoomPlan, ARKit scene reconstruction and RealityKit Object Capture require NO entitlement on iOS. The Entitlements reference lists ARKit entitlements only under 'Enterprise' for visionOS (com.apple.developer.arkit.main-camera-access.allow etc.). The only requirement is NSCameraUsageDescription in Info.plist; the app crashes on first camera access without it.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/bundleresources/entitlements.json",
+      "reasoning": "The Entitlements topic section titled 'Enterprise' holds all six com.apple.developer.arkit.* keys (main-camera-access, object-tracking-parameter-adjustment, barcode-detection, camera-region, shared-coordinate-space, visual-fidelity), and the ones checked are visionOS-only (main-camera-access visionOS 2.0, shared-coordinate-space visionOS 26.0). No RoomPlan or Object Capture entitlement exists in the reference. The NSCameraUsageDescription page says the key is required if the app uses APIs that access the camera; the crash on missing key is standard TCC behavior, though that page does not spell out the word crash."
+    },
+    {
+      "claim": "On iOS, PhotogrammetrySession supports ONLY the .reduced detail level. .preview/.medium/.full/.raw are macOS 12+/Mac Catalyst 15+ only and .custom (CustomDetailSpecification, maximumPolygonCount, texture dims) is macOS 14+ only. .reduced = <50k triangles, ~10 MB, diffuse + AO + normal maps.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/realitykit/photogrammetrysession/request/detail.json",
+      "reasoning": "The Detail overview states 'On iOS, only one detail level, .reduced, is currently supported'. Per-case JSON: .reduced lists iOS 17.0, iPadOS 17.0, Mac Catalyst 15.0, macOS 12.0; .preview, .medium, .full and .raw list only Mac Catalyst 15.0 and macOS 12.0 (no iOS added in 17 or 18). .custom lists macOS 14.0 and also Mac Catalyst 17.0 (minor omission, no iOS). The tables give .reduced as <50k triangles, about 10MB, 2048x2048 textures, with diffuse, normal and ambient occlusion maps."
+    },
+    {
+      "claim": "SceneKit is deprecated in the iOS 26 SDK: the SceneKit framework, SCNView, SCNScene and ARKit's ARSCNView are all marked deprecated at iOS 26.0 ('Use RealityView instead' / 'SceneKit is deprecated, use RealityKit instead', WWDC25 session 288). They still compile with Xcode 26.6 (warnings only). Model I/O (MDLAsset, MDLMesh, MDLAsset.export(to:), canExportFileExtension(_:)) is NOT deprecated. RealityKit ARView and ModelEntity are not deprecated.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/scenekit.json",
+      "reasoning": "SceneKit framework, SCNView and SCNScene JSON all carry deprecatedAt 26.0 on every platform, and the framework's deprecationSummary reads 'SceneKit is deprecated, use RealityKit instead' with a WWDC reference. ARSCNView (arkit/arscnview.json) has deprecatedAt 26.0 on iOS with summary 'Use RealityView instead.' MDLAsset, MDLMesh, export(to:) and canExportFileExtension(_:) show deprecated false; RealityKit ARView and ModelEntity show deprecated false on iOS (ARView even gained tvOS 26.0). Compiling with warnings is consistent with a soft deprecation and is not contradicted by the docs."
+    },
+    {
+      "claim": "simd_float4x4 is NOT Codable. Its documented conformances are exactly: BitwiseCopyable, Copyable, CustomDebugStringConvertible, Equatable, Escapable, Sendable. A wrapper is required for JSON (e.g. encode columns.0...columns.3 as [Float] of 16 values, column-major) or store poses in a binary blob. simd_float3x3 (ARCamera.intrinsics) likewise needs a wrapper.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/simd/simd_float4x4.json",
+      "reasoning": "I fetched the doc JSON for simd_float4x4. Its 'Conforms To' list is exactly BitwiseCopyable, Copyable, CustomDebugStringConvertible, Equatable, Escapable, Sendable. The simd_float3x3 doc JSON (https://developer.apple.com/tutorials/data/documentation/simd/simd_float3x3.json) lists the same six. The Swift stdlib makes the generic SIMD2/3/4 vector types Codable, but the matrix types are imported C structs and get no Codable conformance. So a wrapper, such as 16 column-major Floats or a binary blob, is required."
+    },
+    {
+      "claim": "Long-running processing cannot be continued in the background on iOS 18. BGContinuedProcessingTask / BGContinuedProcessingTaskRequest (start in foreground, continue in background with a Live Activity) are iOS 26.0+ only. On iOS 18 the options are: (a) beginBackgroundTask(withName:expirationHandler:) which gives 'a limited amount of time' (community: ~30 s) and (b) BGProcessingTask which 'run[s] only when the device is idle' and 'The system terminates any background processing tasks running when the user starts using the device' (needs UIBackgroundModes=processing + BGTaskSchedulerPermittedIdentifiers, registration must complete before applicationDidFinishLaunching ends). Therefore mesh/photogrammetry processing must run while the app is foregrounded; keep the screen awake with UIApplication.shared.isIdleTimerDisabled = true.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/backgroundtasks/bgcontinuedprocessingtask.json",
+      "reasoning": "The doc JSON for both BGContinuedProcessingTaskRequest and BGContinuedProcessingTask gives introducedAt iOS 26.0, iPadOS 26.0 and Mac Catalyst 26.0. The request must be submitted from the foreground in response to a person's action. On the Live Activity: 'The system displays the progress of this task in a Live Activity', and the app reports progress through ProgressReporting. The app does not build its own ActivityKit Live Activity. The BGProcessingTask doc (iOS 13.0+) contains both quoted sentences verbatim. The ~30 s figure for beginBackgroundTask comes from the community, not Apple docs, and the claim labels it that way. The conclusion holds on the iOS 18 test device. On iOS 26 devices, the continued task could be an optional path behind an availability check."
+    },
+    {
+      "claim": "Swift 6 language mode is opt-in via SWIFT_VERSION=6 (-swift-version 6). XcodeGen's base setting preset hardcodes SWIFT_VERSION: '5.0' for every generated project, so a project.yml that does not override it compiles in Swift 5 mode with minimal concurrency checking: Sendable/actor-isolation problems are at most warnings and will not fail the CI build. Xcode 26 changes only affect NEW Xcode templates (Default Actor Isolation = MainActor); XcodeGen projects get the 'existing project' defaults (SWIFT_DEFAULT_ACTOR_ISOLATION unset = nonisolated, SWIFT_APPROACHABLE_CONCURRENCY unset = NO).",
+      "lens": "official-docs",
+      "refuted": true,
+      "correction": "Two parts are right: XcodeGen's SettingPresets/base.yml does hardcode SWIFT_VERSION: '5.0', and Swift 5 mode uses minimal strict-concurrency checking by default. The wrong part is 'actor-isolation problems are at most warnings'. In minimal mode, actor-isolation checking still runs wherever code has adopted concurrency, and those violations are hard errors even in Swift 5 mode. Examples: calling a @MainActor-isolated function or property from a synchronous nonisolated context, or calling an async function without await. They will fail the CI build. Only Sendable diagnostics are mostly suppressed or warnings in minimal mode. Also, this repo's ios/project.yml does override the preset, with SWIFT_VERSION: \"5.9\" in the target's base settings. That is still Swift 5 mode, so the rest of the conclusion applies.",
+      "evidence_url": "https://www.swift.org/migration/documentation/swift-6-concurrency-migration-guide/completechecking",
+      "reasoning": "I confirmed base.yml line 50 reads SWIFT_VERSION: '5.0' (https://raw.githubusercontent.com/yonaskolb/XcodeGen/master/SettingPresets/base.yml). The swift.org migration guide describes minimal checking this way: it 'enforces Sendable constraints only where it has been explicitly adopted and performs actor-isolation checking wherever code has adopted concurrency'. Isolation violations on explicitly isolated declarations have been errors in Swift 5 mode since Swift 5.5. The Xcode 26 point is plausible: new templates set default MainActor isolation and Approachable Concurrency, and XcodeGen does not emit those settings. I could not fetch a primary Xcode release-notes page for it, so I left that part unverified."
+    },
+    {
+      "claim": "Free Apple ID sideloading limits (Sideloadly FAQ): 'a free Apple Developer account is limited to 3 sideloaded apps' installed at once; 'only allows the app to function for 7 days' then re-sideload with the same Apple ID; 'You may create up to 10 App IDs every 7 days'; 'Since iOS 16+, Apple now requires users to enable Developer Mode'. Developer Mode is a per-device switch (Settings > Privacy & Security > Developer Mode, requires restart) and the toggle only appears after the device has been paired/had an install attempted.",
+      "lens": "official-docs",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/xcode/enabling-developer-mode-on-a-device.json",
+      "reasoning": "Apple's 'Enabling Developer Mode on a device' page confirms the switch is under Privacy & Security > Security, and that turning it on needs a restart and then a passcode confirmation. It also says 'Developer Mode only appears in Settings if you initiate pairing or if you previously paired the device to a Mac', which matches the claim. The page says Developer Mode applies to installing an IPA file too, so it covers sideloading. The egress proxy blocks sideloadly.io (both curl and WebFetch were refused), so I could not re-check the four FAQ quotes verbatim. They match well-known Apple free-provisioning limits (3 apps, 7-day profiles, 10 App IDs per 7 days), and I found no evidence against them."
+    },
+    {
+      "claim": "UIRequiredDeviceCapabilities has NO value for LiDAR. The complete value list is: accelerometer, arkit, armv7, arm64, auto-focus-camera, bluetooth-le, camera-flash, driverkit, front-facing-camera, gamekit, gps, gyroscope, healthkit, iphone-performance-gaming-tier, iphone-ipad-minimum-performance-a12, location-services, magnetometer, metal, microphone, nfc, opengles-1/2/3, peer-peer, sms, still-camera, telephony, video-camera, wifi. Use `arkit` (and optionally `metal`, `arm64`) and gate LiDAR at runtime with RoomCaptureSession.isSupported / ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh).",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/documentation/bundleresources/information-property-list/uirequireddevicecapabilities",
+      "reasoning": "Pulled the current Apple doc JSON (2026-09-28): the value table matches the listed set and neither 'lidar' nor 'depth' appears anywhere on the page. Minor nuance: 'arkit' is documented as unavailable for iPhone/iPad apps running on visionOS, which does not matter here. Runtime gating via RoomCaptureSession.isSupported and supportsSceneReconstruction(.mesh) is the pattern Apple's RoomPlan and scene reconstruction samples use. For a sideloaded IPA the key only affects App Store install gating."
+    },
+    {
+      "claim": "RoomPlan, ARKit scene reconstruction and RealityKit Object Capture require NO entitlement on iOS. The Entitlements reference lists ARKit entitlements only under 'Enterprise' for visionOS (com.apple.developer.arkit.main-camera-access.allow etc.). The only requirement is NSCameraUsageDescription in Info.plist; the app crashes on first camera access without it.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/documentation/bundleresources/entitlements",
+      "reasoning": "Every com.apple.developer.arkit.* entitlement in the reference (barcode-detection, camera-region, main-camera-access, object-tracking-parameter-adjustment, shared-coordinate-space, visual-fidelity) is visionOS only. For example, main-camera-access.allow lists only visionOS 2.0. None of them are for RoomPlan or Object Capture. Apple's iOS RoomPlan and GuidedCapture samples ship with only NSCameraUsageDescription and no special entitlements. The project's own free-account sideloaded Build 2 also ran the capability probe on the test device. I found no report of an iOS app needing an entitlement for these frameworks. The TCC crash when NSCameraUsageDescription is missing is standard iOS behavior."
+    },
+    {
+      "claim": "On iOS, PhotogrammetrySession supports ONLY the .reduced detail level. .preview/.medium/.full/.raw are macOS 12+/Mac Catalyst 15+ only and .custom (CustomDetailSpecification, maximumPolygonCount, texture dims) is macOS 14+ only. .reduced = <50k triangles, ~10 MB, diffuse + AO + normal maps.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/documentation/realitykit/photogrammetrysession/request/detail",
+      "reasoning": "Doc JSON availability: .reduced is iOS 17+ and macOS 12+; .medium is Mac Catalyst 15+ and macOS 12+ only; .custom is macOS 14+ and Mac Catalyst 17+ only. The Detail page says 'On iOS, only one detail level ... is currently supported' and gives reduced as <50k triangles, about 10 MB, 1024x1024 textures with diffuse, normal and AO maps. The WWDC23 10191 transcript agrees: 'we support only the reduced detail level on iOS. The reconstructed model includes the diffuse, ambient occlusion, and normal texture maps.' Small correction: .custom is also on Mac Catalyst 17+, not macOS alone, but it is still not on iOS. Also PhotogrammetrySession on iOS is 17.0+."
+    },
+    {
+      "claim": "SceneKit is deprecated in the iOS 26 SDK: the SceneKit framework, SCNView, SCNScene and ARKit's ARSCNView are all marked deprecated at iOS 26.0 ('Use RealityView instead' / 'SceneKit is deprecated, use RealityKit instead', WWDC25 session 288). They still compile with Xcode 26.6 (warnings only). Model I/O (MDLAsset, MDLMesh, MDLAsset.export(to:), canExportFileExtension(_:)) is NOT deprecated. RealityKit ARView and ModelEntity are not deprecated.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/documentation/scenekit",
+      "reasoning": "Doc JSON shows deprecatedAt 26.0 on all platforms for the SceneKit framework, SCNView and SCNScene. The framework's deprecation summary reads 'SceneKit is deprecated, use RealityKit instead. For more information, see WWDC25 session 288.' ARSCNView is deprecatedAt iOS 26.0 with 'Use RealityView instead.' MDLAsset.export(to:), MDLMesh, RealityKit ARView and ModelEntity have no deprecatedAt; ARView even gained tvOS 26. Swift deprecations are warnings unless warnings are treated as errors, so the build still compiles. The project's CI should not set SWIFT_TREAT_WARNINGS_AS_ERRORS. Deployment at iOS 18 is unaffected at runtime."
+    },
+    {
+      "claim": "simd_float4x4 is NOT Codable. Its documented conformances are exactly: BitwiseCopyable, Copyable, CustomDebugStringConvertible, Equatable, Escapable, Sendable. A wrapper is required for JSON (e.g. encode columns.0...columns.3 as [Float] of 16 values, column-major) or store poses in a binary blob. simd_float3x3 (ARCamera.intrinsics) likewise needs a wrapper.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/simd/simd_float4x4.json",
+      "reasoning": "Apple's doc JSON for both simd_float4x4 and simd_float3x3 lists exactly those six conformances and no Codable. No Swift or SDK release has added Codable. Community code (SwiftMath Matrix4x4f, HDXLSIMDSupport) wraps the matrix instead, and an Apple forum thread shows people hitting this in SwiftData. Small tip: the columns are SIMD4<Float> and SIMD3<Float>, which ARE Codable, so a wrapper can encode the columns tuple directly. Keep any retroactive extension in-module, or use a wrapper struct to avoid conflicts if Apple ever adds conformance."
+    },
+    {
+      "claim": "Long-running processing cannot be continued in the background on iOS 18. BGContinuedProcessingTask / BGContinuedProcessingTaskRequest (start in foreground, continue in background with a Live Activity) are iOS 26.0+ only. On iOS 18 the options are: (a) beginBackgroundTask(withName:expirationHandler:) which gives 'a limited amount of time' (community: ~30 s) and (b) BGProcessingTask which 'run[s] only when the device is idle' and 'The system terminates any background processing tasks running when the user starts using the device' (needs UIBackgroundModes=processing + BGTaskSchedulerPermittedIdentifiers, registration must complete before applicationDidFinishLaunching ends). Therefore mesh/photogrammetry processing must run while the app is foregrounded; keep the screen awake with UIApplication.shared.isIdleTimerDisabled = true.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/forums/thread/85066",
+      "reasoning": "Apple doc JSON shows BGContinuedProcessingTaskRequest as introducedAt iOS 26.0, and it also quotes BGProcessingTask's idle-only and terminate-on-use text word for word. Quinn (Apple DTS) writes 'On current systems you can expect about 30 seconds' for UIApplication background tasks, and says not to build logic on backgroundTimeRemaining. The finding is stronger than the claim for GPU work: iOS refuses GPU command submission from the background ('Insufficient Permission (to submit GPU work from background)'). Even on iOS 26, Apple DTS says background GPU through BGContinuedProcessingTask works only on M3-or-newer iPads and on no iPhone (thread 797538). So Metal or photogrammetry work must stay in the foreground on this device under any iOS version."
+    },
+    {
+      "claim": "Swift 6 language mode is opt-in via SWIFT_VERSION=6 (-swift-version 6). XcodeGen's base setting preset hardcodes SWIFT_VERSION: '5.0' for every generated project, so a project.yml that does not override it compiles in Swift 5 mode with minimal concurrency checking: Sendable/actor-isolation problems are at most warnings and will not fail the CI build. Xcode 26 changes only affect NEW Xcode templates (Default Actor Isolation = MainActor); XcodeGen projects get the 'existing project' defaults (SWIFT_DEFAULT_ACTOR_ISOLATION unset = nonisolated, SWIFT_APPROACHABLE_CONCURRENCY unset = NO).",
+      "lens": "reality",
+      "refuted": true,
+      "correction": "Most of the claim holds. XcodeGen master SettingPresets/base.yml still says SWIFT_VERSION: '5.0' (this project overrides it with '5.9' anyway), and Swift 5 mode defaults to minimal checking. The wrong part is 'at most warnings and will not fail the CI build'. Minimal checking only downgrades missing Sendable conformances and missing global-actor annotations to warnings. Core actor-isolation rules have been hard errors since Swift 5.5 in every language mode. Examples: touching another actor's state synchronously ('actor-isolated property can only be referenced on self'), cross-actor property mutation, a missing await on an async or cross-actor call, and a synchronous call into an actor-isolated method from outside. These fail the build in Swift 5.9 mode too. Only some diagnostics are marked 'this is an error in the Swift 6 language mode' and stay warnings in Swift 5 mode. Module code should still be written isolation-correct.",
+      "evidence_url": "https://github.com/swiftlang/swift-evolution/blob/main/proposals/0306-actors.md",
+      "reasoning": "I fetched raw.githubusercontent.com/yonaskolb/XcodeGen/master/SettingPresets/base.yml, and it ends with SWIFT_VERSION: '5.0'. SE-0337 defines minimal checking as 'Missing Sendable conformances or global-actor annotations are diagnosed as warnings'. That covers only a subset of concurrency diagnostics. SE-0306 (implemented in Swift 5.5) shows 'error: actor-isolated property ... can only be referenced on self' and 'error: cross-actor property mutations are not permitted', and these apply in Swift 5 mode. I found nothing contradicting the Xcode 26 point that only new templates get the new defaults, but I did not check it against an Xcode 26 build log."
+    },
+    {
+      "claim": "Free Apple ID sideloading limits (Sideloadly FAQ): 'a free Apple Developer account is limited to 3 sideloaded apps' installed at once; 'only allows the app to function for 7 days' then re-sideload with the same Apple ID; 'You may create up to 10 App IDs every 7 days'; 'Since iOS 16+, Apple now requires users to enable Developer Mode'. Developer Mode is a per-device switch (Settings > Privacy & Security > Developer Mode, requires restart) and the toggle only appears after the device has been paired/had an install attempted.",
+      "lens": "reality",
+      "refuted": false,
+      "correction": "",
+      "evidence_url": "https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device",
+      "reasoning": "The egress proxy blocked the Sideloadly FAQ, so I could not re-quote it. Independent sources agree on 3 apps at once, 7-day expiry and 10 App IDs per 7 days: an Apple forum thread 'Limits on App IDs - 10 every 7 days' (thread 675347), SideStore issue #68 and several 2026 sideloading guides. Apple's doc says Developer Mode applies to 'installing an .ipa file', sits under Privacy & Security > Security, needs a Restart and then an Enable confirmation with the passcode, and 'only appears in Settings if you initiate pairing or if you previously paired the device'. Sideloadly's USB pairing plus an install attempt produces that condition. One practical note: an app extension counts as an extra App ID, so keep Mapper to one target to stay well under 10 per week."
+    }
+  ],
+  "open_question_answers": [
+    {
+      "question": "(a) PhotogrammetrySession.Configuration / limits: is there a runtime-readable max input image count on iOS, and what do people report for A15 6 GB devices?",
+      "answer": "Yes. `PhotogrammetrySession.limits` is a `static let` of type `PhotogrammetrySession.Limits` (iOS 17+/macOS 14+), described as 'device-specific constant hardware limits'. It exposes `maximumNumberOfInputImages: Int` and `maximumInputImageDimension: Int`. Images over either limit are ignored, and the session reports an .invalidSample-style error for them. There is also an instance property `ObjectCaptureSession.maximumNumberOfInputImages` (@MainActor var, iOS 17+). Capture stops when that limit is reached unless `Configuration.isOverCaptureEnabled` is true. PhotogrammetrySession.Configuration itself (iOS 17+) has no image-count field. I found no reliable published number for A15 6 GB devices. One secondary source cites about 1000 images, but I could not reach the underlying page to confirm it. Read the value at runtime and log it on the test device rather than hardcoding a number.",
+      "evidence_url": "https://developer.apple.com/documentation/realitykit/photogrammetrysession/limits-swift.struct/maximumnumberofinputimages",
+      "confidence": "verified"
+    },
+    {
+      "question": "(b) Can a free-team Sideloadly provisioning profile carry com.apple.developer.kernel.increased-memory-limit, and is that entitlement available to free accounts at all?",
+      "answer": "Apple does make it available to free teams in practice. An Xcode Personal Team build keeps it, and AltStore 2.2 beta and later request the INCREASED_MEMORY_LIMIT bundle-ID capability for free accounts too. SideStore 0.7.0 drops it on free accounts (bug #1616, September 2026). Apple's supported-capabilities table for iOS does not list 'Increased Memory Limit' as its own row, only 'Increased Debugging Memory Limit' and 'Extended Virtual Addressing', both marked for free accounts. I found no evidence either way that Sideloadly enables the capability on the App ID; its FAQ was unreachable. The entitlement only works if the signer enables the capability on the App ID and it ends up in the profile. Test it on the device: sign, then check the embedded.mobileprovision Entitlements and compare os_proc_available_memory with and without it. Apple also warns that the higher limit is only granted on some devices.",
+      "evidence_url": "https://github.com/SideStore/SideStore/issues/1616",
+      "confidence": "likely"
+    },
+    {
+      "question": "(c) Community-reported jetsam memory limit for 6 GB iPhones (13 Pro / 13 Pro Max) on iOS 17/18.",
+      "answer": "I found no authoritative per-model figure for 6 GB iPhones on iOS 17/18. Related data points: a 4 GB iPhone 13 on iOS 15.3.1 reported about 2.2 to 2.3 GB from os_proc_available_memory with the increased-memory-limit entitlement (Apple forums 702400). 4 GB iPhone 12 jetsam logs show 'ActiveHard 2098 MB' (forums 688973). The SideStore report mentions roughly 3.3 GB without and about 6 GB with the entitlement, but on an unspecified device, likely one with more RAM. Folklore for 6 GB iPhones is about 2.8 to 3.0 GB by default (around half of RAM), but I could not confirm it. Plan the Object Capture and mesh pipeline for a budget of about 2.5 GB. Log os_proc_available_memory at launch and before reconstruction on the iPhone 13 Pro Max to get the real number.",
+      "evidence_url": "https://developer.apple.com/forums/thread/702400",
+      "confidence": "unsure"
+    },
+    {
+      "question": "(a) Free Apple ID device limit per 7 days",
+      "answer": "Apple does not document it. Free-team device registrations and provisioning profiles expire after 7 days, and the forums give no specific number (some guess it mirrors the 100-per-year paid limit, but nothing confirms that). The documented, binding limits are 3 active sideloaded apps per device and 10 App IDs per rolling 7 days per Apple ID. Two devices (the 13 Pro Max plus a later iOS 26 phone) on one free Apple ID is routine and far below any reported limit, but each device install of the same bundle ID does not need a new App ID.",
+      "evidence_url": "https://developer.apple.com/forums/thread/96804",
+      "confidence": "unsure"
+    },
+    {
+      "question": "(b) Does iOS 26 change any of these (BGContinuedProcessingTask available; SceneKit deprecation affecting runtime or not)",
+      "answer": "BGContinuedProcessingTaskRequest exists only on iOS 26.0+, so it needs an #available(iOS 26, *) path. It must be submitted from the foreground in response to a user action. Background GPU (the .gpu resource plus the com.apple.developer.background-tasks.continued-processing.gpu entitlement) is supported only on M3-or-newer iPads, not on any iPhone, per Apple DTS; check BGTaskScheduler.supportedResources at runtime. A free Apple ID personal team also probably cannot sign that entitlement. On an iPhone, continued processing would therefore be CPU-only. SceneKit, SCNView and ARSCNView are marked deprecatedAt 26.0 in Apple's docs ('SceneKit is deprecated, use RealityKit instead'). That is a compile-time deprecation. The code still links and runs on iOS 18 and 26. At worst it adds warnings, which do not fail the CI build, and with an iOS 18.0 deployment target they probably do not fire. New code should prefer RealityKit.",
+      "evidence_url": "https://developer.apple.com/forums/thread/797538",
+      "confidence": "verified"
+    },
+    {
+      "question": "ARKit depth resolution (256x192) and the 1920x1440 default video format are community/WWDC facts, not present in the doc JSON; confirm from ARCamera.imageResolution and CVPixelBufferGetWidth(depthMap) on device.",
+      "answer": "Not settled by this pass. No verifier found an Apple doc page that states either number, so code must not hardcode them: read ARCamera.imageResolution and the depthMap pixel buffer width and height at runtime, derive the intrinsics scale from their ratio, and log both on the test device.",
+      "evidence_url": "https://developer.apple.com/tutorials/data/documentation/arkit/arcamera/imageresolution.json",
+      "confidence": "unsure"
+    }
+  ]
+}
