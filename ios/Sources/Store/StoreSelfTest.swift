@@ -174,6 +174,7 @@ enum StoreSelfTest {
     }
 }
 
+/// Self-test helpers: result collection, fixed ids and dates, fixtures and waits.
 extension StoreSelfTest {
     /// Collects results on the test thread.
     final class Checks {

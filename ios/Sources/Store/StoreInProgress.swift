@@ -54,8 +54,10 @@ enum InProgressScans {
             throw MapperError.ioFailed("InProgress scan \(info.scanID) exists")
         }
         let fm = FileManager.default
+        // Made outside the cleanup block: when this fails (a folder appeared meanwhile), the
+        // folder belongs to someone else and must not be removed.
+        try fm.createDirectory(at: url, withIntermediateDirectories: false)
         do {
-            try fm.createDirectory(at: url, withIntermediateDirectories: false)
             for name in subfolders {
                 try fm.createDirectory(at: url.appendingPathComponent(name, isDirectory: true), withIntermediateDirectories: false)
             }

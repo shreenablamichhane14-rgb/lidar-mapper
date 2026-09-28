@@ -111,6 +111,8 @@ enum StoreFiles {
             return
         }
         cleanupQueue.async {
+            // `emptyTrash` may have deleted it already (it clears the whole trash folder).
+            guard StoreFiles.exists(target) else { return }
             do {
                 try FileManager.default.removeItem(at: target)
             } catch {
