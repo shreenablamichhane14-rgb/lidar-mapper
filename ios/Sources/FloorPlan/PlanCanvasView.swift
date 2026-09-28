@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import simd
 
 /// SwiftUI Canvas via GraphicsContext.withCGContext; DragGesture pans, MagnifyGesture zooms

@@ -66,7 +66,8 @@ enum FloorPlanSelfTest {
         log.near("build.doorWidth", door?.width ?? -1, 0.9)
         log.expect("build.doorSwing", door?.swing == DoorSwing(hingeAtStart: true, opensToNormalSide: true, source: .estimated))
         let window = level.openings.first { $0.id == F.window }
-        log.expect("build.windowOpening", window?.kind == .window && window?.wallID == F.eastWall && window?.swing == nil)
+        let windowOnEastWall = window?.wallID == F.eastWall
+        log.expect("build.windowOpening", window?.kind == .window && windowOnEastWall && window?.swing == nil)
         log.near("build.windowOffset", window?.offset ?? -1, 2.0)
 
         log.expect("build.fixtureCount", level.fixtures.count == 3, "got \(level.fixtures.count)")
@@ -179,7 +180,8 @@ enum FloorPlanSelfTest {
 
         let thick = applied(.setWallThickness(wall: F.northWall, thickness: 0.2))
         let thickWall = level(thick.plan)?.walls.first { $0.id == F.northWall }
-        log.expect("edit.thickness", thick.ok && thickWall?.thickness == 0.2 && thickWall?.thicknessSource == .user)
+        let userThickness = thickWall?.thicknessSource == .user
+        log.expect("edit.thickness", thick.ok && thickWall?.thickness == 0.2 && userThickness)
 
         let note = PlanAnnotation(id: F.id(52), kind: .note, at: Vec2(x: 1, y: 1), text: "Note", symbol: nil)
         let annotated = applied(.addAnnotation(annotation: note, level: 0))
@@ -191,8 +193,8 @@ enum FloorPlanSelfTest {
 
         let recategorized = applied(.recategorizeObject(object: F.sofa, category: .bathtub))
         let recategorizedFixture = level(recategorized.plan)?.fixtures.first { $0.id == F.sofa }
-        log.expect("edit.recategorize", recategorized.ok && recategorizedFixture?.category == .bathtub
-                   && recategorizedFixture?.isMovable == false)
+        let fixtureNow = recategorizedFixture?.isMovable == false
+        log.expect("edit.recategorize", recategorized.ok && recategorizedFixture?.category == .bathtub && fixtureNow)
 
         let quarter = Float.pi / 2
         let relocated = applied(.moveObject(object: F.sofa, transform: F.pose(at: SIMD2<Float>(1, 1), yaw: quarter)))
@@ -227,7 +229,8 @@ enum FloorPlanSelfTest {
         do {
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
             try PlanModelStore.save(plan, to: package)
-            log.expect("store.loadBase", try PlanModelStore.loadBase(package) == plan)
+            let loaded = try PlanModelStore.loadBase(package)
+            log.expect("store.loadBase", loaded == plan)
             let unedited = try PlanModelStore.loadEdited(package)
             log.expect("store.loadEditedWithoutLog", unedited.plan == plan && unedited.orphaned.isEmpty)
             var editLog = EditLog()
