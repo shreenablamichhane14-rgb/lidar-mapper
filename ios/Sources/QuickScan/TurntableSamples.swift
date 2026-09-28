@@ -56,11 +56,8 @@ struct TurntableSamples: Sequence {
         }
         var sample = PhotogrammetrySample(id: id, image: image)
         sample.objectMask = mask
-        if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-           let raw = properties[kCGImagePropertyOrientation] as? UInt32,
-           let orientation = CGImagePropertyOrientation(rawValue: raw) {
-            sample.orientation = orientation
-        }
+        // Image, mask and depth all stay in the camera's native (sensor) orientation, so they
+        // line up pixel for pixel; photogrammetry does not need them upright.
         if let depth = depthMap(source) {
             sample.depthDataMap = depth
         }
@@ -69,9 +66,13 @@ struct TurntableSamples: Sequence {
 
     /// Draws the image into a 32BGRA pixel buffer, downscaled so the long side is at most maxDimension.
     private static func bgraBuffer(from image: CGImage, maxDimension: Int) -> CVPixelBuffer? {
-        let scale = min(1.0, Double(maxDimension) / Double(max(image.width, image.height)))
-        let width = max(1, Int(Double(image.width) * scale))
-        let height = max(1, Int(Double(image.height) * scale))
+        let longest: Double = Double(max(image.width, image.height))
+        let limit: Double = Double(maxDimension)
+        let scale: Double = min(1.0, limit / longest)
+        let scaledWidth: Double = Double(image.width) * scale
+        let scaledHeight: Double = Double(image.height) * scale
+        let width = max(1, Int(scaledWidth))
+        let height = max(1, Int(scaledHeight))
         var buffer: CVPixelBuffer?
         let attributes: [CFString: Any] = [
             kCVPixelBufferCGImageCompatibilityKey: true,
@@ -89,7 +90,7 @@ struct TurntableSamples: Sequence {
                                       bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue) else {
             return nil
         }
-        context.interpolationQuality = .high
+        context.interpolationQuality = CGInterpolationQuality.high
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
         return pixelBuffer
     }
@@ -132,7 +133,8 @@ struct TurntableSamples: Sequence {
             }
         }
         // A mask covering almost nothing or almost everything is not a usable subject.
-        let fraction = Double(covered) / Double(max(1, width * height))
+        let pixelCount: Int = max(1, width * height)
+        let fraction: Double = Double(covered) / Double(pixelCount)
         return (fraction > 0.005 && fraction < 0.9) ? mask : nil
     }
 
