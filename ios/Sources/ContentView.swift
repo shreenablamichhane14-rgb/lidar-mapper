@@ -48,6 +48,7 @@ struct ContentView: View {
         SelfTestSuite(name: "Capture core", run: CaptureCoreSelfTest.run),
         SelfTestSuite(name: "Room model", run: RoomModelSelfTest.run),
         SelfTestSuite(name: "Floor plan", run: FloorPlanSelfTest.run),
+        SelfTestSuite(name: "Mesh record", run: MeshRecordSelfTest.run),
     ]
 
     @State private var results: [SelfTestResult] = []
