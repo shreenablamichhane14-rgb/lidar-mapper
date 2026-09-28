@@ -1,0 +1,53 @@
+{
+    "topic": "export-formats",
+    "verdicts": [
+        {
+            "claim": "QLPreviewController (QuickLook) natively previews USDZ 3D models on iOS with object and AR modes, plus PDF, images, text. Present it via UIViewControllerRepresentable with a QLPreviewControllerDataSource that returns the file URL cast to QLPreviewItem (NSURL conforms via the QLPreviewConvenienceAdditions category; a community report says wrapping in ARQuickLookPreviewItem(fileAt:) failed with 'Unhandled item type' for non-bundle files while the plain URL worked). SwiftUI also has .quickLookPreview(_ item: Binding<URL?>) (iOS 14+) which presents the same viewer with a one-liner.",
+            "lens": "official-docs",
+            "refuted": false,
+            "correction": "Confirmed with one fix to the API comment: ARQuickLookPreviewItem belongs to the QuickLook module (import QuickLook), not ARKit. Declaration: class ARQuickLookPreviewItem : NSObject, QLPreviewItem; init(fileAt url: URL); var allowsContentScaling: Bool { get set }; var canonicalWebPageURL: URL? { get set }; iOS 13.0+, not deprecated. QLPreviewController iOS 4.0+ (not deprecated) lists '3D models in the USDZ format with both standalone and AR views'. SwiftUI: nonisolated func quickLookPreview(_ item: Binding<URL?>) -> some View, iOS 14.0+ (plus quickLookPreview(_:in:) for several URLs). Apple's own AR Quick Look sample returns `url as QLPreviewItem`. Apple doc also warns: if the QLPreviewController is embedded in another view controller, the system shows only a thumbnail, not a live preview, so it must be presented modally (present(_:animated:)) or pushed.",
+            "evidence_url": "https://developer.apple.com/tutorials/data/documentation/quicklook/arquicklookpreviewitem.json",
+            "reasoning": "Fetched doc JSON for quicklook/qlpreviewcontroller (supported types list includes USDZ with standalone and AR views; embedding note), swiftui/view/quicklookpreview(_:) (iOS 14.0, Binding<URL?>), quicklook/qlpreviewitem (iOS 4.0), quicklook/arquicklookpreviewitem and init(fileAt:) (iOS 13.0, inherits NSObject, conforms to QLPreviewItem; module Quick Look), and arkit/previewing-a-model-with-ar-quick-look (sample code `return url as QLPreviewItem`). The earlier 404 was because the page lives under /quicklook/, not /arkit/. All claim details match; only the '// ARKit' module label is wrong."
+        },
+        {
+            "claim": "QLPreviewController (QuickLook) natively previews USDZ 3D models on iOS with object and AR modes, plus PDF, images, text. Present it via UIViewControllerRepresentable with a QLPreviewControllerDataSource that returns the file URL cast to QLPreviewItem (NSURL conforms via the QLPreviewConvenienceAdditions category; a community report says wrapping in ARQuickLookPreviewItem(fileAt:) failed with 'Unhandled item type' for non-bundle files while the plain URL worked). SwiftUI also has .quickLookPreview(_ item: Binding<URL?>) (iOS 14+) which presents the same viewer with a one-liner.",
+            "lens": "reality",
+            "refuted": false,
+            "correction": "Works in practice for USDZ files in the app sandbox (Documents/Caches) when the URL is returned as `url as QLPreviewItem`; the 'Unhandled item type 13: contentType is: (null)' failure with ARQuickLookPreviewItem(fileAt:) for a Caches file is real (forum 689586, fix was the plain URL cast). Important caveat for the recipe: several reports (forum 701842, 2022 to 2025, unresolved; forum 692364, iOS 15+) say that when QLPreviewController is hosted directly as a UIViewControllerRepresentable (embedded or inside a .sheet) the AR/Object mode selector and Share button are missing. Architecture should therefore present QLPreviewController modally from UIKit (find the top UIViewController and call present(_:animated:), full screen) or use the SwiftUI .quickLookPreview($url) modifier, which presents the system viewer itself; do not make QLPreviewController the representable's own embedded view. Also note an iOS 26.0/26.1 regression (forum 812371) where AR Quick Look Share sends the .usdz file instead of canonicalWebPageURL; harmless for Mapper (we want the file shared). QuickLook does not preview OBJ/PLY/STL/GLB.",
+            "evidence_url": "https://developer.apple.com/forums/thread/701842",
+            "reasoning": "Fetched forum threads 689586 (plain URL cast fixes ARQuickLookPreviewItem 'Unhandled item type' for non-bundle file), 701842 (AR/Object selector and share button missing when QLPreviewController is in UIViewControllerRepresentable, embedded or .sheet, still reported May 2025), 692364 (AR toggle missing after iOS 15 when embedded in navigation; full screen restores it) and 812371 (iOS 26 share regression). Core claim (native USDZ preview with object and AR modes, URL cast, quickLookPreview modifier) holds; the presentation method needs the caveat above, which is consistent with Apple's own 'embedded shows only thumbnail' note. Could not find a report that .quickLookPreview loses AR controls; needs device confirmation on iOS 18.3.2."
+        }
+    ],
+    "open_question_answers": [
+        {
+            "question": "Does ModelIO's OBJ exporter on iOS 18 write `map_Kd` when the baseColor property carries an MDLURLTexture / url value? No public evidence either way; irrelevant if we ship our own OBJ writer.",
+            "answer": "No public evidence either way (searches found only unanswered threads, e.g. forum 774459 asking how to export textured OBJ from a LiDAR scan). Architecture should not depend on it: ship our own OBJ/MTL writer that emits 'mtllib', 'usemtl', 'newmtl', 'Kd' and 'map_Kd <relative jpg>' explicitly. If curious, a device test can log the .mtl contents after MDLAsset.export(to:) with an MDLMaterialProperty(name:semantic:.baseColor, url:).",
+            "evidence_url": "https://developer.apple.com/forums/thread/774459",
+            "confidence": "likely"
+        },
+        {
+            "question": "Does MDLAsset.canExportFileExtension(\"ply\") return true on iOS 18, and if so does the PLY carry vertex colors? Apple's doc dropped .ply from the export list; only a paywalled test exists.",
+            "answer": "Apple's current doc for canExportFileExtension(_:) (iOS 9.0+, not deprecated) guarantees only .obj and .stl ('Additional formats may be supported'); no public iOS 18 test found. Treat PLY export via ModelIO as unavailable and write PLY ourselves (binary little endian with property uchar red/green/blue). Optional device check: log MDLAsset.canExportFileExtension for \"ply\", \"usda\", \"usdc\", \"usdz\", \"abc\" at launch in the capability probe.",
+            "evidence_url": "https://developer.apple.com/tutorials/data/documentation/modelio/mdlasset/canexportfileextension(_:).json",
+            "confidence": "likely"
+        },
+        {
+            "question": "Is the SCNScene.write(to:) 'second call writes garbage usdz' bug (forum 704590, 2022) still present on iOS 18.3 / iOS 26 when writing to a temp directory? Must be tested on device.",
+            "answer": "needs device test: call SCNScene.write(to:options:delegate:progressHandler:) twice in one process to temporaryDirectory/<UUID>.usdz, log the Bool result and file size of each output, then moveItem to Documents. Best evidence: forum 704590 (second call writes a 1.5 to 2 KB corrupt file; scene may need to be rendered first); no report of a fix found for iOS 17/18. Mitigations: unique temp file name per export, verify size > a few KB and fall back or retry. Alternative writer to evaluate on device: MDLUtility.convert(toUSDZ inputURL: URL, writeTo outputURL: URL) (class func, iOS 18.0+, no throws, no return value, undocumented body) could zip a .usdc/.usda (or other importable file) into USDZ, which would also sidestep SceneKit's iOS 26 deprecation; its behaviour with a ModelIO-written usdc and with our own OBJ must be tested.",
+            "evidence_url": "https://developer.apple.com/forums/thread/704590",
+            "confidence": "unsure"
+        },
+        {
+            "question": "Exact declaration/availability of ARQuickLookPreviewItem could not be pulled from Apple's JSON API (404); avoid it by casting URL to QLPreviewItem.",
+            "answer": "Resolved: the page lives under QuickLook, not ARKit. class ARQuickLookPreviewItem : NSObject, QLPreviewItem (import QuickLook), iOS 13.0+, Mac Catalyst 13.1+, visionOS 1.0+, not deprecated; init(fileAt url: URL); var allowsContentScaling: Bool { get set } (default true); var canonicalWebPageURL: URL? { get set }. Still prefer `url as QLPreviewItem` for sandbox files because of the 'Unhandled item type' report (forum 689586); use ARQuickLookPreviewItem only if we need to disable scaling, and test on device first.",
+            "evidence_url": "https://developer.apple.com/tutorials/data/documentation/quicklook/arquicklookpreviewitem.json",
+            "confidence": "verified"
+        },
+        {
+            "question": "Does PhotogrammetrySession on iOS accept a directory URL for OBJ output (doc does not forbid it) or is USDZ the only iOS output as WWDC23 implies? Only matters if Object Capture OBJ is wanted without a conversion step.",
+            "answer": "Apple's doc for PhotogrammetrySession.Request.modelFile(url:detail:geometry:) (iOS 17.0+) says: 'The request saves a USDZ file if the url ends with .usdz. If url refers to a directory, the request saves an OBJ object and every texture map there', with no iOS exclusion. Community report (forum 742077, 2023/2024) got 'Output URL must be specify a .usdz extension file!' until the URL was built with appendingPathComponent(\"Models/\", isDirectory: true) (trailing slash / directory flag is required; also create the folder first). Platform of that report is not stated, so on-device iOS 18 confirmation is needed (log the files written into the folder). Not architecture critical: fallback is USDZ output then MDLAsset(url:) import and our own OBJ writer.",
+            "evidence_url": "https://developer.apple.com/forums/thread/742077",
+            "confidence": "likely"
+        }
+    ]
+}
