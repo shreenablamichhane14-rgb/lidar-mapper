@@ -266,6 +266,7 @@ enum CleanModelBuilder {
         let identified = input.sections.filter { $0.label != RoomInput.unidentifiedSectionLabel && !$0.label.isEmpty }
         guard polygon.count >= 3 else { return identified.count == 1 ? identified[0].label : nil }
         let outline = Polygon2D(points: polygon)
-        return identified.first { outline.contains(point: PlanAxes.toPlan($0.center.simd)) }?.label
+        let inside = identified.first(where: { outline.contains(point: PlanAxes.toPlan($0.center.simd)) })
+        return inside?.label
     }
 }

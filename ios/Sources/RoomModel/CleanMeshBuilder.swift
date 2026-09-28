@@ -250,8 +250,13 @@ extension CleanMeshBuilder {
         let startY: Float
         /// World Y of the base at the end.
         let endY: Float
-        /// Unit normal into the room, world.
-        let normal: SIMD3<Float>
+        /// Unit normal into the room, world (the chord's normal for curved walls).
+        let wallNormal: SIMD3<Float>
+        /// Plan center of a curved wall's arc, nil for straight walls.
+        let arcCenter: SIMD2<Float>?
+        /// True when the room lies on the concave side of a curved wall (normals point toward
+        /// the arc center), false when the arc bulges into the room.
+        let towardCenter: Bool
 
         /// Frame of a clean wall.
         init(_ wall: CleanWall) {
@@ -268,7 +273,36 @@ extension CleanMeshBuilder {
             endY = wall.end.y
             let n = wall.normal.simd
             let length = simd_length(n)
-            normal = length > 1e-6 ? n / length : SIMD3<Float>(0, 0, 0)
+            let unitNormal = length > 1e-6 ? n / length : SIMD3<Float>(0, 0, 0)
+            wallNormal = unitNormal
+            if let arc = wall.arc, polyline.count > 2 {
+                arcCenter = PlanAxes.toPlan(arc.center.simd)
+                let bulge = polyline[polyline.count / 2] - (a + b) * 0.5
+                towardCenter = simd_dot(PlanAxes.toPlan(unitNormal), bulge) <= 0
+            } else {
+                arcCenter = nil
+                towardCenter = true
+            }
+        }
+
+        /// Plan point at polyline parameter `u`.
+        func planPoint(u: Float) -> SIMD2<Float> {
+            var k = 0
+            while k + 2 < cumulative.count && cumulative[k + 1] < u { k += 1 }
+            let span = cumulative[k + 1] - cumulative[k]
+            let f = span > 1e-9 ? Swift.min(Swift.max((u - cumulative[k]) / span, 0), 1) : 0
+            return points[k] + (points[k + 1] - points[k]) * f
+        }
+
+        /// Unit normal into the room at polyline parameter `u`: the wall normal for straight
+        /// walls, the radial direction (toward or away from the center) for curved walls.
+        func normal(at u: Float) -> SIMD3<Float> {
+            guard let center = arcCenter else { return wallNormal }
+            let radial = planPoint(u: u) - center
+            let length = simd_length(radial)
+            guard length > 1e-6 else { return wallNormal }
+            let inward = towardCenter ? -radial / length : radial / length
+            return PlanAxes.toWorld(inward, y: 0)
         }
 
         /// Polyline parameter of a distance measured along the chord (openings and spans use
@@ -279,18 +313,15 @@ extension CleanMeshBuilder {
 
         /// World point at polyline parameter `u`, `v` above the base, pushed `offset` along the normal.
         func point(u: Float, v: Float, offset: Float) -> SIMD3<Float> {
-            var k = 0
-            while k + 2 < cumulative.count && cumulative[k + 1] < u { k += 1 }
-            let span = cumulative[k + 1] - cumulative[k]
-            let f = span > 1e-9 ? Swift.min(Swift.max((u - cumulative[k]) / span, 0), 1) : 0
-            let plan = points[k] + (points[k + 1] - points[k]) * f
+            let plan = planPoint(u: u)
             let g = total > 1e-9 ? Swift.min(Swift.max(u / total, 0), 1) : 0
             let baseY = startY + (endY - startY) * g
-            return PlanAxes.toWorld(plan, y: baseY + v) + normal * offset
+            let world = PlanAxes.toWorld(plan, y: baseY + v)
+            return offset == 0 ? world : world + normal(at: u) * offset
         }
     }
 
-    /// Collects quads into one triangle mesh, winding each quad so its front faces the wall normal.
+    /// Collects quads into one triangle mesh, winding each quad so its front faces the room.
     struct MeshAccumulator {
         /// The mesh built so far.
         private(set) var mesh = TriangleMesh()
@@ -303,7 +334,7 @@ extension CleanMeshBuilder {
             let p01 = frame.point(u: u0, v: v1, offset: offset)
             let base = UInt32(mesh.positions.count)
             mesh.positions.append(contentsOf: [p00, p10, p11, p01])
-            let facing = simd_dot(simd_cross(p10 - p00, p01 - p00), frame.normal)
+            let facing = simd_dot(simd_cross(p10 - p00, p01 - p00), frame.normal(at: (u0 + u1) * 0.5))
             if facing >= 0 {
                 mesh.indices.append(contentsOf: [base, base + 1, base + 2, base, base + 2, base + 3])
             } else {
