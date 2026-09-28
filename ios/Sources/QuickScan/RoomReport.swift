@@ -36,6 +36,26 @@ struct RoomReport: Codable {
     var perimeter: Double
     var ceilingHeight: Double
     var wallArea: Double
+    /// "object" for object scans; nil (older files) or "room" for rooms.
+    var kind: String?
+    /// Object scans: bounding box size [width, height, depth] in meters.
+    var objectSize: [Double]?
+
+    var isObject: Bool { kind == "object" }
+
+    /// Report for an object scan (no walls or floor).
+    init(objectName: String, date: Date, size: [Double]) {
+        name = objectName
+        self.date = date
+        walls = []; doors = []; windows = []; openings = []; objects = []
+        floorPolygon = []
+        floorArea = nil
+        perimeter = 0
+        ceilingHeight = 0
+        wallArea = 0
+        kind = "object"
+        objectSize = size
+    }
 
     /// Builds the report from RoomPlan's result.
     init(room: CapturedRoom, name: String, date: Date) {
@@ -60,6 +80,8 @@ struct RoomReport: Codable {
         ceilingHeight = walls.map(\.height).max() ?? 0
         let openingArea = (doors + windows + openings).reduce(0.0) { $0 + $1.length * $1.height }
         wallArea = max(0, walls.reduce(0.0) { $0 + $1.length * $1.height } - openingArea)
+        kind = "room"
+        objectSize = nil
     }
 
     private static func confidenceText(_ confidence: CapturedRoom.Confidence) -> String {

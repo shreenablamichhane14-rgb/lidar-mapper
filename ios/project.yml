@@ -14,8 +14,8 @@ targets:
       path: Sources/Info.plist
       properties:
         CFBundleDisplayName: Mapper
-        CFBundleShortVersionString: "0.4"
-        CFBundleVersion: "4"
+        CFBundleShortVersionString: "0.5"
+        CFBundleVersion: "5"
         NSCameraUsageDescription: Mapper uses the camera and the LiDAR scanner to scan rooms and objects. Everything stays on this phone.
         NSPhotoLibraryAddUsageDescription: Mapper can save snapshots of your scans to Photos.
         NSLocalNetworkUsageDescription: Wireless debug lets a computer on your Wi-Fi read the troubleshooting log.
@@ -29,8 +29,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shreehub.mapper
-        MARKETING_VERSION: "0.4"
-        CURRENT_PROJECT_VERSION: "4"
+        MARKETING_VERSION: "0.5"
+        CURRENT_PROJECT_VERSION: "5"
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

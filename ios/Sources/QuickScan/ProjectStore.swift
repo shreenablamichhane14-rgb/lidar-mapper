@@ -1,5 +1,6 @@
 import Foundation
 import RoomPlan
+import ModelIO
 
 /// One saved scan on disk: Documents/Projects/<folder>/ with room.usdz, report.json,
 /// floorplan.pdf, floorplan.dxf and floorplan.svg. Files are never modified after saving.
@@ -12,6 +13,7 @@ struct SavedProject: Identifiable, Hashable {
     var pdfURL: URL { folder.appendingPathComponent("floorplan.pdf") }
     var dxfURL: URL { folder.appendingPathComponent("floorplan.dxf") }
     var svgURL: URL { folder.appendingPathComponent("floorplan.svg") }
+    var objectModelURL: URL { folder.appendingPathComponent("object.usdz") }
 
     static func == (lhs: SavedProject, rhs: SavedProject) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
@@ -63,6 +65,34 @@ enum ProjectStore {
         }
         LogStore.shared.write("saved project \(folder.lastPathComponent): walls \(report.walls.count), area \(report.floorArea ?? -1)", category: "project")
         return project
+    }
+
+    /// Saves an object scan whose photos and model are already in `folder`: measures the
+    /// model's bounding box, writes OBJ and STL copies (best effort) and report.json.
+    static func saveObject(folder: URL, modelURL: URL) throws -> SavedProject {
+        let asset = MDLAsset(url: modelURL)
+        let box = asset.boundingBox
+        let extent = box.maxBounds - box.minBounds
+        let size = [Double(extent.x), Double(extent.y), Double(extent.z)]
+        for ext in ["obj", "stl"] where MDLAsset.canExportFileExtension(ext) {
+            do {
+                try asset.export(to: folder.appendingPathComponent("object.\(ext)"))
+            } catch {
+                LogStore.shared.write("object \(ext) export failed: \(error.localizedDescription)", category: "project")
+            }
+        }
+        let title = DateFormatter()
+        title.dateStyle = .medium
+        title.timeStyle = .short
+        let date = Date()
+        let report = RoomReport(objectName: "Object \(title.string(from: date))", date: date, size: size)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(report).write(to: folder.appendingPathComponent("report.json"), options: .atomic)
+        try? FileManager.default.removeItem(at: folder.appendingPathComponent("Checkpoint", isDirectory: true))
+        LogStore.shared.write("saved object \(folder.lastPathComponent): size \(size)", category: "project")
+        return SavedProject(folder: folder, report: report)
     }
 
     /// All saved projects, newest first. Folders without a readable report are skipped.

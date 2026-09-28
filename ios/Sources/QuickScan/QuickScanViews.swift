@@ -6,23 +6,31 @@ import RoomPlan
 struct HomeView: View {
     @State private var projects: [SavedProject] = ProjectStore.list()
     @State private var scanning = false
+    @State private var objectScanning = false
     @State private var path: [SavedProject] = []
     @State private var saveError: String?
 
     var body: some View {
         NavigationStack(path: $path) {
             List {
-                Section {
+                Section(Copy.Home.newScan) {
                     Button {
                         scanning = true
                     } label: {
-                        Label(Copy.Home.newScan, systemImage: "viewfinder")
-                            .font(.title2.bold())
-                            .frame(maxWidth: .infinity, minHeight: 64)
+                        Label("Scan a room", systemImage: "square.split.bottomrightquarter")
+                            .font(.title3.bold())
+                            .frame(maxWidth: .infinity, minHeight: 56)
                     }
                     .buttonStyle(.borderedProminent)
-                    .listRowInsets(EdgeInsets())
                     .disabled(!RoomCaptureSession.isSupported)
+                    Button {
+                        objectScanning = true
+                    } label: {
+                        Label("Scan an object", systemImage: "cube")
+                            .font(.title3.bold())
+                            .frame(maxWidth: .infinity, minHeight: 56)
+                    }
+                    .buttonStyle(.bordered)
                     if !RoomCaptureSession.isSupported {
                         Text("This iPhone has no LiDAR scanner, so room scanning is not available.")
                             .font(.footnote).foregroundStyle(.secondary)
@@ -57,7 +65,11 @@ struct HomeView: View {
             }
             .navigationTitle("Mapper")
             .navigationDestination(for: SavedProject.self) { project in
-                RoomResultView(project: project)
+                if project.report.isObject {
+                    ObjectResultView(project: project)
+                } else {
+                    RoomResultView(project: project)
+                }
             }
         }
         .fullScreenCover(isPresented: $scanning) {
@@ -77,11 +89,24 @@ struct HomeView: View {
             })
             .ignoresSafeArea()
         }
+        .fullScreenCover(isPresented: $objectScanning) {
+            ObjectScanView(onFinished: { project in
+                projects = ProjectStore.list()
+                objectScanning = false
+                path = [project]
+            }, onCancel: {
+                objectScanning = false
+                projects = ProjectStore.list()
+            })
+        }
     }
 
     private func summary(_ report: RoomReport) -> String {
         let prefs = UnitPreferences.load()
         var parts: [String] = []
+        if report.isObject, let size = report.objectSize, size.count == 3 {
+            return "Object · " + [size[0], size[2], size[1]].map { LengthFormat.primary($0, prefs: prefs) }.joined(separator: " × ")
+        }
         if let area = report.floorArea { parts.append(AreaFormat.primary(area, prefs: prefs)) }
         parts.append("\(report.walls.count) walls, \(report.doors.count) doors, \(report.windows.count) windows")
         return parts.joined(separator: " · ")
