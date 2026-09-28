@@ -38,6 +38,7 @@ enum ExportSummaryJSON {
 
     /// The whole file.
     struct Document: Encodable {
+        /// Format name and version, project identity, the unit legend, rooms and saved measurements.
         var format: String
         var version: Int
         var project: ProjectEntry
@@ -48,6 +49,7 @@ enum ExportSummaryJSON {
 
     /// Project identity and dates.
     struct ProjectEntry: Encodable {
+        /// Identifier, name, scan mode, dates and room count.
         var id: String
         var name: String
         var kind: String
@@ -58,6 +60,7 @@ enum ExportSummaryJSON {
 
     /// The units and axes every number uses (fixed, machine-readable).
     struct UnitsEntry: Encodable {
+        /// Unit of each kind of number and the axis convention.
         var length = "meters"
         var area = "square meters"
         var volume = "cubic meters"
@@ -67,6 +70,7 @@ enum ExportSummaryJSON {
 
     /// A measured number with its one-sigma uncertainty and where it came from.
     struct ValueEntry: Encodable {
+        /// Value, one-sigma uncertainty (nil when unknown), provenance and the low-confidence flag.
         var value: Double
         var sigma: Double?
         var provenance: String
@@ -75,6 +79,7 @@ enum ExportSummaryJSON {
 
     /// One room.
     struct RoomEntry: Encodable {
+        /// Identity and title, metrics by row key, floor, walls, openings, objects and quality.
         var id: String
         var recordID: String
         var title: String
@@ -91,6 +96,7 @@ enum ExportSummaryJSON {
 
     /// Floor outline (plan meters) and elevation.
     struct FloorEntry: Encodable {
+        /// Outline points, elevation, occluded area and provenance.
         var outline: [[Double]]
         var elevation: Double
         var occludedArea: Double
@@ -99,6 +105,7 @@ enum ExportSummaryJSON {
 
     /// One wall: base line, thickness and its three measurements.
     struct WallEntry: Encodable {
+        /// Base line, thickness and its source, shape, confidence, provenance and measurements.
         var id: String
         var start: [Double]
         var end: [Double]
@@ -114,6 +121,7 @@ enum ExportSummaryJSON {
 
     /// One door, window or opening.
     struct OpeningEntry: Encodable {
+        /// Kind, host wall, position on the wall, measurements, swing and provenance.
         var id: String
         var kind: String
         var wallID: String?
@@ -128,6 +136,7 @@ enum ExportSummaryJSON {
 
     /// Door swing.
     struct SwingEntry: Encodable {
+        /// Hinge side, opening side and where the swing came from.
         var hingeAtStart: Bool
         var opensToNormalSide: Bool
         var source: String
@@ -135,6 +144,7 @@ enum ExportSummaryJSON {
 
     /// One detected object as an oriented box.
     struct ObjectEntry: Encodable {
+        /// Category and label, box center, size and yaw, flags, confidence and measurements.
         var id: String
         var category: String
         var categoryName: String
@@ -153,6 +163,7 @@ enum ExportSummaryJSON {
 
     /// Scan quality scores (0...1) of the room.
     struct QualityEntry: Encodable {
+        /// Scores, missing area count and verdict.
         var shape: Double
         var walls: Double
         var floor: Double
@@ -164,6 +175,7 @@ enum ExportSummaryJSON {
 
     /// One saved measurement.
     struct MeasurementEntry: Encodable {
+        /// Identity, kind, value, source, room, points and creation time.
         var id: String
         var name: String
         var kind: String

@@ -105,8 +105,9 @@ extension ExportUISelfTest {
     private static func packageChecks(_ log: inout ExportUISelfTestLog, package: ProjectPackage, manifest: ProjectManifest) {
         typealias F = ExportUISelfTestFixtures
         let inputs = ExportCatalog.inputs(package: package, manifest: manifest)
-        log.expect("inputs.fromDisk", inputs.hasClean && inputs.hasPlan && inputs.hasMesh && !inputs.hasTexture
-                   && !inputs.hasKeyframes && !inputs.hasCapturedRoom && !inputs.hasEdits, "\(inputs)")
+        let present: Bool = inputs.hasClean && inputs.hasPlan && inputs.hasMesh
+        let absent: Bool = !inputs.hasTexture && !inputs.hasKeyframes && !inputs.hasCapturedRoom && !inputs.hasEdits
+        log.expect("inputs.fromDisk", present && absent, "\(inputs)")
         log.expect("inputs.meshTriangles", inputs.meshTriangles == 8, "got \(inputs.meshTriangles)")
         let room = F.roomID.uuid
         do {
@@ -115,8 +116,10 @@ extension ExportUISelfTest {
             log.expect("raw.inferredSeparate", full.meshes.count == 2 && full.meshes.last?.name == MeshExportAdapter.inferredName)
             log.expect("raw.classColors", full.meshes.first?.colors != nil)
             let view = try ExportAdapters.rawScene(package, room: room, maxTextTriangles: 4)
-            log.expect("raw.viewAboveLimit", view.meshes.first?.triangleCount == 2
-                       && view.metadata["note"] == Copy.ExportUI.simplifiedNote && view.meshes.count == 2)
+            let viewTriangles: Int = view.meshes.first?.triangleCount ?? -1
+            let viewNote: String = view.metadata["note"] ?? ""
+            log.expect("raw.viewAboveLimit", viewTriangles == 2 && viewNote == Copy.ExportUI.simplifiedNote
+                       && view.meshes.count == 2)
         } catch {
             log.fail("raw.scene", error)
         }
@@ -138,10 +141,12 @@ extension ExportUISelfTest {
     /// share cleanup and stale staging removal (Results' `exports/simple/` kept).
     private static func runnerChecks(_ log: inout ExportUISelfTestLog, package: ProjectPackage) {
         typealias F = ExportUISelfTestFixtures
+        /// One export of the temporary package with default settings at the fixed date.
         func export(_ representation: ExportRepresentation, _ format: ExportFileFormat) throws -> URL {
             try ExportRunner.perform(option(representation, format), settings: ExportSettings(), viewState: .standard,
                                      projectID: F.projectID, package: package, prefs: .standard, now: F.date)
         }
+        /// The first `count` bytes of a file as text (empty when unreadable).
         func head(_ url: URL, _ count: Int) -> String {
             let data = (try? Data(contentsOf: url)) ?? Data()
             return String(decoding: data.prefix(count), as: UTF8.self)
@@ -203,8 +208,10 @@ extension ExportUISelfTest {
         try? FileManager.default.createDirectory(at: simple, withIntermediateDirectories: true)
         let removed = ExportRunner.removeStaleStaging(inExports: package.exportsURL, olderThan: 86_400,
                                                       now: F.date.addingTimeInterval(2 * 86_400))
-        log.expect("staging.staleRemoved", removed == before.count - (urls.isEmpty ? 0 : 1) && stagingFolders(package).isEmpty,
-                   "removed \(removed)")
+        let alreadyRemoved: Int = urls.isEmpty ? 0 : 1
+        let expectedRemoved: Int = before.count - alreadyRemoved
+        let noneLeft: Bool = stagingFolders(package).isEmpty
+        log.expect("staging.staleRemoved", removed == expectedRemoved && noneLeft, "removed \(removed)")
         log.expect("staging.simpleKept", FileManager.default.fileExists(atPath: simple.path))
     }
 

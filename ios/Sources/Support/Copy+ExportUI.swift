@@ -1,5 +1,7 @@
 import Foundation
 
+/// Export sheet strings added by the ExportUI module (docs/MODULES.md 3.27). `Copy.Export`
+/// itself is declared in `Copy.swift`; this file adds the new `Copy.ExportUI` enum only.
 extension Copy {
     /// Export sheet text that `Copy.Export` does not already hold (ExportUI, docs/MODULES.md 3.27,
     /// docs/UX_COPY.md section 14): section titles, option labels, availability reasons and the

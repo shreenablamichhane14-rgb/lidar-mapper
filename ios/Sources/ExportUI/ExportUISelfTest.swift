@@ -68,11 +68,12 @@ enum ExportUISelfTest {
 
         var big = F.demoInputs()
         big.meshTriangles = ExportCatalog.textTriangleLimit + 1
-        let simplifiedOK = ExportCatalog.isSimplified(option(.raw, .obj), inputs: big)
-            && ExportCatalog.isSimplified(option(.raw, .usdz), inputs: big)
-            && !ExportCatalog.isSimplified(option(.raw, .ply), inputs: big)
-            && !ExportCatalog.isSimplified(option(.clean, .obj), inputs: big)
-            && !ExportCatalog.isSimplified(option(.raw, .obj), inputs: F.demoInputs())
+        let bigObj: Bool = ExportCatalog.isSimplified(option(.raw, .obj), inputs: big)
+        let bigUSDZ: Bool = ExportCatalog.isSimplified(option(.raw, .usdz), inputs: big)
+        let bigPLY: Bool = ExportCatalog.isSimplified(option(.raw, .ply), inputs: big)
+        let bigClean: Bool = ExportCatalog.isSimplified(option(.clean, .obj), inputs: big)
+        let smallObj: Bool = ExportCatalog.isSimplified(option(.raw, .obj), inputs: F.demoInputs())
+        let simplifiedOK: Bool = bigObj && bigUSDZ && !bigPLY && !bigClean && !smallObj
         log.expect("catalog.simplifiedNoteRule", simplifiedOK)
     }
 
@@ -121,6 +122,7 @@ enum ExportUISelfTest {
         log.expect("staging.simpleNeverStale",
                    !ExportRunner.isStale(folderName: "simple", olderThan: day, now: F.date.addingTimeInterval(10 * day)))
 
+        /// `usesRoomPlanUSDZ` with every input eligible unless overridden.
         func rule(rooms: Int = 1, finalRoom: Bool = true, edits: Bool = false, furniture: Bool = true, hide: Bool = false,
                   includeHidden: Bool = false, hidden: Bool = false) -> Bool {
             ExportRunner.usesRoomPlanUSDZ(roomCount: rooms, hasFinalCapturedRoom: finalRoom, hasActiveEdits: edits,
@@ -130,8 +132,10 @@ enum ExportUISelfTest {
         log.expect("roomPlanUSDZ.eligible", rule())
         log.expect("roomPlanUSDZ.hideFurniture", !rule(hide: true))
         log.expect("roomPlanUSDZ.includeHidden", rule(hide: true, includeHidden: true))
-        log.expect("roomPlanUSDZ.rejects", !rule(rooms: 2) && !rule(finalRoom: false) && !rule(edits: true)
-                   && !rule(furniture: false) && !rule(hidden: true))
+        let rejectsRooms: Bool = !rule(rooms: 2) && !rule(finalRoom: false)
+        let rejectsEdits: Bool = !rule(edits: true) && !rule(furniture: false)
+        let rejectsHidden: Bool = !rule(hidden: true)
+        log.expect("roomPlanUSDZ.rejects", rejectsRooms && rejectsEdits && rejectsHidden)
 
         let error = ExportError.writeFailed(path: "Private Name.usdz", reason: "disk")
         let text = ExportRunner.logDescription(error)
@@ -173,8 +177,10 @@ enum ExportUISelfTest {
         let merged = ExportAdapters.merged([full, hideFurniture])
         let second = merged.meshes.count > full.meshes.count ? merged.meshes[full.meshes.count] : nil
         let expectedIndex = hideFurniture.meshes.first?.materialIndex.map { $0 + full.materials.count }
-        log.expect("merge.counts", merged.meshes.count == full.meshes.count + hideFurniture.meshes.count
-                   && merged.materials.count == full.materials.count + hideFurniture.materials.count)
+        let expectedMeshes: Int = full.meshes.count + hideFurniture.meshes.count
+        let expectedMaterials: Int = full.materials.count + hideFurniture.materials.count
+        let countsOK: Bool = merged.meshes.count == expectedMeshes && merged.materials.count == expectedMaterials
+        log.expect("merge.counts", countsOK)
         log.expect("merge.materialOffset", second?.materialIndex != nil && second?.materialIndex == expectedIndex)
         do {
             try merged.validate()
@@ -200,9 +206,10 @@ enum ExportUISelfTest {
             log.expect("plan.furnitureOn", F.count(on, layer: PlanLayers.furniture) > 0)
             let noFurniture = try ExportAdapters.planDrawing(plan: plan, clean: model, name: "Demo", prefs: prefs,
                                                              toggles: off, includeHidden: false)
-            log.expect("plan.furnitureOffNoAFURN", F.count(noFurniture, layer: PlanLayers.furniture) == 0
-                       && !noFurniture.layers.contains { $0.name == PlanLayers.furniture }
-                       && F.count(noFurniture, layer: PlanLayers.walls) > 0)
+            let furnitureEntities: Int = F.count(noFurniture, layer: PlanLayers.furniture)
+            let furnitureLayer: Bool = noFurniture.layers.contains { $0.name == PlanLayers.furniture }
+            let wallEntities: Int = F.count(noFurniture, layer: PlanLayers.walls)
+            log.expect("plan.furnitureOffNoAFURN", furnitureEntities == 0 && !furnitureLayer && wallEntities > 0)
             let shown = try ExportAdapters.planDrawing(plan: plan, clean: model, name: "Demo", prefs: prefs,
                                                        toggles: .standard, includeHidden: true)
             log.expect("plan.includeHiddenFixture",
