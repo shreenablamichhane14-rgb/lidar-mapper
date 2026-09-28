@@ -68,6 +68,23 @@ extension ScanFlowModel {
         case .resume:
             resume()
         }
+        if followUp != .stay {
+            afterPresentationGap(followUp)
+        }
+    }
+
+    /// Runs a follow-up once the alert that just closed has finished animating out, so the next
+    /// alert, the capture or the cover's dismissal never overlaps it.
+    func afterPresentationGap(_ followUp: ScanAlertFollowUp) {
+        let delay = UInt64(presentationGapRemaining() * 1_000_000_000)
+        Task { [weak self] in
+            if delay > 0 { try? await Task.sleep(nanoseconds: delay) }
+            self?.runFollowUp(followUp)
+        }
+    }
+
+    /// Runs a follow-up now.
+    func runFollowUp(_ followUp: ScanAlertFollowUp) {
         switch followUp {
         case .stay:
             break

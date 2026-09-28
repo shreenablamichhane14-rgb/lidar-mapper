@@ -157,10 +157,10 @@ enum ScanUISelfTest {
             return alert.title.isEmpty || alert.body.isEmpty || alert.actions.isEmpty
         }
         c.check("alerts.everyErrorHasText", emptyErrors.isEmpty, "\(emptyErrors.map { $0.copyKey })")
-        c.check("alerts.cameraDeniedButtons", ScanErrorCopy.alert(for: .cameraDenied).actions == [.openSettings, .ok])
-        c.check("alerts.trackingButtons", ScanErrorCopy.alert(for: .trackingFailed).actions == [.resume, .finishNow])
+        c.check("alerts.cameraDeniedButtons", ScanErrorCopy.alert(for: MapperError.cameraDenied).actions == [.openSettings, .ok])
+        c.check("alerts.trackingButtons", ScanErrorCopy.alert(for: MapperError.trackingFailed).actions == [.resume, .finishNow])
         c.check("alerts.noticeOnlyOK", ScanErrorCopy.notice(for: .trackingFailed).actions == [.ok])
-        c.check("alerts.heatText", ScanErrorCopy.alert(for: .deviceTooHot).title == Copy.RoomCapture.tooHotFinished.title)
+        c.check("alerts.heatText", ScanErrorCopy.alert(for: MapperError.deviceTooHot).title == Copy.RoomCapture.tooHotFinished.title)
         let issues: [PreflightIssue] = [.cameraDenied, .cameraUndetermined, .noLidar, .lowStorage(free: 1),
                                         .storageWarning(free: 2_000_000_000), .lowBattery(0.1), .deviceHot]
         let emptyIssues = issues.filter { ScanErrorCopy.alert(for: $0).title.isEmpty }
