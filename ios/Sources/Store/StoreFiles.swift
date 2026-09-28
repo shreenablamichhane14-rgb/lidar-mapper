@@ -21,15 +21,26 @@ enum StoreFiles {
         return FileManager.default.fileExists(atPath: url.path, isDirectory: &isFolder) && isFolder.boolValue
     }
 
-    /// True when `url` lies strictly inside `root`, comparing standardized path components
-    /// lexically (the same rule as `RawScanFolder.resolve`), so it never depends on whether
-    /// the files exist.
+    /// True when `url` lies strictly inside `root`, comparing path components lexically, so
+    /// it never depends on whether the files exist. `standardizedFileURL` is not used because
+    /// it drops a leading "/private" only for paths that exist; instead "." components are
+    /// ignored and a leading "/private" is dropped on both sides. A ".." below `root` fails.
     static func isInside(_ url: URL, root: URL) -> Bool {
-        let base = root.standardizedFileURL.pathComponents
-        let parts = url.standardizedFileURL.pathComponents
+        let base = lexicalComponents(root)
+        let parts = lexicalComponents(url)
         guard parts.count > base.count else { return false }
         guard Array(parts.prefix(base.count)) == base else { return false }
         return !parts.dropFirst(base.count).contains("..")
+    }
+
+    /// Path components without "." entries and without a leading "/private" (so
+    /// "/private/var/x" and "/var/x" compare equal).
+    private static func lexicalComponents(_ url: URL) -> [String] {
+        var parts = url.pathComponents.filter { $0 != "." }
+        if parts.count > 2, parts[0] == "/", parts[1] == "private" {
+            parts.remove(at: 1)
+        }
+        return parts
     }
 
     /// The project id of a package whose folder is named `<UUID>.mapperproj`, else nil.

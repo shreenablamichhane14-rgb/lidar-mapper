@@ -33,7 +33,7 @@ extension StoreSelfTest {
 
             let second = try InProgressScans.create(scanInfo(33), root: root)
             t.check("seal.existingDestinationThrows", throwsError {
-                try InProgressScans.seal(second, into: destination, package: package, root: root)
+                _ = try InProgressScans.seal(second, into: destination, package: package, root: root)
             })
             let untouched = StoreFiles.isDirectory(second.url) && !InProgressScans.isSealed(scanID: fixedID(33), root: root)
             t.check("seal.failureLeavesFolder", untouched)
@@ -47,7 +47,7 @@ extension StoreSelfTest {
             let third = try InProgressScans.create(scanInfo(34), root: root)
             let outside = base.appendingPathComponent("elsewhere", isDirectory: true)
             t.check("seal.outsidePackageThrows", throwsError {
-                try InProgressScans.seal(third, into: outside, package: package, root: root)
+                _ = try InProgressScans.seal(third, into: outside, package: package, root: root)
             } && !StoreFiles.exists(third.sealURL))
 
             let withRooms = try ManifestWriter.update(package, now: fixedDate(20)) { manifest in
@@ -118,9 +118,10 @@ extension StoreSelfTest {
                 let queue = DispatchQueue(label: "mapper.store.selftest.\(queueIndex)")
                 queue.async(group: group) {
                     for step in 0..<25 {
-                        let record = roomRecord(fixedID(1000 + queueIndex * 100 + step), session: session)
+                        let recordID = StoreSelfTest.fixedID(1000 + queueIndex * 100 + step)
+                        let record = StoreSelfTest.roomRecord(recordID, session: session)
                         do {
-                            try ManifestWriter.update(package, now: fixedDate(100)) { manifest in
+                            try ManifestWriter.update(package, now: StoreSelfTest.fixedDate(100)) { manifest in
                                 manifest.rooms.append(record)
                             }
                         } catch {
@@ -142,14 +143,14 @@ extension StoreSelfTest {
             }
             t.check("manifest.idKept", renamed.id == original.id && renamed.name == "Renamed")
             t.check("manifest.nestedRefused", throwsError {
-                try ManifestWriter.update(package) { _ in
-                    try ManifestWriter.update(package) { _ in }
+                _ = try ManifestWriter.update(package) { _ in
+                    _ = try ManifestWriter.update(package) { _ in }
                 }
             })
-            t.check("manifest.lockReleased", !throwsError { try ManifestWriter.update(package, now: fixedDate(300)) { _ in } })
+            t.check("manifest.lockReleased", !throwsError { _ = try ManifestWriter.update(package, now: fixedDate(300)) { _ in } })
 
             try StorePackageOps.deletePackage(package)
-            let refused = throwsError { try ManifestWriter.update(package) { _ in } }
+            let refused = throwsError { _ = try ManifestWriter.update(package) { _ in } }
             t.check("manifest.noGhostAfterDelete", refused && !StoreFiles.exists(package.root))
         } catch {
             t.fail("manifest", error)
@@ -185,7 +186,7 @@ extension StoreSelfTest {
             let damaged = Data("{".utf8)
             try damaged.write(to: package.editLogURL)
             t.check("edits.damagedLoadsEmpty", EditStore.load(package) == EditLog())
-            let refused = throwsError { try EditStore.append(first, to: package) }
+            let refused = throwsError { _ = try EditStore.append(first, to: package) }
             let kept = (try? Data(contentsOf: package.editLogURL)) == damaged
             t.check("edits.damagedNotOverwritten", refused && kept)
         } catch {

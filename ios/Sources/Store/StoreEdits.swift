@@ -19,7 +19,7 @@ enum EditStore {
 
     /// The edit log; empty when absent or unreadable (logged).
     static func load(_ package: ProjectPackage) -> EditLog {
-        locked {
+        locked { () -> EditLog in
             do {
                 return try readLog(package)
             } catch {
