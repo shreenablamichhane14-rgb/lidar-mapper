@@ -110,6 +110,7 @@ enum GuidanceUISelfTest {
     /// `shouldFireHaptic`: tier 1 only, cooldown, setting, and odd clocks.
     private static func hapticChecks(_ failures: inout [String]) {
         let cooldown = GuidancePolicy.hapticCooldownSeconds
+        /// Shorthand for the announcer's pure haptic decision.
         func fire(_ kind: GuidanceKind, _ now: Double, _ last: Double?, _ enabled: Bool) -> Bool {
             GuidanceAnnouncer.shouldFireHaptic(kind: kind, now: now, lastHaptic: last, enabled: enabled)
         }
@@ -135,6 +136,7 @@ enum GuidanceUISelfTest {
     /// Feedback set mapping and priority.
     private static func feedbackChecks(_ failures: inout [String]) {
         typealias Feedback = ObjectCaptureSession.Feedback
+        /// Shorthand for the feedback set mapping.
         func mapped(_ items: Set<Feedback>) -> GuidanceKind? { GuidanceSignals.guidance(for: items) }
 
         let fastAndFar: Set<Feedback> = [.movingTooFast, .objectTooFar]
@@ -200,7 +202,7 @@ enum GuidanceUISelfTest {
     private static func announcerChecks(_ failures: inout [String]) {
         typealias Decision = GuidanceAnnouncerState.Decision
         var state = GuidanceAnnouncerState()
-        let cooldown = GuidancePolicy.hapticCooldownSeconds
+        let afterCooldown: Double = 2 + GuidancePolicy.hapticCooldownSeconds + 0.5
 
         let steps: [(name: String, kind: GuidanceKind?, now: Double, want: Decision)] = [
             (name: "idle", kind: nil, now: 0,
@@ -215,14 +217,14 @@ enum GuidanceUISelfTest {
              want: Decision(announce: .deviceHot, highPriority: true, fireHaptic: false)),
             (name: "hidden", kind: nil, now: 4,
              want: .quiet),
-            (name: "tier1AfterCooldown", kind: .trackingLow, now: 2 + cooldown + 0.5,
+            (name: "tier1AfterCooldown", kind: .trackingLow, now: afterCooldown,
              want: Decision(announce: .trackingLow, highPriority: true, fireHaptic: true)),
         ]
         for step in steps {
             let got = state.present(step.kind, now: step.now, hapticsEnabled: true)
             check(&failures, "announcer.\(step.name)", got == step.want, "got \(got)")
         }
-        check(&failures, "announcer.lastHaptic", state.lastHaptic == 2 + cooldown + 0.5,
+        check(&failures, "announcer.lastHaptic", state.lastHaptic == afterCooldown,
               "lastHaptic \(String(describing: state.lastHaptic))")
 
         var muted = GuidanceAnnouncerState()

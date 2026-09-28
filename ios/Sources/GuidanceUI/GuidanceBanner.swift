@@ -30,15 +30,15 @@ struct GuidanceBanner: View {
         self.kind = kind
     }
 
-    /// Top-aligned container that animates the pill in, out and between messages.
+    /// Top-aligned container that animates the pill in, out and between messages. A `ZStack`
+    /// lets the leaving and the arriving pill overlap instead of stacking during the transition.
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .top) {
             if let kind {
                 pill(for: kind)
                     .id(kind)
                     .transition(pillTransition)
             }
-            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.horizontal, GuidanceBanner.sideMargin)
