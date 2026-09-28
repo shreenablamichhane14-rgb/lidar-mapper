@@ -13,7 +13,7 @@ struct MapperApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
         }
         .onChange(of: scenePhase) { _, phase in
             LogStore.shared.write("app \(phase == .active ? "active" : phase == .background ? "background" : "inactive")", category: "app")
