@@ -42,6 +42,7 @@ struct ContentView: View {
         SelfTestSuite(name: "Guidance UI", run: GuidanceUISelfTest.run),
         SelfTestSuite(name: "Pipeline", run: PipelineSelfTest.run),
         SelfTestSuite(name: "Mesh model", run: MeshModelSelfTest.run),
+        SelfTestSuite(name: "Store", run: StoreSelfTest.run),
     ]
 
     @State private var results: [SelfTestResult] = []
