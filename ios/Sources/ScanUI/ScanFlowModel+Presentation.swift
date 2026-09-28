@@ -30,6 +30,14 @@ extension ScanFlowModel {
         alert != nil && !showsAlertAsNotice
     }
 
+    /// Binding target of the system alert (`$model.systemAlertPresented`): reads
+    /// `showsSystemAlert`; writes are ignored, because every alert closes through its buttons
+    /// (`alertAction`), which clear `alert`.
+    var systemAlertPresented: Bool {
+        get { showsSystemAlert }
+        set { _ = newValue }
+    }
+
     /// Shows an alert (replacing any other; an `.endFlow` follow-up is never dropped) and logs
     /// it. A notice over the sheet is also announced to VoiceOver.
     func present(_ newAlert: ScanAlert, followUp: ScanAlertFollowUp) {
