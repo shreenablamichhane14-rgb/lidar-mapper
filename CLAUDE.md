@@ -10,6 +10,7 @@ This repository is PUBLIC. Never commit personal data: no names of people, email
 - Build 1 = skeleton: capability probe screen (ARKit mesh, scene depth, RoomPlan, Object Capture, photogrammetry support), LogStore, DebugServer (port 8765), haptics/device state, app icon. Deployment target iOS 18.0, Swift 5.9 language mode. Proves ARKit + RoomPlan + RealityKit Object Capture link on Xcode 26.6 (build time about 45 s).
 - Merged from cloud sessions: `docs/TEST_PLAN.md` (on-device acceptance tests), `docs/UX_COPY.md` + `ios/Sources/Support/Copy.swift` (all user-facing text), `ios/Sources/Units/` (feet-inches and metric formatting, parsing, 40+ case self-test run at launch).
 - Test device: iPhone 13 Pro Max (A15, 6 GB, LiDAR) on iOS 18.3.2. A second device on iOS 26 later.
+- Build 2 (0.2) installed and run on the test device 2026-09-28: LiDAR mesh, scene depth, RoomPlan, Object Capture and on-device photogrammetry all reported supported; units self-test passed on device. Install is fully automatic when Sideloadly has the Apple ID session cached (no password prompt).
 - Research pass (multi-agent, adversarially verified) in progress; output goes to `docs/RESEARCH.md`. Architecture follows in `docs/ARCHITECTURE.md` and `docs/MODULES.md`.
 
 ## Architecture / Key Files
