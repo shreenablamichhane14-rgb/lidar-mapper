@@ -1,0 +1,94 @@
+name: ios-build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios-build.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen (prebuilt release, faster than brew)
+        run: |
+          set -e
+          curl -sSL -o /tmp/xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/latest/download/xcodegen.zip
+          unzip -q -o /tmp/xcodegen.zip -d /tmp/xcodegen
+          sudo cp /tmp/xcodegen/xcodegen/bin/xcodegen /usr/local/bin/xcodegen
+          mkdir -p /usr/local/share
+          sudo cp -R /tmp/xcodegen/xcodegen/share/* /usr/local/share/ 2>/dev/null || true
+          xcodegen --version
+
+      - name: Generate project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Restore DerivedData cache
+        uses: actions/cache@v4
+        with:
+          path: ios/build
+          key: deriveddata-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-${{ github.sha }}
+          restore-keys: |
+            deriveddata-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-
+            deriveddata-${{ runner.os }}-
+
+      - name: Build (unsigned)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Mapper.xcodeproj \
+            -scheme Mapper \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log | grep -E "error:|warning: .*deprecated|BUILD|Compiling|Linking" || true
+          grep -q "BUILD SUCCEEDED" build.log
+
+      - name: Compiler errors (only on failure)
+        if: failure()
+        working-directory: ios
+        run: |
+          echo "===== COMPILER ERRORS (file:line:col: message) ====="
+          grep -E "^/.*\.swift:[0-9]+:[0-9]+: error: " build.log | sed 's#^.*/ios/##' | sort -u | head -200 || true
+          echo "===== OTHER ERROR LINES ====="
+          grep -E "error:" build.log | grep -v -E "^/.*\.swift:[0-9]+:[0-9]+: error: " | sort -u | head -50 || true
+          echo "===== END ====="
+
+      - name: Package IPA
+        working-directory: ios
+        run: |
+          cd build/Build/Products/Release-iphoneos
+          rm -rf Payload && mkdir Payload
+          cp -R Mapper.app Payload/
+          zip -qr Mapper.ipa Payload
+          ls -la Mapper.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mapper-ipa
+          path: ios/build/Build/Products/Release-iphoneos/Mapper.ipa
+          if-no-files-found: error
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: ios/build.log

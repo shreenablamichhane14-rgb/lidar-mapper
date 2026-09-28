@@ -1,0 +1,762 @@
+You are a senior iOS engineer, AR/3D computer-vision engineer, CAD/geometry engineer, and product designer.
+
+Your task is to design and build a professional-grade iPhone 3D mapping application that uses the iPhone’s LiDAR scanner, cameras, IMU, ARKit, RoomPlan where appropriate, and other native Apple frameworks.
+
+The goal is to create a completely local, privacy-focused, easy-to-use alternative to premium LiDAR scanning and floor-plan applications.
+
+The application must be usable by a complete amateur while still offering advanced functionality expected from professional paid mapping applications.
+
+The application should support scanning:
+
+* A single room
+* Multiple connected rooms
+* Entire houses/buildings
+* Commercial spaces
+* Restaurants
+* Offices
+* Warehouses
+* Outdoor structures when technically possible
+* Furniture
+* Appliances
+* Equipment
+* Vehicles
+* Boxes
+* Small/medium physical objects
+* Arbitrary physical objects where LiDAR/camera reconstruction is feasible
+
+The application should use both LiDAR geometry and camera imagery whenever possible.
+
+The final result should not only be a rough point cloud.
+
+The user should be able to obtain:
+
+1. A realistic textured 3D model
+2. A high-detail LiDAR mesh
+3. A clean architectural 3D model
+4. A 2D floor plan
+5. Measurements
+6. Object dimensions
+7. Room dimensions
+8. Surface area
+9. Floor area
+10. Ceiling height
+11. Distance measurements
+12. Images/photos associated with scanned locations
+13. Editable detected objects
+14. Exportable professional files
+
+==================================================
+CORE DESIGN PRINCIPLE
+=====================
+
+The application must maintain multiple representations of the same scan whenever possible.
+
+Representation A — RAW SCAN
+
+Preserve the highest practical amount of sensor data, including:
+
+* LiDAR mesh
+* ARKit anchors
+* camera poses
+* camera frames where permitted
+* depth information
+* confidence information
+* feature points
+* detected planes
+* world transforms
+* timestamps
+* device orientation
+* calibration information where available
+
+Never destroy the original raw scan when the user edits the project.
+
+Representation B — REALISTIC MODEL
+
+Generate a visually realistic 3D reconstruction using:
+
+* LiDAR geometry
+* RGB camera imagery
+* texture projection
+* photogrammetry techniques where appropriate
+* mesh cleanup
+* hole filling where mathematically reasonable
+* texture blending
+* mesh simplification for performance
+
+Representation C — CLEAN MODEL
+
+Generate a simplified CAD/architectural representation containing:
+
+* walls
+* floors
+* ceilings
+* doors
+* windows
+* openings
+* stairs where detectable
+* counters
+* cabinets
+* furniture
+* appliances
+* structural features
+* other recognized objects
+
+Representation D — 2D FLOOR PLAN
+
+Automatically create a top-down floor plan from the reconstructed geometry.
+
+Representation E — OBJECT MODEL
+
+When scanning an individual object, generate an isolated 3D object rather than treating it as a room.
+
+==================================================
+SCANNING MODES
+==============
+
+The home screen should contain a large button:
+
+NEW SCAN
+
+When selected, offer simple options:
+
+ROOM
+
+HOUSE / BUILDING
+
+OBJECT
+
+QUICK MEASURE
+
+ADVANCED SCAN
+
+The application should choose sensible defaults automatically.
+
+The user should not need to understand LiDAR, meshes, polygons, SLAM, AR anchors, point clouds, or photogrammetry.
+
+==================================================
+ROOM SCANNING
+=============
+
+Room mode should prioritize:
+
+* walls
+* floor
+* ceiling
+* doors
+* windows
+* openings
+* structural boundaries
+* furniture
+* permanent fixtures
+
+Use RoomPlan where appropriate.
+
+Use ARKit LiDAR mesh data in parallel when useful.
+
+Do not rely exclusively on RoomPlan because the application must preserve detailed geometry.
+
+After scanning, allow the user to switch between:
+
+REALISTIC
+
+3D CLEAN
+
+FLOOR PLAN
+
+RAW MESH
+
+==================================================
+HOUSE / BUILDING MODE
+=====================
+
+Allow multiple rooms to be scanned separately and combined into one structure.
+
+The application must:
+
+* preserve room relationships
+* recognize shared walls
+* maintain coordinate alignment
+* detect doorways connecting rooms
+* combine rooms into one building model
+* support multiple floors when technically possible
+* allow manual correction when automatic alignment fails
+
+Show progress such as:
+
+Dining Room ✓
+
+Kitchen ✓
+
+Bathroom ✓
+
+Bedroom 1 ✓
+
+Hallway needs additional scan
+
+Allow the user to return to incomplete sections.
+
+==================================================
+OBJECT SCANNING
+===============
+
+Object scanning must behave differently from architectural scanning.
+
+Examples:
+
+* chair
+* table
+* appliance
+* machine
+* sculpture
+* box
+* equipment
+* vehicle component
+* decorative object
+
+Guide the user around the object.
+
+The application should instruct:
+
+Move around the object slowly.
+
+Capture the left side.
+
+Capture the back.
+
+Capture the top.
+
+Move closer to this area.
+
+This section needs more detail.
+
+Attempt to separate the target object from its background.
+
+Use camera images for textures whenever possible.
+
+Create:
+
+* textured mesh
+* untextured mesh
+* bounding box
+* width
+* height
+* depth
+* estimated volume where mathematically valid
+
+Allow the user to manually crop unwanted geometry.
+
+==================================================
+IMAGE / TEXTURE CAPTURE
+=======================
+
+This is extremely important.
+
+Where technically possible, use the iPhone camera to create realistic textures for the 3D geometry.
+
+Do not simply create a gray LiDAR mesh.
+
+Capture camera imagery and associate images with camera poses.
+
+Use those images to texture the reconstructed mesh.
+
+Handle:
+
+* exposure differences
+* lighting changes
+* overlapping images
+* perspective differences
+* texture seams
+
+Preserve original image quality where practical.
+
+If a perfect texture reconstruction is not possible, produce the best available result while preserving geometry.
+
+Provide modes such as:
+
+PHOTO REALISTIC
+
+TEXTURED
+
+SOLID COLOR
+
+WIREFRAME
+
+RAW MESH
+
+==================================================
+LIVE SCANNING EXPERIENCE
+========================
+
+During scanning, provide real-time visual guidance.
+
+The user should see the model forming while walking.
+
+Use visual indicators such as:
+
+GREEN = scanned well
+
+YELLOW = partially scanned
+
+RED = missing information
+
+GRAY = not scanned
+
+Provide messages such as:
+
+Move slower.
+
+Scan this corner.
+
+Point toward the floor.
+
+Scan the ceiling.
+
+Move closer.
+
+Too close.
+
+Too far.
+
+Window detected.
+
+Door detected.
+
+Wall detected.
+
+Tracking quality is low.
+
+Lighting is poor.
+
+This area needs another pass.
+
+Do not overwhelm the user.
+
+Only show important instructions.
+
+==================================================
+SCAN QUALITY SYSTEM
+===================
+
+Develop a scan-completeness system.
+
+Track coverage for surfaces and geometry.
+
+Before allowing the user to finish, show:
+
+SCAN QUALITY
+
+Geometry: 94%
+
+Walls: 100%
+
+Floor: 98%
+
+Ceiling: 82%
+
+Textures: 91%
+
+Missing areas: 3
+
+Allow:
+
+FINISH ANYWAY
+
+or
+
+SHOW MISSING AREAS
+
+Selecting SHOW MISSING AREAS should guide the user directly to locations requiring additional scanning.
+
+==================================================
+AUTOMATIC OBJECT RECOGNITION
+============================
+
+Detect objects where technically practical.
+
+Examples:
+
+table
+
+chair
+
+door
+
+window
+
+sink
+
+toilet
+
+cabinet
+
+counter
+
+refrigerator
+
+oven
+
+bed
+
+sofa
+
+desk
+
+TV
+
+appliance
+
+stairs
+
+column
+
+wall
+
+floor
+
+ceiling
+
+Allow the user to correct object labels.
+
+Never permanently bake AI/object-recognition guesses into the raw scan.
+
+==================================================
+FURNITURE REMOVAL
+=================
+
+Provide:
+
+HIDE FURNITURE
+
+This should hide detected movable objects from the clean architectural model.
+
+Important:
+
+Do not pretend that LiDAR can see through furniture.
+
+When furniture blocks a wall or floor, mark that region as:
+
+INFERRED
+
+OCCLUDED
+
+or
+
+UNSCANNED
+
+Do not fabricate precise geometry.
+
+If geometry is estimated, clearly distinguish estimated geometry from measured geometry.
+
+==================================================
+MEASUREMENT SYSTEM
+==================
+
+Measurements are a major feature.
+
+Support:
+
+point-to-point distance
+
+wall length
+
+wall height
+
+ceiling height
+
+door width
+
+door height
+
+window dimensions
+
+object width
+
+object height
+
+object depth
+
+room length
+
+room width
+
+room area
+
+floor area
+
+wall area
+
+surface area
+
+perimeter
+
+angle
+
+estimated volume when appropriate
+
+Display both:
+
+feet / inches
+
+and
+
+metric
+
+Allow preference switching.
+
+Example:
+
+12' 7 3/8"
+
+3.845 m
+
+Users must be able to manually place measurement points.
+
+Use snapping when appropriate:
+
+corner
+
+wall
+
+edge
+
+floor
+
+ceiling
+
+door
+
+window
+
+object edge
+
+==================================================
+MEASUREMENT CONFIDENCE
+======================
+
+Whenever practical, show measurement confidence.
+
+Example:
+
+Wall length
+
+18' 7"
+
+Estimated accuracy ±0.6"
+
+If confidence is poor:
+
+Low confidence — rescan this section.
+
+Never imply survey-grade accuracy unless the hardware/data actually supports it.
+
+==================================================
+2D FLOOR PLAN
+=============
+
+Automatically generate a clean 2D floor plan.
+
+Include:
+
+walls
+
+wall thickness where determinable
+
+doors
+
+door swing direction when known
+
+windows
+
+openings
+
+room names
+
+room dimensions
+
+overall dimensions
+
+fixtures
+
+stairs
+
+counters
+
+bathroom fixtures
+
+kitchen equipment where useful
+
+Provide toggles:
+
+Furniture
+
+Measurements
+
+Room names
+
+Doors/windows
+
+Fixtures
+
+Grid
+
+Scale
+
+Allow manual editing.
+
+==================================================
+FLOOR PLAN EDITING
+==================
+
+Allow the user to:
+
+move a wall
+
+adjust wall length
+
+change wall thickness
+
+add wall
+
+delete wall
+
+add door
+
+move door
+
+resize door
+
+add window
+
+move window
+
+resize window
+
+add opening
+
+rename room
+
+merge rooms
+
+split room
+
+add measurement
+
+delete measurement
+
+add text annotation
+
+add symbol
+
+add notes
+
+Manual edits must not overwrite raw scan data.
+
+==================================================
+3D EDITING
+==========
+
+Allow users to tap objects.
+
+Example:
+
+TABLE
+
+Options:
+
+Hide
+
+Delete from clean model
+
+Move
+
+Rotate
+
+Measure
+
+Rename
+
+Change category
+
+Show raw geometry
+
+Walls should support:
+
+Measure
+
+Adjust
+
+Add opening
+
+Add door
+
+Add window
+
+Hide
+
+Inspect geometry
+
+==================================================
+PROJECT SYSTEM
+==============
+
+Projects should be stored locally by default.
+
+No required account.
+
+No required subscription.
+
+No required cloud service.
+
+Example:
+
+Projects
+
+Bombay Bar & Grill
+
+Home
+
+Garage
+
+Kitchen Remodel
+
+Chair Scan
+
+Each project should contain its original scan data and derived models.
+
+The application should support:
+
+rename
+
+duplicate
+
+archive
+
+delete
+
+export
+
+backup
+
+restore
+
+==================================================
+LOCAL-FIRST ARCHITECTURE
+========================
+
+The application must work offline after installation.
+
+Prefer on-device processing.
+
+Do not require:
+
+AWS
+
+Azure
+
+Firebase
+
+Supabase
+
+subscription APIs
+
+paid AI services

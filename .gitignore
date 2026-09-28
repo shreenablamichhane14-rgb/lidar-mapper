@@ -1,0 +1,13 @@
+.env
+ios/build/
+ios/*.xcodeproj/
+*.ipa
+build_artifacts/
+sideloadlydaemon.log
+__pycache__/
+*.pyc
+.DS_Store
+.serena/
+CLAUDE.local.md
+.privacy-patterns
+Readme.txt

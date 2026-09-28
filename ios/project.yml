@@ -1,0 +1,40 @@
+name: Mapper
+options:
+  bundleIdPrefix: com.shreehub
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+targets:
+  Mapper:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Mapper
+        CFBundleShortVersionString: "0.2"
+        CFBundleVersion: "2"
+        NSCameraUsageDescription: Mapper uses the camera and the LiDAR scanner to scan rooms and objects. Everything stays on this phone.
+        NSPhotoLibraryAddUsageDescription: Mapper can save snapshots of your scans to Photos.
+        NSLocalNetworkUsageDescription: Wireless debug lets a computer on your Wi-Fi read the troubleshooting log.
+        UIRequiredDeviceCapabilities: [arkit]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        ITSAppUsesNonExemptEncryption: false
+        UIRequiresFullScreen: true
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shreehub.mapper
+        MARKETING_VERSION: "0.2"
+        CURRENT_PROJECT_VERSION: "2"
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: ""
+        DEVELOPMENT_TEAM: ""
+        ENABLE_BITCODE: "NO"
