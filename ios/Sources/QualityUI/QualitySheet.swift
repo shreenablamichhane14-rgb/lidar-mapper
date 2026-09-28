@@ -36,7 +36,7 @@ struct QualitySheet: View {
     /// True once the check has run longer than `QualityPresentation.checkingSlowAfterSeconds`.
     @State private var checkingIsSlow = false
     /// When the last button action ran, to ignore an accidental double tap.
-    @State private var lastActionAt: Date?
+    @State private var lastActionAt: Date? = nil
 
     /// Creates the sheet. See the type comment for what each closure means.
     init(evaluation: QualityEvaluation?, onFinish: @escaping () -> Void, onDiscard: @escaping () -> Void,
