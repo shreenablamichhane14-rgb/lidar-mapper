@@ -84,7 +84,7 @@ enum ExpectedSurfaces {
     /// Wall samples use cell midpoints along the length and up the height with a horizontal
     /// normal pointing into the room; floor samples have normal +Y at floorY and ceiling
     /// samples normal -Y at ceilingY. See the file header for the partial-cell rule.
-    static func samples(for room: CoverageRoomBoundary, spacing: Float = sampleSpacing) -> [ExpectedSample] {
+    static func samples(for room: CoverageRoomBoundary, spacing: Float = ExpectedSurfaces.sampleSpacing) -> [ExpectedSample] {
         guard spacing.isFinite, spacing > 0.001 else { return [] }
         var out: [ExpectedSample] = []
         for (index, wall) in room.walls.enumerated() {
@@ -203,7 +203,7 @@ enum ExpectedSurfaces {
     /// clusters unobserved samples of the same element over 4-neighbor cells (union-find)
     /// and returns one MissingArea per cluster of at least minMissingArea, largest first.
     static func evaluate(room: CoverageRoomBoundary, grid: CoverageGrid,
-                         spacing: Float = sampleSpacing) -> ExpectedSurfacesResult {
+                         spacing: Float = ExpectedSurfaces.sampleSpacing) -> ExpectedSurfacesResult {
         let all = samples(for: room, spacing: spacing)
         var observed = [Bool](repeating: false, count: all.count)
         var expectedArea: [SurfaceClass: Float] = [.wall: 0, .floor: 0, .ceiling: 0]

@@ -150,6 +150,17 @@ max 4 tier-3 per rolling minute; haptic only when a haptic message newly appears
 canInterrupt(incomingTier:currentTier:currentShownSeconds:) decides preemption. Message hides once its minimum time has
 passed and its condition no longer holds (events hide after their minimum time). Deterministic.
 
+Completion notes (impl/coverage):
+- When the message on screen reaches its minimum time and the best waiting candidate may interrupt it
+  (GuidancePolicy.canInterrupt), the candidate replaces it directly instead of hide plus gap. Without this the
+  "tier 2 interrupts tier 3 after its minimum time" rule could never fire, because tier 3 always hides at exactly
+  its minimum time and the gap then delayed the tier 2 message by 3 s.
+- Tier 3 conditions (roomLooksComplete) show once per run of being true, not again after every 10 s cooldown.
+- depthConfidenceMean is used: below 0.3 with the view center beyond 1.5 m (or unknown) it raises moveCloser.
+- dryrun/ holds a plain Python port of the module and of every self-test check (`python3 run.py`, optional
+  args: frustum margin in px, `f64`). It reproduces all 160 checks with float32 rounding emulated; rerun it
+  after changing thresholds, since there is no Swift compiler outside CI.
+
 ## MeasurementConfidence.swift
 ```swift
 enum MeasurementSnapKind: UInt8 { case none, vertex, edge, plane, roomSurface }

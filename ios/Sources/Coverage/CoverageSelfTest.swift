@@ -6,13 +6,13 @@ import simd
 // CoverageSelfTestFixtures.swift. Expected numbers come from the numpy prototype of the same
 // scenario at a 16 px frustum margin, with tolerances wide enough for float32 differences.
 //
-// CHECK COUNT (158 in total; guidance and measurement live in CoverageSelfTestGuidance.swift):
+// CHECK COUNT (160 in total; guidance and measurement live in CoverageSelfTestGuidance.swift):
 //   observation quality and state rules  18
 //   single-face grid behavior            25
 //   box room face states and voxels      26
-//   expected surfaces and missing areas  35
+//   expected surfaces and missing areas  34
 //   scan quality                         10
-//   guidance engine                      29
+//   guidance engine                      32
 //   measurement confidence               15
 // Runtime: about 143k face tests and 280k voxel lookups (0.2 m mesh, 33 observations); well
 // under 2 s on an A15 even in a Debug build.
@@ -158,10 +158,10 @@ enum CoverageSelfTest {
         var excellent = CoverageGrid()
         excellent.integrate(observation: CSTF.observation(camera, confidence: 1), faces: faces)
         c.check("face.oneExcellent.green", excellent.state(ofFace: 0) == .green)
-        var weak = CoverageGrid()
-        for _ in 0..<5 { weak.integrate(observation: CSTF.observation(camera, confidence: 0), faces: faces) }
-        c.check("face.weakForever.yellow", weak.state(ofFace: 0) == .yellow
-                && weak.faceStats(0)?.goodObservationCount == 0 && weak.faceStats(0)?.observationCount == 5)
+        var weakGrid = CoverageGrid()
+        for _ in 0..<5 { weakGrid.integrate(observation: CSTF.observation(camera, confidence: 0), faces: faces) }
+        c.check("face.weakForever.yellow", weakGrid.state(ofFace: 0) == .yellow
+                && weakGrid.faceStats(0)?.goodObservationCount == 0 && weakGrid.faceStats(0)?.observationCount == 5)
     }
 
     // MARK: - Box room
@@ -288,10 +288,10 @@ enum CoverageSelfTest {
         c.check("quality.geometryBetween", q.ceiling < q.geometry && q.geometry < q.floor)
         c.between("quality.textures", q.textures, 35, 40)
         c.check("quality.missingAreas", q.missingAreas.count == 4)
-        let free = ScanQuality.evaluate(grid: grid, faces: mesh.faces, room: nil)
-        c.check("quality.noRoom.noMissing", free.missingAreas.isEmpty)
-        c.check("quality.noRoom.wallsPartial", free.walls > 0 && free.walls < 100, "got \(free.walls)")
-        c.near("quality.noRoom.textures", free.textures, q.textures, 1e-3)
+        let noRoom = ScanQuality.evaluate(grid: grid, faces: mesh.faces, room: nil)
+        c.check("quality.noRoom.noMissing", noRoom.missingAreas.isEmpty)
+        c.check("quality.noRoom.wallsPartial", noRoom.walls > 0 && noRoom.walls < 100, "got \(noRoom.walls)")
+        c.near("quality.noRoom.textures", noRoom.textures, q.textures, 1e-3)
     }
 
     /// Per-state face counts of one element.

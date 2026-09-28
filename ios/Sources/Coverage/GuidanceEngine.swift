@@ -40,8 +40,8 @@ struct GuidanceInput {
     var linearSpeed: Float = 0
     /// Depth at the view center in meters; nil when there is no depth there.
     var centerDistance: Float? = nil
-    /// Mean depth confidence 0...1. Informational only: no guidance message maps to it
-    /// (low confidence on shiny or dark surfaces is handled by the coverage grid quality).
+    /// Mean depth confidence 0...1 (ARConfidenceLevel / 2). Below `lowDepthConfidence` with the
+    /// view center beyond `lowDepthConfidenceMinDistance` (or unknown) it raises "Move closer".
     var depthConfidenceMean: Float? = nil
     /// `ARLightEstimate.ambientIntensity`, lumens-scaled, 1000 = neutral.
     var ambientIntensity: Float? = nil
@@ -96,6 +96,12 @@ struct GuidanceEngine {
     /// because green needs three good observations and the grid integrates at 2 to 3 Hz, so a
     /// freshly viewed area is legitimately not green for the first second or two.
     static let lowViewCoverageHoldSeconds: Double = 4.0
+    /// Mean depth confidence below this means most depth pixels are low confidence (low = 0,
+    /// medium = 0.5, high = 1). LiDAR confidence falls with range, so the fix is "Move closer".
+    static let lowDepthConfidence: Float = 0.3
+    /// Low depth confidence only asks to move closer when the view center is farther than this
+    /// (or unknown); nearer, the cause is the material (dark, shiny, glass), not the distance.
+    static let lowDepthConfidenceMinDistance: Float = 1.5
     /// A missing wall area is a corner when its nearest edge is within this distance (m,
     /// horizontal) of where two walls meet.
     static let cornerRadius: Float = 0.5
@@ -151,6 +157,9 @@ struct GuidanceEngine {
     private var lastHapticAt: Double?
     /// Detection events waiting to be shown.
     private var pendingEvents: [PendingEvent] = []
+    /// Tier 3 conditions already shown during their current run of being true: shown once per
+    /// run, so "Looks good" does not come back every cooldown while the room stays complete.
+    private var shownThisRun: Set<GuidanceKind> = []
 
     /// Creates an idle engine.
     init() {}
@@ -171,6 +180,7 @@ struct GuidanceEngine {
         // Condition hold bookkeeping (display rule 5).
         for kind in active where conditionStart[kind] == nil { conditionStart[kind] = now }
         conditionStart = conditionStart.filter { active.contains($0.key) }
+        shownThisRun.formIntersection(active)
 
         // Tier 3 window, quiet time and events (display rule 8, event expiry).
         tier3ShownTimes.removeAll { now - $0 >= GuidanceEngine.tier3WindowSeconds }
@@ -179,24 +189,10 @@ struct GuidanceEngine {
         pendingEvents.removeAll { $0.expiresAt <= now }
         if tier3Blocked(now) { pendingEvents.removeAll() }
 
-        // Hide the current message once its minimum time is over and its reason is gone
-        // (display rules 2 and 6). Tier 1 and 2 conditions keep their message up while true;
-        // events and tier 3 conditions leave after their minimum time so they never hog the slot.
-        if let c = current {
-            let msg = c.message
-            let holds = !currentIsEvent && msg.tier < 3 && active.contains(c)
-            if now - currentShownAt >= msg.minimumSeconds && !holds {
-                lastVisibleAt[c] = now
-                lastHiddenAt = now
-                current = nil
-                currentIsEvent = false
-            }
-        }
-
         // Pick the best candidate (display rule 9).
         var best: (kind: GuidanceKind, isEvent: Bool)?
         var bestRank = (Int.max, Int.max)
-        for kind in active {
+        for kind in active where !shownThisRun.contains(kind) {
             guard let start = conditionStart[kind], now - start >= GuidancePolicy.conditionHoldSeconds,
                   isEligible(kind, now: now) else { continue }
             let r = GuidanceEngine.rank(kind)
@@ -206,6 +202,27 @@ struct GuidanceEngine {
             // Detection events bypass the hold (they are already confirmed by RoomPlan).
             let r = GuidanceEngine.rank(event.kind)
             if r < bestRank { bestRank = r; best = (kind: event.kind, isEvent: true) }
+        }
+
+        // Hide the current message once its minimum time is over and its reason is gone
+        // (display rules 2 and 6). Tier 1 and 2 conditions keep their message up while true;
+        // events and tier 3 conditions leave after their minimum time so they never hog the slot.
+        // A candidate allowed to interrupt takes over directly instead (rule 4: tier 2 replaces
+        // tier 3 once it had its minimum time, without waiting out the gap).
+        if let c = current {
+            let msg = c.message
+            let shown = now - currentShownAt
+            let holds = !currentIsEvent && msg.tier < 3 && active.contains(c)
+            let replaced = best.map {
+                GuidancePolicy.canInterrupt(incomingTier: $0.kind.message.tier, currentTier: msg.tier,
+                                            currentShownSeconds: shown)
+            } ?? false
+            if shown >= msg.minimumSeconds && !holds && !replaced {
+                lastVisibleAt[c] = now
+                lastHiddenAt = now
+                current = nil
+                currentIsEvent = false
+            }
         }
 
         var fireHaptic = false
@@ -291,6 +308,11 @@ struct GuidanceEngine {
         guard input.tracking == .normal else { return out }
 
         if farForCoverage { out.insert(.moveCloser) }
+        if let conf = input.depthConfidenceMean, conf.isFinite {
+            let limit = GuidanceEngine.lowDepthConfidence * (current == .moveCloser ? 1 + h : 1)
+            let center = input.centerDistance ?? Float.infinity
+            if conf < limit && !(center <= GuidanceEngine.lowDepthConfidenceMinDistance) { out.insert(.moveCloser) }
+        }
         for area in input.nearbyMissing {
             out.insert(GuidanceEngine.missingKind(for: area, among: input.nearbyMissing))
         }
@@ -411,6 +433,7 @@ struct GuidanceEngine {
             pendingEvents.removeAll()  // tier 3 events are dropped, not queued, after tier 1
         }
         if msg.tier >= 3 { tier3ShownTimes.append(now) }
+        if msg.tier >= 3 && !isEvent { shownThisRun.insert(kind) }
         guard msg.haptic && msg.tier == 1 else { return false }
         if let last = lastHapticAt, now - last < GuidancePolicy.hapticCooldownSeconds { return false }
         lastHapticAt = now

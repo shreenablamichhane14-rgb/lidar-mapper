@@ -51,6 +51,24 @@ extension CoverageSelfTest {
         c.check("guidance.hapticAfterCooldown", haptic.message(at: 7.75) == .tooClose && haptic.at(7.75).fireHaptic)
         c.check("guidance.hapticCount", haptic.hapticCount == 2, "got \(haptic.hapticCount)")
 
+        // Tier 2 replaces a tier 3 message once that had its minimum time, without the gap.
+        let takeover = CSTG.GuidanceTrace(ticks: 12) { t in
+            var g = GuidanceInput(time: t)
+            if t == 0 { g.newWalls = 1 }
+            g.centerDistance = 4.0
+            return g
+        }
+        c.check("guidance.tier2ReplacesTier3AtMinimum", takeover.message(at: 1.25) == .wallDetected
+                && takeover.message(at: 1.5) == .moveCloser)
+        // A tier 3 condition shows once per run of being true, not again after each cooldown.
+        let complete = CSTG.GuidanceTrace(ticks: 121) { t in
+            var g = GuidanceInput(time: t)
+            g.overallComplete = true
+            return g
+        }
+        c.check("guidance.completeOncePerRun", complete.message(at: 0.75) == .roomLooksComplete
+                && complete.appearances(before: 30) == 1, "got \(complete.appearances(before: 30))")
+
         // Priorities: tier 1 beats tier 2; within tier 1 the table order wins.
         let tiers = CSTG.GuidanceTrace(ticks: 4) { t in
             var g = GuidanceInput(time: t)
@@ -113,6 +131,13 @@ extension CoverageSelfTest {
         var far = GuidanceInput(time: 0)
         far.centerDistance = 6.0
         c.check("guidance.tooFar", engine.conditions(for: far).contains(.tooFar))
+        var dim = GuidanceInput(time: 0)
+        dim.depthConfidenceMean = 0.1
+        dim.centerDistance = 2.0
+        var dimNear = dim
+        dimNear.centerDistance = 1.0
+        c.check("guidance.lowDepthConfidenceMoveCloser", engine.conditions(for: dim).contains(.moveCloser)
+                && !engine.conditions(for: dimNear).contains(.moveCloser))
 
         let a = MissingArea(centroid: SIMD3<Float>(4, 1, 4.7), normal: SIMD3<Float>(-1, 0, 0), area: 0.2,
                             surface: .wall, suggestedViewpoint: SIMD3<Float>(2.5, 1.4, 4.7))

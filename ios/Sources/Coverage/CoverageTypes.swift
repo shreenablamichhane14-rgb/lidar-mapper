@@ -11,7 +11,8 @@ import simd
 /// Semantic class of a mesh face. Raw values match `ARMeshClassification`
 /// (none = 0, wall = 1, floor = 2, ceiling = 3, table = 4, seat = 5, window = 6,
 /// door = 7), as declared in the ARKit Objective-C header and recorded in
-/// docs/research/raw/arkit-mesh-depth.json. The adapter can therefore map the
+/// docs/research/raw/arkit-mesh-depth.json and docs/RESEARCH.md (declaration order, not the
+/// alphabetical order of Apple's documentation topics). The adapter can therefore map the
 /// per-face `UInt8` of `ARMeshGeometry.classification` with `SurfaceClass(rawValue:)`.
 enum SurfaceClass: UInt8, CaseIterable {
     case none = 0, wall = 1, floor = 2, ceiling = 3, table = 4, seat = 5, window = 6, door = 7
