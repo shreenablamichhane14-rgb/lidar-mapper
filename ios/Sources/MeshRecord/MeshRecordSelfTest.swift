@@ -54,7 +54,9 @@ enum MeshRecordSelfTest {
         let low = isNear(bounds.min, SIMD3<Float>(1, 2, 2))
         let high = isNear(bounds.max, SIMD3<Float>(1, 3, 3))
         t.check("bounds.worldSpace", low && high, "min \(bounds.min) max \(bounds.max)")
-        let expected = 4 * 16 * 2 + 6 * 4 + 2
+        // 8 vectors of 16 bytes (4 positions, 4 normals), 6 UInt32 indices, 2 class bytes.
+        let vectorBytes: Int = 8 * 16
+        let expected: Int = vectorBytes + 6 * 4 + 2
         t.check("residentBytes.formula", MeshStore.residentBytes(of: chunk) == expected,
                 "\(MeshStore.residentBytes(of: chunk)) != \(expected)")
         t.check("updateCount.saturates", MeshStore.nextUpdateCount(after: UInt32.max) == UInt32.max)
@@ -214,7 +216,9 @@ enum MeshRecordSelfTest {
         var indices: [UInt32] = []
         for quad in 0..<quads {
             let a = UInt32(quad * 2)
-            indices.append(contentsOf: [a, a + 2, a + 3, a, a + 3, a + 1])
+            let b: UInt32 = a + 1, c: UInt32 = a + 2, d: UInt32 = a + 3
+            let corners: [UInt32] = [a, c, d, a, d, b]
+            indices.append(contentsOf: corners)
         }
         return MeshChunk(anchorID: anchorID(anchor), transform: matrix_identity_float4x4, updateCount: 0,
                          positions: positions, indices: indices)
