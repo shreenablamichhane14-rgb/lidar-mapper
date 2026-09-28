@@ -2,8 +2,9 @@ import Foundation
 import simd
 
 /// One ARKit mesh anchor's geometry in anchor-local coordinates, with its anchor to world
-/// transform and optional attributes.
-struct MeshChunk {
+/// transform and optional attributes: the input of `ChunkMerge.merge`. Named MergeChunk so
+/// it does not clash with Core's stored `MeshChunk` record in the same app target.
+struct MergeChunk {
     /// Triangles in anchor-local coordinates.
     var localMesh: TriangleMesh
     /// Anchor to world transform.
@@ -40,7 +41,7 @@ enum ChunkMerge {
     /// indices are dropped. An attribute present on some chunks only is filled with
     /// defaults (unclassified, white) for the others; a chunk attribute array of the wrong
     /// length is treated like a missing one (face classes are padded with unclassified).
-    static func merge(_ chunks: [MeshChunk], weldTolerance: Float = ChunkMerge.defaultWeldTolerance) -> MeshWithAttributes {
+    static func merge(_ chunks: [MergeChunk], weldTolerance: Float = ChunkMerge.defaultWeldTolerance) -> MeshWithAttributes {
         let hasClass = chunks.contains { $0.faceClass != nil }
         let hasColor = chunks.contains { $0.vertexColor != nil }
         let totalVertices = chunks.reduce(0) { $0 + $1.localMesh.positions.count }

@@ -183,11 +183,11 @@ enum MeshProcessingSelfTest {
         let partA = world.keepingFaces(inA), partB = world.keepingFaces(inB)
         let shiftA = SIMD3<Float>(1, 0.5, 0), shiftB = SIMD3<Float>(2, 0, 3)
         let turn = simd_float3x3(SIMD3<Float>(0, 0, -1), SIMD3<Float>(0, 1, 0), SIMD3<Float>(1, 0, 0))
-        let chunkA = MeshChunk(localMesh: TriangleMesh(positions: partA.mesh.positions.map { $0 - shiftA }, indices: partA.mesh.indices),
+        let chunkA = MergeChunk(localMesh: TriangleMesh(positions: partA.mesh.positions.map { $0 - shiftA }, indices: partA.mesh.indices),
                                anchorTransform: rigid(matrix_identity_float3x3, shiftA),
                                faceClass: [UInt8](repeating: 1, count: partA.triangleCount), vertexColor: partA.vertexColor)
         let localB = partB.mesh.positions.map { simd_mul(simd_transpose(turn), $0 - shiftB) }
-        let chunkB = MeshChunk(localMesh: TriangleMesh(positions: localB, indices: partB.mesh.indices),
+        let chunkB = MergeChunk(localMesh: TriangleMesh(positions: localB, indices: partB.mesh.indices),
                                anchorTransform: rigid(turn, shiftB),
                                faceClass: [UInt8](repeating: 2, count: partB.triangleCount), vertexColor: partB.vertexColor)
         let onlyB = (0..<world.triangleCount).filter { inB[$0] && !inA[$0] }.count
