@@ -201,7 +201,7 @@ enum MeasureCoreSelfTest {
         log.check("rows.inferredVolume", volumeSigmaNil && volumeInferred && volumeText == Copy.Measure.notMeasured,
                   "\(String(describing: volumeRow?.value))")
 
-        let sizes = MeasureRoomSizes(room: fixtures.room(metrics: .zero), wallAreas: [])
+        let sizes = MeasureRoomSizes(room: fixtures.room(metrics: RoomMetrics.zero), wallAreas: [])
         let sidesOK: Bool = abs(sizes.length - 5) < 1e-3 && abs(sizes.width - 4) < 1e-3
         let areaOK: Bool = abs(sizes.floorArea - 20) < 1e-3 && abs(sizes.perimeter - 18) < 1e-3
         let ceilingOK: Bool = abs(sizes.ceilingHeight - 2.5) < 1e-6

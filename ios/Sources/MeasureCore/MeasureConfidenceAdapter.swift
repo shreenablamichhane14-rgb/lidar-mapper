@@ -169,7 +169,7 @@ enum ConfidenceAdapter {
         switch kind {
         case .corner, .edge, .plane: return .roomSurface
         case .meshVertex: return .vertex
-        case .meshSurface, .none: return .none
+        case .meshSurface, .none: return MeasurementSnapKind.none
         }
     }
 

@@ -104,7 +104,7 @@ struct SnapSet: Equatable {
                 builder.addObject(object)
             }
         }
-        return builder.set
+        return builder.result
     }
 
     /// Geometry `Snap.best` with radii 0.10 corner, 0.05 edge, 0.05 plane; maps the target to Core SnapKind.
@@ -143,7 +143,7 @@ struct SnapSet: Equatable {
                               feature: SnapSet.entry(planeFeatures, i),
                               element: SnapSet.entry(planeElements, i) ?? nil)
         case .none:
-            return SnapSetHit(point: point, kind: .none, feature: nil, element: nil)
+            return SnapSetHit(point: point, kind: SnapKind.none, feature: nil, element: nil)
         }
     }
 
@@ -169,7 +169,7 @@ struct SnapSet: Equatable {
 /// Collects the candidates of a `SnapSet` with their parallel arrays in step.
 private struct SnapSetBuilder {
     /// The set being built.
-    var set = SnapSet.empty
+    var result = SnapSet.empty
 
     /// Walls, openings, floor and ceiling of a room.
     mutating func addRoom(_ room: CleanRoom) {
@@ -276,34 +276,34 @@ private struct SnapSetBuilder {
 
     /// Adds a corner unless an equal one (within `SnapSet.mergeDistance`) exists.
     mutating func addCorner(_ p: SIMD3<Float>, feature: SnapSetFeature, element: ElementID?) {
-        for existing in set.corners where simd_distance(existing, p) < SnapSet.mergeDistance {
+        for existing in result.corners where simd_distance(existing, p) < SnapSet.mergeDistance {
             return
         }
-        set.corners.append(p)
-        set.cornerElements.append(element)
-        set.cornerFeatures.append(feature)
+        result.corners.append(p)
+        result.cornerElements.append(element)
+        result.cornerFeatures.append(feature)
     }
 
     /// Adds an edge unless an equal one (either direction) exists or it is degenerate.
     mutating func addEdge(_ a: SIMD3<Float>, _ b: SIMD3<Float>, feature: SnapSetFeature, element: ElementID?) {
         let tolerance = SnapSet.mergeDistance
         guard simd_distance(a, b) >= tolerance else { return }
-        for edge in set.edges {
+        for edge in result.edges {
             let same = simd_distance(edge.0, a) < tolerance && simd_distance(edge.1, b) < tolerance
             let reversed = simd_distance(edge.0, b) < tolerance && simd_distance(edge.1, a) < tolerance
             if same || reversed { return }
         }
-        set.edges.append((a, b))
-        set.edgeElements.append(element)
-        set.edgeFeatures.append(feature)
+        result.edges.append((a, b))
+        result.edgeElements.append(element)
+        result.edgeFeatures.append(feature)
     }
 
     /// Adds a plane with its region.
     mutating func addPlane(_ plane: Plane, feature: SnapSetFeature, element: ElementID?, region: SnapSetPlaneRegion?) {
-        set.planes.append(plane)
-        set.planeElements.append(element)
-        set.planeFeatures.append(feature)
-        set.planeRegions.append(region)
+        result.planes.append(plane)
+        result.planeElements.append(element)
+        result.planeFeatures.append(feature)
+        result.planeRegions.append(region)
     }
 
     // MARK: - Helpers
