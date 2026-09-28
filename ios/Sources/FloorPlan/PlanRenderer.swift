@@ -113,9 +113,10 @@ enum PlanRenderer {
                           viewport: viewport, in: ctx)
             case let .circle(center, radius):
                 let c = viewport.toScreen(center)
-                let r = CGFloat(abs(radius)) * k
+                let r: CGFloat = CGFloat(abs(radius)) * k
                 guard r.isFinite, r > 0 else { continue }
-                ctx.strokeEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
+                let box = CGRect(origin: CGPoint(x: c.x - r, y: c.y - r), size: CGSize(width: r * 2, height: r * 2))
+                ctx.strokeEllipse(in: box)
             case let .text(position, height, string, rotation):
                 drawText(string, at: viewport.toScreen(position), size: CGFloat(height) * k, maxSize: maxFont,
                          angle: rotation, centered: false, color: color, in: ctx)

@@ -254,14 +254,14 @@ enum PlanSymbols {
         case .bathtub:
             let inset = min(w, h) * 0.18
             let chamfer = min(w, h) * 0.3
-            let x0: Float = -w + inset
-            let x1: Float = w - inset
-            let y0: Float = -h + inset
-            let y1: Float = h - inset
-            let inner: [SIMD2<Float>] = [f.point(x0 + chamfer, y0), f.point(x1 - chamfer, y0),
-                                         f.point(x1, y0 + chamfer), f.point(x1, y1 - chamfer),
-                                         f.point(x1 - chamfer, y1), f.point(x0 + chamfer, y1),
-                                         f.point(x0, y1 - chamfer), f.point(x0, y0 + chamfer)]
+            let leftX: Float = -w + inset
+            let rightX: Float = w - inset
+            let backY: Float = -h + inset
+            let frontY: Float = h - inset
+            let inner: [SIMD2<Float>] = [f.point(leftX + chamfer, backY), f.point(rightX - chamfer, backY),
+                                         f.point(rightX, backY + chamfer), f.point(rightX, frontY - chamfer),
+                                         f.point(rightX - chamfer, frontY), f.point(leftX + chamfer, frontY),
+                                         f.point(leftX, frontY - chamfer), f.point(leftX, backY + chamfer)]
             sketch.polyline(layer, inner, closed: true)
             sketch.circle(layer, center: f.point(w - inset - chamfer * 0.6, 0), radius: min(0.03, inset))
         case .stove:
