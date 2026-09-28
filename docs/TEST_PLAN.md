@@ -30,6 +30,52 @@ This plan is for testing Mapper on the real phone as builds arrive. It is writte
 
 Build 1 only has the capability probe screen. Most tests below are for later builds. When a feature is missing, mark the test **N/A (not built)**. Do not mark it as a failure.
 
+#### Build 4 (0.4) notes: room MVP
+
+Build 4 scans one room in Room mode and has the result screen, Home, export and Settings > Diagnostics. The lists below come from `docs/MODULES.md` section 2.1 (build 4 acceptance). Test ids are unchanged. A test marked N/A here is **N/A (not built)**, never an S1 or S2 failure. Tests not named here are outside build 4 acceptance; follow the rule above for them.
+
+Run as written:
+
+- MODE-01, MODE-02, MODE-03 (Room only; the other modes show "Coming in a later version"), MODE-04, MODE-05.
+- ROOM-01 to ROOM-05.
+- TEX-01 (only if the texture step, TextureLowStep, made it into build 4; otherwise N/A), TEX-06.
+- QUAL-04.
+- REC-01, REC-05.
+- FURN-01, FURN-02, FURN-04.
+- MEAS-02 to MEAS-06, MEAS-09, MEAS-11.
+- CONF-01 to CONF-04.
+- PLAN-01 to PLAN-04, PLAN-06.
+- EDIT3D-01 (the object card is read-only in build 4), EDIT3D-06.
+- PROJ-01, PROJ-05, PROJ-07, PROJ-09.
+- OFF-02 to OFF-04.
+- EXP-01, EXP-02 (without textures unless TextureLowStep made it into build 4), EXP-03, EXP-04, EXP-06, EXP-07, EXP-10.
+- LIVE-01, LIVE-06, LIVE-07, LIVE-08, LIVE-10.
+
+If TextureLowStep did not make it into build 4, REALISTIC shows RoomPlan's simple model or "Color is still being added" instead of photo textures. That is expected, not a failure.
+
+Run with the build 4 variant:
+
+| Test | How to run it on build 4 |
+|---|---|
+| QUAL-01 | There is no SHOW MISSING AREAS button yet (build 5). Judge everything else. |
+| QUAL-02 | Do it as two separate scans: first a scan of the walls only, then a new full scan that includes the ceiling. Compare the two Ceiling scores. |
+| ROOM-11 | Cancel asks with Keep Scanning and Discard Scan. Keep Scanning continues the scan, and tapping Done then saves the partial room as a project. Discard leaves no project. |
+| TEX-02 | Four modes, not five. PHOTO REALISTIC shows "Photo Realistic comes in a later version" (`Copy.Results.photoRealisticLater`). |
+| OFF-01 | Skip plan editing and measuring inside the model (both build 5). Everything else in the workflow must work in Airplane Mode. |
+| EXP-05 | The plan has no annotations (text annotations come with plan editing in build 5). Everything else, including the printed scale, is checked as written. |
+
+Performance and reliability (section 4): run sections 4.2 to 4.9 except PERF-03, PERF-10 and PERF-25 (House mode) and PERF-28 (plan edits).
+
+Smoke list (section 5): run all checks except the SHOW MISSING AREAS button in #4, #6 (Quick Measure), #8 (plan edit) and #9 (object scan).
+
+N/A in build 4:
+
+- REC-03 (label correction, build 7).
+- EXP-09 (House mode).
+- PERF-03, PERF-10, PERF-25 (House mode).
+- PERF-28 (plan edits).
+- Smoke #6, #8, #9 and the SHOW MISSING AREAS button in smoke #4.
+
 ### 0.4 Severity scale
 
 | Severity | Meaning | Example |
