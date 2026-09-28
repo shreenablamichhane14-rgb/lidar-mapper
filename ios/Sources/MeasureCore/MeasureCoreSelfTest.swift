@@ -75,14 +75,21 @@ enum MeasureCoreSelfTest {
         let area = ConfidenceAdapter.area(20, sideA: side5, sideB: side4)
         let s5 = side5.sigma ?? 0
         let s4 = side4.sigma ?? 0
-        let expectedArea = ((4 * s5) * (4 * s5) + (5 * s4) * (5 * s4)).squareRoot()
-        log.check("area.4x5.formula", abs((area.sigma ?? -1) - expectedArea) < 1e-12,
+        let termA: Double = 4 * s5
+        let termB: Double = 5 * s4
+        let expectedArea: Double = (termA * termA + termB * termB).squareRoot()
+        let areaSigma: Double = area.sigma ?? -1
+        log.check("area.4x5.formula", abs(areaSigma - expectedArea) < 1e-12,
               "expected \(expectedArea), got \(String(describing: area.sigma))")
 
         let sides = [side4, side5, side4, side5]
         let total = ConfidenceAdapter.sum(sides)
-        let expectedSum = (2 * s4 * s4 + 2 * s5 * s5).squareRoot()
-        log.check("sum.4walls", abs((total.sigma ?? -1) - expectedSum) < 1e-12 && abs(total.value - 18) < 1e-5,
+        let squares: Double = 2 * s4 * s4 + 2 * s5 * s5
+        let expectedSum: Double = squares.squareRoot()
+        let totalSigma: Double = total.sigma ?? -1
+        let sumSigmaOK: Bool = abs(totalSigma - expectedSum) < 1e-12
+        let sumValueOK: Bool = abs(total.value - 18) < 1e-5
+        log.check("sum.4walls", sumSigmaOK && sumValueOK,
               "value \(total.value), sigma \(String(describing: total.sigma))")
         let inferred = MeasuredValue(value: 2.5, sigma: nil, provenance: .inferred)
         let mixed = ConfidenceAdapter.sum([side4, inferred])
@@ -144,8 +151,9 @@ enum MeasureCoreSelfTest {
         log.check("accessibility.wall", spoken == expected, spoken)
         let onStep: Double = MeasureDisplay.roundedUp(0.03, step: 0.005)
         let aboveStep: Double = MeasureDisplay.roundedUp(0.0301, step: 0.005)
-        log.check("roundUp.keepsExactStep", abs(onStep - 0.03) < 1e-12 && abs(aboveStep - 0.035) < 1e-12,
-                  "\(onStep), \(aboveStep)")
+        let onStepOK: Bool = abs(onStep - 0.03) < 1e-12
+        let aboveStepOK: Bool = abs(aboveStep - 0.035) < 1e-12
+        log.check("roundUp.keepsExactStep", onStepOK && aboveStepOK, "\(onStep), \(aboveStep)")
     }
 
     // MARK: - Dimensions (15 checks)

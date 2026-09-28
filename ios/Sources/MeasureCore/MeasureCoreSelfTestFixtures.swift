@@ -35,11 +35,17 @@ enum MeasureCoreSelfTestFixtures {
 
     /// The four walls, ids 1 to 4.
     static func walls(provenance: Provenance = .measured) -> [CleanWall] {
-        (0..<4).map { i in
-            CleanWall(id: id(UInt8(i + 1)), start: Vec3(corners[i]), end: Vec3(corners[(i + 1) % 4]),
-                      height: height, normal: Vec3(normals[i]), thickness: 0.1, thicknessSource: .estimated,
-                      arc: nil, confidence: .high, completedEdges: 4, occludedSpans: [], provenance: provenance)
+        var result: [CleanWall] = []
+        for i in 0..<4 {
+            let wallID: ElementID = id(UInt8(i + 1))
+            let start = Vec3(corners[i])
+            let end = Vec3(corners[(i + 1) % 4])
+            let normal = Vec3(normals[i])
+            result.append(CleanWall(id: wallID, start: start, end: end, height: height, normal: normal,
+                                    thickness: 0.1, thicknessSource: .estimated, arc: nil, confidence: .high,
+                                    completedEdges: 4, occludedSpans: [], provenance: provenance))
         }
+        return result
     }
 
     /// The door (id 11, on wall 2) and the window (id 12, on wall 3).
@@ -91,8 +97,12 @@ enum MeasureCoreSelfTestFixtures {
 
     /// Good evidence: every wall seen from 2 m with 5 observations, clean tracking.
     static func goodEvidence() -> RoomEvidence {
-        let walls = (1...4).map { WallEvidence(wallID: id(UInt8($0)), medianDistance: 2, observations: 5) }
-        return RoomEvidence(trackingNormalFraction: 1, relocalizations: 0, walls: walls)
+        var evidence: [WallEvidence] = []
+        for n in 1...4 {
+            let wallID: ElementID = id(UInt8(n))
+            evidence.append(WallEvidence(wallID: wallID, medianDistance: 2, observations: 5))
+        }
+        return RoomEvidence(trackingNormalFraction: 1, relocalizations: 0, walls: evidence)
     }
 
     /// The expected row ids of `room()` in order.
