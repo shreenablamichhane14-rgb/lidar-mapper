@@ -4,7 +4,7 @@ import simd
 /// Plain-Swift checks for the mesh processing module (no XCTest), run at launch like the
 /// units and geometry self-tests. `run()` returns one line per failing case; empty means
 /// all passed. Meshes are small (the largest has 5,120 triangles) so a full run stays well
-/// under 3 s on an A15.
+/// under 3 s on an A15. The cases live in the MeshProcessingSelfTest+*.swift extensions.
 enum MeshProcessingSelfTest {
     /// Fewer checks than this means a section stopped early without reporting.
     private static let minimumChecks = 45
@@ -36,11 +36,13 @@ enum MeshProcessingSelfTest {
         mergeCases(r)
         componentCases(r)
         windingCases(r)
+        cleanupExtraCases(r)
         simplifyCases(r)
         holeCases(r)
         smoothCases(r)
         cropCases(r)
         isolationCases(r)
+        isolationExtraCases(r)
         if r.failures.isEmpty && r.count < minimumChecks {
             r.failures.append("selfTest: only \(r.count) cases ran")
         }

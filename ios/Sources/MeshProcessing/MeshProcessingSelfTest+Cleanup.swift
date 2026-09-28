@@ -67,4 +67,41 @@ extension MeshProcessingSelfTest {
         r.check("cleaned.cube", clean.triangleCount == cube.triangleCount && clean.mesh.isWatertight && clean.isConsistent, "got \(clean.triangleCount)")
         r.near("cleaned.volume", clean.mesh.signedVolume, 1, 1e-4)
     }
+
+    /// Component statistics, open-surface and multi-component winding, empty input, input
+    /// immutability and face normals.
+    static func cleanupExtraCases(_ r: Recorder) {
+        let big = box(.zero, SIMD3<Float>(1, 1, 1), 2)
+        let small = box(SIMD3<Float>(3, 0, 0), SIMD3<Float>(0.5, 0.5, 0.5), 1)
+        let pair = MeshWithAttributes(mesh: big.merged(with: small))
+        let stats = MeshCleanup.connectedComponents(pair.mesh)
+        r.check("components.stats", stats.count == 2 && stats.triangleCounts == [48, 12] && stats.largest == 0,
+                "got \(stats.triangleCounts)")
+        r.near("components.areas", stats.areas.reduce(0, +), 7.5, 1e-3)
+        let snapshot = pair
+        _ = MeshCleanup.cleaned(pair)
+        r.check("cleaned.inputUnchanged", pair == snapshot, "")
+
+        let sheet = MeshWithAttributes(mesh: flipped(patch(.zero, SIMD3<Float>(0, 0, 1), SIMD3<Float>(1, 0, 0), 6, 6)) { $0 % 5 == 0 })
+        let oriented = MeshCleanup.fixingWinding(sheet)
+        r.check("winding.openMajority", upFaces(oriented.mesh) == sheet.triangleCount && directedEdgesUnique(oriented.mesh),
+                "got \(upFaces(oriented.mesh)) up")
+        let inverted = flipped(big) { _ in true }
+        let twoSolids = MeshWithAttributes(mesh: inverted.merged(with: flipped(small) { $0 % 2 == 0 }))
+        r.near("winding.twoComponents", MeshCleanup.fixingWinding(twoSolids).mesh.signedVolume, 1.125, 1e-4)
+
+        let empty = MeshCleanup.cleaned(MeshWithAttributes(mesh: TriangleMesh(), faceClass: []))
+        r.check("cleaned.empty", empty.triangleCount == 0 && empty.isConsistent, "")
+
+        let normals = MeshCleanup.faceNormals(big)
+        let axisAligned = normals.count == big.triangleCount && normals.allSatisfy { n in
+            abs(simd_length(n) - 1) < 1e-5 && [abs(n.x), abs(n.y), abs(n.z)].filter { $0 > 0.999 }.count == 1
+        }
+        r.check("normals.faces", axisAligned, "")
+        let outward = normals.count == big.triangleCount && (0..<big.triangleCount).allSatisfy { t in
+            guard let c = MeshTopology.centroid(big, t) else { return false }
+            return simd_dot(normals[t], c - SIMD3<Float>(repeating: 0.5)) > 0
+        }
+        r.check("normals.outward", outward, "")
+    }
 }
