@@ -15,14 +15,14 @@ struct ViewerContainer: UIViewRepresentable {
     /// The model that owns the scene.
     let model: ViewerModel
     /// Background color (black for scans, the system background for objects).
-    let background: UIColor
+    let backgroundColor: UIColor
     /// Called on a single tap with the hit, or nil when nothing pickable is under the finger.
     let onTap: ((ViewerHit?) -> Void)?
 
     /// Creates the container.
     init(model: ViewerModel, background: UIColor, onTap: ((ViewerHit?) -> Void)? = nil) {
         self.model = model
-        self.background = background
+        self.backgroundColor = background
         self.onTap = onTap
     }
 
@@ -34,10 +34,11 @@ struct ViewerContainer: UIViewRepresentable {
     /// Creates the host view, its `ARView` in `.nonAR` mode and the gesture recognizers.
     func makeUIView(context: Context) -> ViewerHostView {
         let arView = ARView(frame: .zero, cameraMode: .nonAR, automaticallyConfigureSession: false)
-        arView.environment.background = .color(background)
+        arView.environment.background = .color(backgroundColor)
         let host = ViewerHostView(arView: arView)
         let coordinator = context.coordinator
         coordinator.host = host
+        coordinator.appliedBackground = backgroundColor
         coordinator.installGestures(on: arView)
         host.isAccessibilityElement = true
         host.accessibilityLabel = Copy.A11y.modelViewer
@@ -63,9 +64,9 @@ struct ViewerContainer: UIViewRepresentable {
             coordinator.model = model
             model.attach(uiView.arView)
         }
-        if coordinator.background != background {
-            coordinator.background = background
-            uiView.arView.environment.background = .color(background)
+        if coordinator.appliedBackground != backgroundColor {
+            coordinator.appliedBackground = backgroundColor
+            uiView.arView.environment.background = .color(backgroundColor)
         }
     }
 
@@ -82,7 +83,7 @@ struct ViewerContainer: UIViewRepresentable {
         /// Tap handler from the container.
         var onTap: ((ViewerHit?) -> Void)?
         /// Last applied background color.
-        var background: UIColor?
+        var appliedBackground: UIColor?
         /// The host view (for gesture coordinates).
         weak var host: ViewerHostView?
         /// Two-finger pan recognizer, recognized together with the pinch.

@@ -142,7 +142,10 @@ enum Viewer3DSelfTest {
         let colors = raw.compactMap { $0.material.color }
         let expected = [palette[1], palette[2], palette[3]].compactMap { $0 }
         r.check("meshParts.raw.paletteColors", colors == expected)
-        r.check("meshParts.raw.unlit", raw.allSatisfy { if case .unlit = $0.material { return true } else { return false } })
+        r.check("meshParts.raw.unlit", raw.allSatisfy { part -> Bool in
+            if case .unlit = part.material { return true }
+            return false
+        })
         let indexTotal = raw.reduce(0) { $0 + $1.indices.count }
         r.check("meshParts.raw.indexSum", indexTotal == square.indices.count, "\(indexTotal)")
         r.check("meshParts.raw.layerAndTag", raw.allSatisfy { $0.layer == .raw && $0.pickTag == .rawMesh })
@@ -286,8 +289,11 @@ enum Viewer3DSelfTest {
         let box = AABB3(min: SIMD3<Float>(0, 0, 0), max: SIMD3<Float>(4, 2.5, 5))
         let framing = ViewerOrbitMath.framing(box, fieldOfViewDegrees: 60)
         r.check("framing.targetCenter", simd_distance(framing.target, box.center) < 1e-5)
-        let corners: [SIMD3<Float>] = (0..<8).map { i in
-            SIMD3<Float>(i & 1 == 0 ? 0 : 4, i & 2 == 0 ? 0 : 2.5, i & 4 == 0 ? 0 : 5)
+        let corners: [SIMD3<Float>] = (0..<8).map { i -> SIMD3<Float> in
+            let x: Float = (i & 1) == 0 ? 0 : 4
+            let y: Float = (i & 2) == 0 ? 0 : 2.5
+            let z: Float = (i & 4) == 0 ? 0 : 5
+            return SIMD3<Float>(x, y, z)
         }
         let halfAngle: Float = 30 * Float.pi / 180 + 1e-4
         var inside = true
