@@ -238,12 +238,15 @@ enum CoreSelfTest {
         do {
             let small = folder.appendingPathComponent("small.json")
             try ProjectStore.writeJSON(seal, to: small)
-            check("json.readsUnderCap", (try? ProjectStore.readJSON(SealFile.self, from: small)) == seal)
+            let readBack: SealFile? = try? ProjectStore.readJSON(SealFile.self, from: small)
+            check("json.readsUnderCap", readBack == seal)
             do {
-                _ = try ProjectStore.readJSON(SealFile.self, from: small, maxBytes: 8)
-                check("json.sizeCap", false, "did not throw")
-            } catch let error as CoreError {
-                if case .fileTooLarge = error { } else { check("json.sizeCap", false, "\(error)") }
+                let capped: SealFile = try ProjectStore.readJSON(SealFile.self, from: small, maxBytes: 8)
+                check("json.sizeCap", false, "did not throw, read \(capped.files.count) entries")
+            } catch {
+                var isTooLarge = false
+                if case CoreError.fileTooLarge = error { isTooLarge = true }
+                check("json.sizeCap", isTooLarge, "\(error)")
             }
             let gone = folder.appendingPathComponent("discarded", isDirectory: true)
             expectThrows("write.noParents") {
@@ -253,7 +256,8 @@ enum CoreSelfTest {
             expectThrows("ensureInside.missingRoot") {
                 _ = try ProjectStore.ensureDirectory(gone.appendingPathComponent("rooms"), inside: gone)
             }
-            check("ensureInside.creates", (try? ProjectStore.ensureDirectory(folder.appendingPathComponent("rooms/r"), inside: folder)) != nil)
+            let createdInside: URL? = try? ProjectStore.ensureDirectory(folder.appendingPathComponent("rooms/r", isDirectory: true), inside: folder)
+            check("ensureInside.creates", createdInside != nil)
         } catch {
             check("json.io", false, "\(error)")
         }
@@ -267,42 +271,70 @@ enum CoreSelfTest {
         check("package.keyframePath", RawScanFolder.keyframeImagePath(12) == "keyframes/00012.jpg")
         check("package.attempt", package.pipelineAttemptURL.path.hasSuffix("/x.mapperproj/derived/pipeline_attempt.json"))
         let scanFolder = RawScanFolder(url: URL(fileURLWithPath: "/p/InProgress/scan", isDirectory: true))
-        check("package.liveRoom", scanFolder.liveCapturedRoomURL.lastPathComponent == "capturedroom-live.json"
-              && scanFolder.worldMapURL.lastPathComponent == "worldmap.arworldmap")
+        let liveRoomName: String = scanFolder.liveCapturedRoomURL.lastPathComponent
+        let worldMapName: String = scanFolder.worldMapURL.lastPathComponent
+        check("package.liveRoom", liveRoomName == "capturedroom-live.json" && worldMapName == "worldmap.arworldmap")
 
         // CR-4: record paths resolve only inside their folder
-        for bad in ["", "/etc/x", "../x", "keyframes/../../x", "a//b", "./x", "a\\b", "x/.."] {
-            check("path.rejects \(bad)", !RawScanFolder.isSafeRelativePath(bad) && scanFolder.resolve(bad) == nil)
+        let badPaths: [String] = ["", "/etc/x", "../x", "keyframes/../../x", "a//b", "./x", "a\\b", "x/.."]
+        for bad in badPaths {
+            let rejectedAsUnsafe: Bool = !RawScanFolder.isSafeRelativePath(bad)
+            let unresolved: Bool = scanFolder.resolve(bad) == nil
+            check("path.rejects \(bad)", rejectedAsUnsafe && unresolved)
         }
-        check("path.accepts", RawScanFolder.isSafeRelativePath("keyframes/00001.jpg")
-              && scanFolder.resolve("keyframes/00001.jpg")?.path == "/p/InProgress/scan/keyframes/00001.jpg")
+        let goodPath = "keyframes/00001.jpg"
+        let resolvedGood: String? = scanFolder.resolve(goodPath)?.path
+        check("path.accepts", RawScanFolder.isSafeRelativePath(goodPath)
+              && resolvedGood == "/p/InProgress/scan/keyframes/00001.jpg", "\(resolvedGood ?? "nil")")
 
         // CR-4: package names and file protection
         let canonical = UUID()
-        check("packageName.canonical", ProjectStore.projectID(fromPackageName: canonical.uuidString + ".mapperproj") == canonical)
-        check("packageName.rejects", ProjectStore.projectID(fromPackageName: canonical.uuidString.lowercased() + ".mapperproj") == nil
-              && ProjectStore.projectID(fromPackageName: "x.mapperproj") == nil
-              && ProjectStore.projectID(fromPackageName: canonical.uuidString) == nil)
-        let unlessOpen = Data.WritingOptions.completeFileProtectionUnlessOpen
+        let packageSuffix: String = "." + ProjectPackage.fileExtension
+        let canonicalName: String = canonical.uuidString + packageSuffix
+        let lowercaseName: String = canonical.uuidString.lowercased() + packageSuffix
+        check("packageName.canonical", ProjectStore.projectID(fromPackageName: canonicalName) == canonical)
+        let rejectsLowercase: Bool = ProjectStore.projectID(fromPackageName: lowercaseName) == nil
+        let rejectsNonUUID: Bool = ProjectStore.projectID(fromPackageName: "x" + packageSuffix) == nil
+        let rejectsNoSuffix: Bool = ProjectStore.projectID(fromPackageName: canonical.uuidString) == nil
+        check("packageName.rejects", rejectsLowercase && rejectsNonUUID && rejectsNoSuffix)
+        let unlessOpen: Data.WritingOptions = .completeFileProtectionUnlessOpen
+        let systemDefault: Data.WritingOptions = []
+        let exportFile: URL = package.exportsURL.appendingPathComponent("a/b.pdf", isDirectory: false)
+        let rawFile: URL = package.rawRoomURL(session: session, room: room).appendingPathComponent("poses.ptrk", isDirectory: false)
+        let derivedThumbnail: URL = package.derivedURL.appendingPathComponent("thumbnail.jpg", isDirectory: false)
         check("protection.edits", ProjectStore.defaultProtection(for: package.editLogURL) == unlessOpen)
-        check("protection.exports", ProjectStore.defaultProtection(for: package.exportsURL.appendingPathComponent("a/b.pdf")) == unlessOpen)
+        check("protection.exports", ProjectStore.defaultProtection(for: exportFile) == unlessOpen)
         check("protection.thumbnail", ProjectStore.defaultProtection(for: package.thumbnailURL) == unlessOpen)
-        check("protection.rawAndDerived", ProjectStore.defaultProtection(for: package.rawRoomURL(session: session, room: room)
-                                                                          .appendingPathComponent("poses.ptrk")) == []
-              && ProjectStore.defaultProtection(for: package.cleanModelURL) == []
-              && ProjectStore.defaultProtection(for: package.derivedURL.appendingPathComponent("thumbnail.jpg")) == [])
+        let rawProtection: Data.WritingOptions = ProjectStore.defaultProtection(for: rawFile)
+        let cleanProtection: Data.WritingOptions = ProjectStore.defaultProtection(for: package.cleanModelURL)
+        let derivedThumbnailProtection: Data.WritingOptions = ProjectStore.defaultProtection(for: derivedThumbnail)
+        check("protection.rawAndDerived", rawProtection == systemDefault && cleanProtection == systemDefault
+              && derivedThumbnailProtection == systemDefault)
 
         // Measurements, categories, recordings
         // CR-2: 2 sigma above max(4 cm, 3 percent of the length); areas and volumes relative only
-        check("measure.lowConfidence.short", MeasuredValue(value: 0.5, sigma: 0.021, provenance: .measured).isLowConfidence
-              && !MeasuredValue(value: 0.5, sigma: 0.019, provenance: .measured).isLowConfidence)
-        check("measure.lowConfidence.long", MeasuredValue(value: 3, sigma: 0.046, provenance: .measured).isLowConfidence
-              && !MeasuredValue(value: 3, sigma: 0.044, provenance: .measured).isLowConfidence
-              && !MeasuredValue(value: 10, sigma: 0.1, provenance: .measured).isLowConfidence(kind: .wallLength))
-        check("measure.lowConfidence.area", MeasuredValue(value: 20, sigma: 0.31, provenance: .measured).isLowConfidence(kind: .area)
-              && !MeasuredValue(value: 20, sigma: 0.29, provenance: .measured).isLowConfidence(kind: .area))
-        check("measure.lowConfidence.noSigma", !MeasuredValue(value: 3, sigma: nil, provenance: .inferred).isLowConfidence
-              && !MeasuredValue(value: 3, sigma: .nan, provenance: .measured).isLowConfidence(length: 3))
+        let shortLow = MeasuredValue(value: 0.5, sigma: 0.021, provenance: .measured)
+        let shortOK = MeasuredValue(value: 0.5, sigma: 0.019, provenance: .measured)
+        let shortLowFlag: Bool = shortLow.isLowConfidence
+        let shortOKFlag: Bool = shortOK.isLowConfidence
+        check("measure.lowConfidence.short", shortLowFlag && !shortOKFlag)
+        let longLow = MeasuredValue(value: 3, sigma: 0.046, provenance: .measured)
+        let longOK = MeasuredValue(value: 3, sigma: 0.044, provenance: .measured)
+        let wallOK = MeasuredValue(value: 10, sigma: 0.1, provenance: .measured)
+        let longLowFlag: Bool = longLow.isLowConfidence(length: longLow.value)
+        let longOKFlag: Bool = longOK.isLowConfidence(length: longOK.value)
+        let wallOKFlag: Bool = wallOK.isLowConfidence(kind: .wallLength)
+        check("measure.lowConfidence.long", longLowFlag && !longOKFlag && !wallOKFlag)
+        let areaLow = MeasuredValue(value: 20, sigma: 0.31, provenance: .measured)
+        let areaOK = MeasuredValue(value: 20, sigma: 0.29, provenance: .measured)
+        let areaLowFlag: Bool = areaLow.isLowConfidence(kind: .area)
+        let areaOKFlag: Bool = areaOK.isLowConfidence(kind: .area)
+        check("measure.lowConfidence.area", areaLowFlag && !areaOKFlag)
+        let noSigma = MeasuredValue(value: 3, sigma: nil, provenance: .inferred)
+        let nanSigma = MeasuredValue(value: 3, sigma: Double.nan, provenance: .measured)
+        let noSigmaFlag: Bool = noSigma.isLowConfidence
+        let nanSigmaFlag: Bool = nanSigma.isLowConfidence(length: 3)
+        check("measure.lowConfidence.noSigma", !noSigmaFlag && !nanSigmaFlag)
         check("category.count", ObjectCategory.allCases.count == 24 && !ObjectCategory.toilet.isMovable && ObjectCategory.sofa.isMovable)
         let recording = SnapshotRecording.synthetic(count: 5)
         check("recording.jsonl", (try? SnapshotRecording.decodeJSONLines(recording.encodeJSONLines())) == recording)

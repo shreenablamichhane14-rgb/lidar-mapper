@@ -347,7 +347,8 @@ enum ProjectStore {
 
     /// Reads and decodes a JSON file of at most `maxBytes`. Throws `CoreError.missingFile`
     /// when absent and `CoreError.fileTooLarge` when larger, before reading any content.
-    static func readJSON<T: Decodable>(_ type: T.Type, from url: URL, maxBytes: Int64 = defaultMaxJSONBytes) throws -> T {
+    static func readJSON<T: Decodable>(_ type: T.Type, from url: URL,
+                                       maxBytes: Int64 = ProjectStore.defaultMaxJSONBytes) throws -> T {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw CoreError.missingFile(url.lastPathComponent)
         }
