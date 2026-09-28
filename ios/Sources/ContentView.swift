@@ -38,6 +38,7 @@ struct ContentView: View {
         SelfTestSuite(name: "Core", run: CoreSelfTest.run),
         SelfTestSuite(name: "Texturing", run: TexturingSelfTest.run),
         SelfTestSuite(name: "Coverage", run: CoverageSelfTest.run),
+        SelfTestSuite(name: "Mesh processing", run: MeshProcessingSelfTest.run),
     ]
 
     @State private var results: [SelfTestResult] = []
