@@ -134,11 +134,12 @@ enum MeshModelSelfTest {
         r.check("cube.noFloaters", result.floaters.triangleCount == 0)
         r.check("cube.viewEqualsMeasured", result.view.triangleCount == 12)
         r.check("cube.chunkCount", result.stats.chunkCount == 2)
-        let lower = result.stats.boundsMin.simd
-        let upper = result.stats.boundsMax.simd
-        r.check("cube.bounds", simd_distance(lower, cubeOffset) < 1e-4
-                    && simd_distance(upper, cubeOffset + SIMD3<Float>(repeating: 1)) < 1e-4,
-                "\(lower) \(upper)")
+        let lower: SIMD3<Float> = result.stats.boundsMin.simd
+        let upper: SIMD3<Float> = result.stats.boundsMax.simd
+        let expectedUpper: SIMD3<Float> = cubeOffset + SIMD3<Float>(repeating: 1)
+        let lowerError: Float = simd_distance(lower, cubeOffset)
+        let upperError: Float = simd_distance(upper, expectedUpper)
+        r.check("cube.bounds", lowerError < 1e-4 && upperError < 1e-4, "\(lower) \(upper)")
 
         r.check("cube.cancelled", MeshConsolidator.consolidate(cubeHalves(), options: ConsolidationOptions(),
                                                                isCancelled: { true }) == nil)
@@ -160,15 +161,16 @@ enum MeshModelSelfTest {
         let inferred = result.inferred
         r.check("hole.filled", inferred.triangleCount > 0, "no inferred faces")
         r.near("hole.inferredArea", inferred.mesh.surfaceArea, 0.01, 1e-4)
-        r.check("hole.inferredFlags", inferred.isInferred?.count == inferred.triangleCount
-                    && inferred.isInferred?.allSatisfy { $0 } == true)
+        let flags = inferred.isInferred ?? []
+        r.check("hole.inferredFlags", flags.count == inferred.triangleCount && !flags.contains(false))
         r.check("hole.inferredClass", inferred.faceClass?.allSatisfy { $0 == 1 } == true, "fill lost the wall class")
         r.check("hole.measuredFaces", result.measured.triangleCount == 792, "\(result.measured.triangleCount) faces")
         r.check("hole.measuredOpen", !hasFaceInHole(result.measured), "measured mesh has a face in the hole")
-        r.check("hole.viewNoInferred", result.view.isInferred == nil && !hasFaceInHole(result.view)
-                    && result.view.triangleCount == 792)
-        r.check("hole.stats", result.stats.inferredTriangleCount == inferred.triangleCount
-                    && result.stats.triangleCount == 792 && result.stats.viewTriangleCount == 792)
+        let viewClean = result.view.isInferred == nil && !hasFaceInHole(result.view)
+        r.check("hole.viewNoInferred", viewClean && result.view.triangleCount == 792)
+        let stats = result.stats
+        let statsMatch = stats.inferredTriangleCount == inferred.triangleCount && stats.triangleCount == 792
+        r.check("hole.stats", statsMatch && stats.viewTriangleCount == 792, "\(stats)")
         var noFill = ConsolidationOptions()
         noFill.holeMaxPerimeter = 0.3
         r.check("hole.largeHoleOpen", consolidated([holeChunk()], noFill)?.inferred.triangleCount == 0,
@@ -209,8 +211,8 @@ enum MeshModelSelfTest {
             return r.check("budget.result", false, "nil without cancellation")
         }
         r.check("budget.measuredFull", result.measured.triangleCount == 20_000, "\(result.measured.triangleCount)")
-        r.check("budget.view", result.view.triangleCount <= 5_000 && result.view.triangleCount >= 2_500,
-                "\(result.view.triangleCount) view faces")
+        let viewFaces = result.view.triangleCount
+        r.check("budget.view", viewFaces <= 5_000 && viewFaces >= 2_500, "\(viewFaces) view faces")
         r.check("budget.stats", result.stats.viewTriangleCount == result.view.triangleCount)
         r.check("budget.noHoles", result.inferred.triangleCount == 0 && result.floaters.triangleCount == 0)
 

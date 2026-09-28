@@ -53,8 +53,7 @@ extension MeshConsolidator {
         // (flagged inferred) at the end, so the measured faces are exactly the kept islands.
         var measured = islands.kept
         measured.isInferred = nil
-        let filled = HoleFill.fillSmallHoles(measured, maxPerimeter: options.holeMaxPerimeter)
-        let inferred = inferredFaces(filled.mesh)
+        let inferred = inferredFaces(HoleFill.fillSmallHoles(measured, maxPerimeter: options.holeMaxPerimeter).mesh)
         if isCancelled() { return nil }
 
         let budget = options.viewTriangleBudget

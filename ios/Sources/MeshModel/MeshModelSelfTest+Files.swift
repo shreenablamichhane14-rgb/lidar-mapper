@@ -59,10 +59,12 @@ extension MeshModelSelfTest {
             try MeshModelStore.save(result, package: package, room: room)
 
             let measured = try MeshModelStore.loadMeasured(package, room: room)
-            r.check("store.measured", measured?.mesh == result.measured.mesh && measured?.faceClass == result.measured.faceClass)
+            let sameGeometry = measured?.mesh == result.measured.mesh
+            r.check("store.measured", sameGeometry && measured?.faceClass == result.measured.faceClass)
             let inferred = try MeshModelStore.loadInferred(package, room: room)
-            r.check("store.inferred", inferred?.triangleCount == result.inferred.triangleCount
-                        && inferred?.isInferred?.allSatisfy { $0 } == true)
+            let inferredFlags = inferred?.isInferred ?? []
+            let allInferred = !inferredFlags.isEmpty && !inferredFlags.contains(false)
+            r.check("store.inferred", allInferred && inferred?.triangleCount == result.inferred.triangleCount)
             let view = try MeshModelStore.loadView(package, room: room)
             r.check("store.viewNotInferred", view != nil && view?.isInferred == nil)
             r.check("store.view", view?.triangleCount == result.view.triangleCount)
@@ -130,7 +132,8 @@ extension MeshModelSelfTest {
             return r.check("export.fixtures", false, "nil without cancellation")
         }
         let colored = MeshExportAdapter.exportMesh(cube.measured, name: "cube", colorByClass: true)
-        r.check("export.colors", colored.colors?.count == colored.positions.count && colored.positions.count > 0)
+        let colorCount = colored.colors?.count ?? -1
+        r.check("export.colors", colorCount == colored.positions.count && colorCount > 0)
         r.check("export.faceOrder", colored.triangleCount == cube.measured.triangleCount)
         var faceColorsMatch = colored.colors != nil
         if let colors = colored.colors, let classes = cube.measured.faceClass {
@@ -155,14 +158,14 @@ extension MeshModelSelfTest {
         } catch {
             r.fail("export.validate", error)
         }
-        r.check("export.sceneMeshes", coloredScene.meshes.count == 2 && coloredScene.materials.isEmpty
-                    && coloredScene.meshes.allSatisfy { $0.materialIndex == nil })
+        let unbound = coloredScene.meshes.allSatisfy { $0.materialIndex == nil }
+        r.check("export.sceneMeshes", coloredScene.meshes.count == 2 && coloredScene.materials.isEmpty && unbound)
         let inferredColors = coloredScene.meshes.last?.colors ?? []
-        r.check("export.inferredColor", !inferredColors.isEmpty
-                    && inferredColors.allSatisfy { $0 == MeshClassPalette.inferredBytes })
-        r.check("export.materials", plainScene.materials.count == 2
-                    && plainScene.materials.last?.baseColor == MeshClassPalette.inferred
-                    && plainScene.meshes.last?.materialIndex == 1)
+        let orange = MeshClassPalette.inferredBytes
+        r.check("export.inferredColor", !inferredColors.isEmpty && !inferredColors.contains { $0 != orange })
+        let inferredMaterial = plainScene.materials.last?.baseColor == MeshClassPalette.inferred
+        let bound = plainScene.meshes.last?.materialIndex == 1
+        r.check("export.materials", plainScene.materials.count == 2 && inferredMaterial && bound)
         let alone = MeshExportAdapter.scene(measured: cube.measured, inferred: nil, colorByClass: true)
         r.check("export.noInferred", alone.meshes.count == 1)
     }
@@ -181,8 +184,10 @@ extension MeshModelSelfTest {
         r.check("step.fullOptions", ConsolidateMeshStep.options(reduced: false, depthWindow: nil) == ConsolidationOptions())
 
         let epoch = Date(timeIntervalSince1970: 0)
-        let roomManifest = ProjectManifest.new(kind: .room, name: "", now: epoch)
-        let advanced = ProjectManifest.new(kind: .advancedSpace, name: "", now: epoch)
+        var roomManifest = ProjectManifest.new(kind: .room, name: "", now: epoch)
+        roomManifest.id = fixedID(31)
+        var advanced = ProjectManifest.new(kind: .advancedSpace, name: "", now: epoch)
+        advanced.id = fixedID(32)
         r.check("step.noCropForRooms", ConsolidateMeshStep.depthWindow(for: roomManifest) == nil)
         r.check("step.cropForAdvanced", ConsolidateMeshStep.depthWindow(for: advanced) == advanced.settings.depthWindow)
 
