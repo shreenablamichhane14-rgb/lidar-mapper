@@ -151,6 +151,13 @@ struct HomeProjectRow: View {
     }
 }
 
+/// Carries a decoded thumbnail out of the detached loading task. `UIImage` is immutable, so
+/// handing it to the main actor is safe.
+private struct HomeThumbnailResult: @unchecked Sendable {
+    /// The decoded image, nil when the project has none.
+    let image: UIImage?
+}
+
 /// Decoded project thumbnails (`ProjectPackage.thumbnailURL`), loaded and downscaled off the
 /// main thread and kept in memory by file modification date, so scrolling back to a row and a
 /// progress update never touch the disk on main. `NSCache` is thread safe.
@@ -169,9 +176,10 @@ final class HomeThumbnailCache: @unchecked Sendable {
     /// The project's thumbnail scaled to at most `maxPixels` on its long edge, or nil when the
     /// project has none yet. The file work runs in a detached task.
     func image(projectID: UUID, maxPixels: CGFloat) async -> UIImage? {
-        await Task.detached(priority: .utility) {
-            HomeThumbnailCache.shared.load(projectID: projectID, maxPixels: maxPixels)
+        let result = await Task.detached(priority: .utility) { () -> HomeThumbnailResult in
+            HomeThumbnailResult(image: HomeThumbnailCache.shared.load(projectID: projectID, maxPixels: maxPixels))
         }.value
+        return result.image
     }
 
     /// Reads, decodes and caches the thumbnail. Any thread. A missing file is normal (the
