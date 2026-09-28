@@ -21,7 +21,7 @@ enum ViewerContentBuilder {
     /// Face indices grouped by 2 m tile of their centroid.
     ///
     /// Tiles are squares of `tileSize` on the world x-z plane, counted from the smallest
-    /// centroid x and z, so a strip 6 m long always gives 3 tiles. Groups are ordered by tile
+    /// corner x and z of the valid faces, so a strip 6 m long always gives 3 tiles. Groups are ordered by tile
     /// (z, then x) and faces keep ascending order inside a group. Faces with an out-of-range
     /// index or a non-finite centroid are left out. A `tileSize` that is not positive and
     /// finite puts every valid face in one group.
@@ -39,8 +39,10 @@ enum ViewerContentBuilder {
             guard c.x.isFinite, c.y.isFinite, c.z.isFinite else { continue }
             faces.append(f)
             centroids.append(SIMD2<Float>(c.x, c.z))
-            minX = Swift.min(minX, c.x)
-            minZ = Swift.min(minZ, c.z)
+            let lowX = Swift.min(corners.0.x, Swift.min(corners.1.x, corners.2.x))
+            let lowZ = Swift.min(corners.0.z, Swift.min(corners.1.z, corners.2.z))
+            minX = Swift.min(minX, lowX)
+            minZ = Swift.min(minZ, lowZ)
         }
         guard !faces.isEmpty else { return [] }
         guard tileSize > 0, tileSize.isFinite else { return [faces] }
