@@ -203,9 +203,14 @@ extension KeyframesSelfTest {
     }
 
     /// A '420f' buffer made with CVPixelBufferCreate whose plane bytes follow a pattern of `seed`.
+    /// The buffer is IOSurface backed, like ARKit's capturedImage, so Core Image reads it the
+    /// same way it reads a camera frame.
     static func makeSource(width: Int, height: Int, seed: Int) -> CVPixelBuffer? {
         var created: CVPixelBuffer?
-        let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, biPlanarFormat, nil, &created)
+        let surfaceProperties: [String: Any] = [:]
+        let attributes: [String: Any] = [kCVPixelBufferIOSurfacePropertiesKey as String: surfaceProperties]
+        let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, biPlanarFormat,
+                                         attributes as CFDictionary, &created)
         guard status == kCVReturnSuccess, let buffer = created else { return nil }
         guard CVPixelBufferLockBaseAddress(buffer, []) == kCVReturnSuccess else { return nil }
         defer { _ = CVPixelBufferUnlockBaseAddress(buffer, []) }
