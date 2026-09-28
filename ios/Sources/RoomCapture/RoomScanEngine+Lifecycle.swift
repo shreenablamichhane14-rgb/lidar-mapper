@@ -69,9 +69,9 @@ extension RoomScanEngine {
             q.memoryLowLogged = false
         }
         let now = ProcessInfo.processInfo.systemUptime
-        let new = q.detections.take()
-        var input = RoomScanStats.guidanceInput(time: now, status: status, newDoors: new.doors,
-                                                newWindows: new.windows, newWalls: new.walls)
+        let detected = q.detections.take()
+        var input = RoomScanStats.guidanceInput(time: now, status: status, newDoors: detected.doors,
+                                                newWindows: detected.windows, newWalls: detected.walls)
         if let augment = guidanceAugmenter { augment(&input) }
         let raw = q.guidance.update(input)
         let output = GuidanceFilter(roomPlanCoaching: q.coaching).filter(raw)
@@ -194,6 +194,7 @@ extension RoomScanEngine {
             if RoomScanStats.isDeviceTooHot(error) { q.systemStop = .deviceTooHot }
             q.phase = RoomScanStats.next(q.phase, on: .finish)
             publish(state: .stopping, events: [.stateChanged(.stopping)])
+            DispatchQueue.main.async { [weak self] in self?.markRoomPlanEnded() }
             RoomScanLog.write("RoomPlan ended the room by itself (\(source))")
         case .stopping:
             break

@@ -146,15 +146,15 @@ final class RoomScanEngine: NSObject, ScanEngine {
     // MARK: Main-thread state
 
     /// The one RoomCaptureView of this engine (created once, released by `teardown`).
-    var captureView: RoomCaptureView?
+    private var captureView: RoomCaptureView?
     /// The view's `captureSession`, stored so the nonisolated methods never touch the view.
-    var captureSession: RoomCaptureSession?
+    private var captureSession: RoomCaptureSession?
     /// `start()` (or `startNextRoom`) was called for the current room.
-    var startRequested = false
+    private var startRequested = false
     /// RoomPlan `run(configuration:)` and `stop(pauseARSession:)` were called for the current room.
-    var roomPlanRunRequested = false, roomPlanStopRequested = false
+    private var roomPlanRunRequested = false, roomPlanStopRequested = false
     /// True once `teardown()` ran.
-    var tornDown = false
+    private var tornDown = false
 
     // MARK: Build 5 hooks (lock-protected, called on the hub queue)
 
@@ -411,6 +411,11 @@ final class RoomScanEngine: NSObject, ScanEngine {
         guard roomPlanRunRequested, !roomPlanStopRequested, let session = captureSession else { return }
         roomPlanStopRequested = true
         session.stop(pauseARSession: false)
+    }
+
+    /// Main. RoomPlan ended the pass by itself (an error in `didEndWith`), so it is not stopped again.
+    func markRoomPlanEnded() {
+        if roomPlanRunRequested { roomPlanStopRequested = true }
     }
 
     /// Seconds to wait for `didEndWith` after `stop(pauseARSession: false)`.
