@@ -113,7 +113,11 @@ enum TXTestScenes {
         /// Grid point (i, j) of an nu x nv grid.
         private func point(_ origin: SIMD3<Float>, _ du: SIMD3<Float>, _ dv: SIMD3<Float>,
                            _ i: Int, _ j: Int, _ nu: Int, _ nv: Int) -> SIMD3<Float> {
-            origin + du * (Float(i) / Float(nu)) + dv * (Float(j) / Float(nv))
+            let fu: Float = Float(i) / Float(nu)
+            let fv: Float = Float(j) / Float(nv)
+            let alongU: SIMD3<Float> = du * fu
+            let alongV: SIMD3<Float> = dv * fv
+            return origin + alongU + alongV
         }
 
         /// Adds the cube's six sides (+x, -x, +y, -y, +z, -z), each split 2 x 2, facing outward.
@@ -122,13 +126,19 @@ enum TXTestScenes {
             let h: Float = TXTestScenes.cubeHalf
             let s: Float = 2 * h
             let x = SIMD3<Float>(1, 0, 0), y = SIMD3<Float>(0, 1, 0), z = SIMD3<Float>(0, 0, 1)
-            let sides: [(SIMD3<Float>, SIMD3<Float>, SIMD3<Float>)] = [
-                (SIMD3<Float>(h, -h, h), -z, y), (SIMD3<Float>(-h, -h, -h), z, y),
-                (SIMD3<Float>(-h, h, h), x, -z), (SIMD3<Float>(-h, -h, -h), x, z),
-                (SIMD3<Float>(-h, -h, h), x, y), (SIMD3<Float>(h, -h, -h), -x, y)
-            ]
-            for side in sides {
-                addGrid(origin: c + side.0, du: side.1 * s, dv: side.2 * s, nu: 2, nv: 2)
+            let minusX: SIMD3<Float> = SIMD3<Float>(-1, 0, 0)
+            let minusZ: SIMD3<Float> = SIMD3<Float>(0, 0, -1)
+            let n: Float = -h
+            // Corner, du and dv of each side, in the order +x, -x, +y, -y, +z, -z.
+            let corners: [SIMD3<Float>] = [SIMD3<Float>(h, n, h), SIMD3<Float>(n, n, n), SIMD3<Float>(n, h, h),
+                                           SIMD3<Float>(n, n, n), SIMD3<Float>(n, n, h), SIMD3<Float>(h, n, n)]
+            let dus: [SIMD3<Float>] = [minusZ, z, x, x, x, minusX]
+            let dvs: [SIMD3<Float>] = [y, y, minusZ, z, y, y]
+            for side in 0..<corners.count {
+                let origin: SIMD3<Float> = c + corners[side]
+                let du: SIMD3<Float> = dus[side] * s
+                let dv: SIMD3<Float> = dvs[side] * s
+                addGrid(origin: origin, du: du, dv: dv, nu: 2, nv: 2)
             }
         }
 
@@ -406,8 +416,10 @@ enum TXTestScenes {
             if checkerLineDistance(p, n) < 0.025 || cubeEdgeDistance(p, n) < 0.05 { continue }
             let a = Int(result.faceAtlas[f])
             guard a < atlases.count, let atlas = atlases[a] else { continue }
-            let uv: SIMD2<Float> = result.texcoords[3 * f] * r0 + result.texcoords[3 * f + 1] * r1
-                + result.texcoords[3 * f + 2] * r2
+            let uv0: SIMD2<Float> = result.texcoords[3 * f] * r0
+            let uv1: SIMD2<Float> = result.texcoords[3 * f + 1] * r1
+            let uv2: SIMD2<Float> = result.texcoords[3 * f + 2] * r2
+            let uv: SIMD2<Float> = uv0 + uv1 + uv2
             let texel = SIMD2<Float>(uv.x * Float(atlas.width), (1 - uv.y) * Float(atlas.height))
             let diff: SIMD3<Float> = simd_abs(atlas.sample(texel) - groundTruth(p, n))
             errors.append(max(diff.x, max(diff.y, diff.z)))

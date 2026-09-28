@@ -56,7 +56,12 @@ enum TexturingSelfTest {
             }
             c.expect("projection.roundTrip.cam\(k)", worst <= 1e-4, "max error \(worst) m")
             let q = cam.project(TXTestScenes.cubeCenter)
-            let ok: Bool = q.map { abs($0.x - TXTestScenes.cx) < 1e-3 && abs($0.y - TXTestScenes.cy) < 1e-3 } ?? false
+            var ok: Bool = false
+            if let target = q {
+                let du: Float = abs(target.x - TXTestScenes.cx)
+                let dv: Float = abs(target.y - TXTestScenes.cy)
+                ok = du < 1e-3 && dv < 1e-3
+            }
             c.expect("projection.principalAxis.cam\(k)", ok, "target projects to \(String(describing: q))")
         }
         let front: TXCamera = cameras[0]
@@ -231,9 +236,13 @@ enum TexturingSelfTest {
             var owners = [Int](repeating: 0, count: mesh.faceCount)
             for chart in charts {
                 if chart.width > size || chart.height > size { tooBig += 1 }
-                for t in chart.cornerTexels where t.x < g - 1e-3 || t.y < g - 1e-3
-                    || t.x > Float(chart.width) - g + 1e-3 || t.y > Float(chart.height) - g + 1e-3 {
-                    outside += 1
+                let low: Float = g - 1e-3
+                let highX: Float = Float(chart.width) - g + 1e-3
+                let highY: Float = Float(chart.height) - g + 1e-3
+                for t in chart.cornerTexels {
+                    let below: Bool = t.x < low || t.y < low
+                    let above: Bool = t.x > highX || t.y > highY
+                    if below || above { outside += 1 }
                 }
                 for f in chart.faces where Int(f) >= 0 && Int(f) < owners.count { owners[Int(f)] += 1 }
             }
@@ -250,8 +259,11 @@ enum TexturingSelfTest {
             c.expect("\(name).noOverlap", TXTestScenes.overlappingPairs(sizes: sizes, placements: packed.packing.placements) == 0)
             var inside = packed.packing.placements.count == sizes.count
             for (i, p) in packed.packing.placements.enumerated() where i < sizes.count {
-                if p.x < 0 || p.y < 0 || p.x + sizes[i].x > size || p.y + sizes[i].y > size
-                    || p.atlas < 0 || p.atlas >= packed.packing.atlasCount { inside = false }
+                let right: Int = p.x + sizes[i].x
+                let bottom: Int = p.y + sizes[i].y
+                let outOfRect: Bool = p.x < 0 || p.y < 0 || right > size || bottom > size
+                let badAtlas: Bool = p.atlas < 0 || p.atlas >= packed.packing.atlasCount
+                if outOfRect || badAtlas { inside = false }
             }
             c.expect("\(name).placementsInside", inside)
             if size == 256 {

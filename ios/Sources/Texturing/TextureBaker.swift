@@ -271,7 +271,8 @@ final class TextureBaker {
                 sharpness.append(0)
             }
             lumas.append(luma)
-            report(TextureBaker.visibilityEnd + span * Float(k + 1) / Float(max(1, count)), progress)
+            let done: Float = Float(k + 1) / Float(max(1, count))
+            report(TextureBaker.visibilityEnd + span * done, progress)
         }
         let weights: [Float] = TXViewSelection.sharpnessWeights(sharpness)
         try checkCancelled()
