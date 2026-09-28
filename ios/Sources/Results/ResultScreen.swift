@@ -128,7 +128,7 @@ struct ResultScreen: View {
     /// Why the measurement list is empty: no walls, the clean model's chip, or not ready.
     private var dimensionsEmptyText: String {
         if model.degraded == .roomPlanFailed { return Copy.Results.noWalls }
-        return ResultAvailability.chipText(model.availability(of: .clean)) ?? Copy.Results.notReady
+        return ResultAvailability.chipText(model.tabState(.clean)) ?? Copy.Results.notReady
     }
 
     /// Retry: why, and Try Again.

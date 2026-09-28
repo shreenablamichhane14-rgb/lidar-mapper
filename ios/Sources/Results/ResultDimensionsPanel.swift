@@ -50,6 +50,19 @@ struct ResultDimensionsPanel: View {
     /// Height of the open list, following the text size.
     @ScaledMetric(relativeTo: .body) private var listHeight: CGFloat = 240
 
+    /// Creates the panel (explicit, because the private scaled metric would make the
+    /// memberwise initializer private).
+    init(rows: [DimensionRow], isFiltered: Bool, prefs: UnitPreferences, emptyText: String, note: String?,
+         isExpanded: Binding<Bool>, onShowAll: @escaping () -> Void) {
+        self.rows = rows
+        self.isFiltered = isFiltered
+        self.prefs = prefs
+        self.emptyText = emptyText
+        self.note = note
+        self._isExpanded = isExpanded
+        self.onShowAll = onShowAll
+    }
+
     /// Header plus the list when open.
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -143,6 +156,14 @@ struct ResultDimensionRowView: View {
     let showsLabel: Bool
     /// Text size (accessibility sizes stack the value under the name).
     @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// Creates a row view (explicit, because the private environment property would make the
+    /// memberwise initializer private).
+    init(row: DimensionRow, prefs: UnitPreferences, showsLabel: Bool) {
+        self.row = row
+        self.prefs = prefs
+        self.showsLabel = showsLabel
+    }
 
     /// Name and value side by side, or stacked at accessibility sizes.
     var body: some View {

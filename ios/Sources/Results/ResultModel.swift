@@ -118,7 +118,7 @@ struct ResultPlanInputs: Equatable, Sendable {
     // MARK: - Derived state
 
     /// The availability of `tab` (not ready until computed).
-    func availability(of tab: ResultTab) -> TabAvailability {
+    func tabState(_ tab: ResultTab) -> TabAvailability {
         availability[tab] ?? .unavailable(reason: Copy.Results.notReady)
     }
 
@@ -137,7 +137,7 @@ struct ResultPlanInputs: Equatable, Sendable {
     func showsViewer(_ target: ResultTab) -> Bool {
         switch target {
         case .realistic: return files.hasTexture || files.hasMeshView
-        case .clean, .raw: return availability(of: target).isReady
+        case .clean, .raw: return tabState(target).isReady
         case .floorPlan: return false
         }
     }
@@ -294,7 +294,7 @@ struct ResultPlanInputs: Equatable, Sendable {
         guard !userChoseTab, !initialTabChosen, !showsProcessingView else { return }
         initialTabChosen = true
         let order: [ResultTab] = [.realistic, .clean, .floorPlan, .raw]
-        if let best = order.first(where: { availability(of: $0).isReady }), best != tab {
+        if let best = order.first(where: { tabState($0).isReady }), best != tab {
             tab = best
         }
         LogStore.shared.write("opened on \(tab.rawValue)", category: ResultLoader.logCategory)

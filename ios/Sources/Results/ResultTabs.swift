@@ -9,6 +9,12 @@ struct ResultTabPicker: View {
     /// Text size (accessibility sizes switch to a menu).
     @Environment(\.dynamicTypeSize) private var typeSize
 
+    /// Creates the switcher (explicit, because the private environment property would make
+    /// the memberwise initializer private).
+    init(model: ResultModel) {
+        self._model = ObservedObject(wrappedValue: model)
+    }
+
     /// The picker.
     var body: some View {
         Group {
@@ -61,10 +67,10 @@ struct ResultTabBody: View {
     @ViewBuilder private var content: some View {
         let current = model.tab
         if current == .floorPlan {
-            if model.availability(of: .floorPlan).isReady, let drawing = model.planDrawing {
+            if model.tabState(.floorPlan).isReady, let drawing = model.planDrawing {
                 PlanCanvasView(drawing: drawing, selection: .constant(model.selectedElement ?? model.selectedObject?.id),
                                onTap: { hit in model.selectPlanHit(hit) })
-            } else if model.availability(of: .floorPlan).isReady {
+            } else if model.tabState(.floorPlan).isReady {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -113,7 +119,7 @@ struct ResultStatusCard: View {
 
     /// Icon, progress, text and actions, centered.
     var body: some View {
-        let state = model.availability(of: target)
+        let state = model.tabState(target)
         VStack(spacing: 14) {
             icon(for: state)
             if case .preparing(_, let percent) = state {
@@ -146,18 +152,21 @@ struct ResultStatusCard: View {
         .background(Color(uiColor: .systemGroupedBackground))
     }
 
-    /// Hourglass while preparing, a warning when failed, information otherwise.
+    /// The large icon of a state.
     private func icon(for state: TabAvailability) -> some View {
-        let name: String
-        switch state {
-        case .ready, .preparing: name = "hourglass"
-        case .failed: name = "exclamationmark.triangle"
-        case .unavailable: name = "info.circle"
-        }
-        return Image(systemName: name)
+        Image(systemName: ResultStatusCard.symbol(for: state))
             .font(.largeTitle)
             .foregroundStyle(.secondary)
             .accessibilityHidden(true)
+    }
+
+    /// Hourglass while preparing, a warning when failed, information otherwise.
+    static func symbol(for state: TabAvailability) -> String {
+        switch state {
+        case .ready, .preparing: return "hourglass"
+        case .failed: return "exclamationmark.triangle"
+        case .unavailable: return "info.circle"
+        }
     }
 }
 
@@ -202,15 +211,19 @@ struct ResultChips: View {
     var body: some View {
         let current = model.tab
         VStack(alignment: .leading, spacing: 6) {
-            if model.showsViewer(current), let text = ResultAvailability.chipText(model.availability(of: current)) {
-                chip(text, systemImage: "hourglass")
-                if current == .realistic && model.offersSimpleModel && !model.isPreparingSimpleModel {
-                    Button {
-                        Task { await model.openSimpleModel() }
-                    } label: {
-                        chip(Copy.Results.simpleModel, systemImage: "cube")
+            if model.showsViewer(current), let text = ResultAvailability.chipText(model.tabState(current)) {
+                chip(text, systemImage: ResultStatusCard.symbol(for: model.tabState(current)))
+                if current == .realistic && model.offersSimpleModel {
+                    if model.isPreparingSimpleModel {
+                        chip(Copy.Results.simpleModelPreparing, systemImage: "cube")
+                    } else {
+                        Button {
+                            Task { await model.openSimpleModel() }
+                        } label: {
+                            chip(Copy.Results.simpleModel, systemImage: "cube")
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
             if (current == .clean || current == .raw) && model.showsViewer(current) && model.missingAreaCount > 0 {
@@ -242,6 +255,12 @@ struct ResultToolButtons: View {
     @ObservedObject var model: ResultModel
     /// Size of each round button, following the text size.
     @ScaledMetric(relativeTo: .body) private var side: CGFloat = 44
+
+    /// Creates the buttons (explicit, because the private scaled metric would make the
+    /// memberwise initializer private).
+    init(model: ResultModel) {
+        self._model = ObservedObject(wrappedValue: model)
+    }
 
     /// A vertical column of round buttons.
     var body: some View {
@@ -279,7 +298,7 @@ struct ResultToolButtons: View {
                 } else if style == .textured && !model.files.hasTexture {
                     Button {} label: {
                         Text(style.title)
-                        Text(ResultAvailability.chipText(model.availability(of: .realistic)) ?? Copy.Results.noColor)
+                        Text(ResultAvailability.chipText(model.tabState(.realistic)) ?? Copy.Results.noColor)
                     }
                     .disabled(true)
                 } else {
@@ -300,9 +319,11 @@ struct ResultToolButtons: View {
         .accessibilityLabel(Copy.Viewer.displayTitle)
     }
 
-    /// The floor plan layer toggles (Furniture follows Hide Furniture while it is on).
+    /// Hide Furniture (shared with 3D Clean) and the floor plan layer toggles; the Furniture
+    /// layer is off and disabled while Hide Furniture is on.
     private var layersMenu: some View {
         Menu {
+            Toggle(Copy.Viewer.hideFurniture, isOn: $model.hideFurniture)
             Toggle(Copy.FloorPlan.toggleFurniture, isOn: $model.planToggles.furniture)
                 .disabled(model.hideFurniture)
             Toggle(Copy.FloorPlan.toggleMeasurements, isOn: $model.planToggles.measurements)
