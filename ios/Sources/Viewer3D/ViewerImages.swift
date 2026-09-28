@@ -80,7 +80,8 @@ enum ViewerImages {
             context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
             return true
         }
-        return drawn ? (bytes, width, height) : nil
+        guard drawn else { return nil }
+        return (bytes, width, height)
     }
 }
 

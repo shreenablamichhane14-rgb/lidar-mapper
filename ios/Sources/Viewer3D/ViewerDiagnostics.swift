@@ -22,7 +22,10 @@ enum ViewerDiagnostics {
     /// the bottom-left V origin that Texturing, Export and the viewer assume, cell 1 appears at
     /// the quad's lower left; if cell 57 appears there instead, V is flipped.
     static func uvCheckerContent() throws -> ViewerContent {
-        try uvCheckerContent(directory: FileManager.default.temporaryDirectory)
+        let content = try uvCheckerContent(directory: FileManager.default.temporaryDirectory)
+        LogStore.shared.write("uv checker written: cell 1 (red) belongs at the quad's lower left, cell 64 (yellow) at its upper right",
+                              category: "viewer")
+        return content
     }
 
     /// `uvCheckerContent()` writing the texture into `directory` (the self-test uses its own
@@ -33,8 +36,6 @@ enum ViewerDiagnostics {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appendingPathComponent(checkerFileName)
         try jpeg.write(to: url, options: .atomic)
-        LogStore.shared.write("uv checker written: cell 1 (red) belongs at the quad's lower left, cell 64 (yellow) at its upper right",
-                              category: "viewer")
         return ViewerContent(parts: [uvCheckerPart(textureURL: url)])
     }
 
