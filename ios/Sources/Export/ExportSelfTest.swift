@@ -56,6 +56,7 @@ enum ExportSelfTest {
         checkUSDZ(&c, scene: scene, jpeg: jpeg)
         checkPlan(&c, plan: plan)
         checkDXF(&c, plan: plan)
+        checkDXFMillimeters(&c, plan: plan)
         checkSVGAndPDF(&c, plan: plan)
         if c.count < 50 { c.failures.append("only \(c.count) checks ran") }
         return c.failures
