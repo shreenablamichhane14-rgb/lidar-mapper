@@ -1,0 +1,341 @@
+{
+ "research": {
+  "topic": "ui-ux-patterns: amateur-friendly LiDAR scanning UX (RoomPlan / Object Capture / ARKit sample flows, competitor patterns, SwiftUI iOS 18 specifics, US measurement conventions, onboarding copy)",
+  "facts": [
+   {
+    "claim": "RoomCaptureView is a UIKit UIView (not SwiftUI) that runs the whole room scan UX for you: camera feed, animated real-time outlines of walls/doors/windows/openings/objects, framework coaching text, and a miniature 3D model of the room at the bottom (toggle with isModelEnabled). After you call captureSession.stop() and your delegate returns true from captureView(shouldPresent:error:), the view itself animates the final post-processed room for the user to review; no built-in Done button exists, the app supplies Done/Cancel/Export chrome.",
+    "api": "@MainActor @objc @preconcurrency class RoomCaptureView : UIView\ninit(frame: CGRect)\n@MainActor @preconcurrency init(frame: CGRect, arSession: ARSession)   // iOS 17+\nvar captureSession: RoomCaptureSession!\nvar delegate: (any RoomCaptureViewDelegate)?\n@MainActor @preconcurrency var isModelEnabled: Bool { get set }",
+    "availability": "iOS 16.0+ (init(frame:arSession:) iOS 17.0+)",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/roomcaptureview.json",
+    "confidence": "verified",
+    "critical": true,
+    "notes": "Wrap in UIViewRepresentable. Apple sample (mirror XRealityZone/apple-wwdc-ar-demo, RoomPlanExampleApp/RoomCaptureViewController.swift) does: roomCaptureView = RoomCaptureView(frame: view.bounds); roomCaptureView.captureSession.delegate = self; roomCaptureView.delegate = self; view.insertSubview(roomCaptureView, at: 0); run in viewDidAppear, stop in viewWillDisappear."
+   },
+   {
+    "claim": "RoomCaptureViewDelegate has exactly two methods and the protocol inherits NSCoding (your coordinator must be an NSObject subclass implementing encode(with:) and init?(coder:), or the compiler rejects the conformance). shouldPresent receives raw CapturedRoomData; returning true makes the framework post-process and then call didPresent with the CapturedRoom.",
+    "api": "protocol RoomCaptureViewDelegate : NSCoding\nfunc captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: (any Error)?) -> Bool\nfunc captureView(didPresent processedResult: CapturedRoom, error: (any Error)?)",
+    "availability": "iOS 16.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/roomcaptureviewdelegate.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Apple sample returns true from shouldPresent and stores finalResults in didPresent; Export button is then un-hidden (setCompleteNavBar animates tint to systemBlue, alpha 1.0 over 1.0 s)."
+   },
+   {
+    "claim": "RoomCaptureSessionDelegate provides the full custom-UI event stream, including the coaching instruction callback used to show live guidance text when you build your own scan UI instead of RoomCaptureView.",
+    "api": "protocol RoomCaptureSessionDelegate : AnyObject\nfunc captureSession(_ session: RoomCaptureSession, didStartWith configuration: RoomCaptureSession.Configuration)\nfunc captureSession(_ session: RoomCaptureSession, didAdd capturedRoom: CapturedRoom)\nfunc captureSession(_ session: RoomCaptureSession, didRemove capturedRoom: CapturedRoom)\nfunc captureSession(_ session: RoomCaptureSession, didChange capturedRoom: CapturedRoom)\nfunc captureSession(_ session: RoomCaptureSession, didUpdate capturedRoom: CapturedRoom)\nfunc captureSession(_ session: RoomCaptureSession, didProvide instruction: RoomCaptureSession.Instruction)\nfunc captureSession(_ session: RoomCaptureSession, didEndWith capturedData: CapturedRoomData, error: (any Error)?)",
+    "availability": "iOS 16.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/roomcapturesessiondelegate.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "All methods have default implementations (protocol extension), so implement only what you need. Use the exact labels above; a near-miss signature silently becomes a non-delegate method (Apple forums thread 768296 warns about 'nearly matches defaulted requirement')."
+   },
+   {
+    "claim": "RoomPlan's live guidance vocabulary is a six-case enum; mirror these as the only guidance messages during room scanning (plus tracking/coaching from ARKit).",
+    "api": "enum RoomCaptureSession.Instruction : Equatable, Hashable\ncase normal\ncase moveCloseToWall\ncase moveAwayFromWall\ncase turnOnLight\ncase slowDown\ncase lowTexture",
+    "availability": "iOS 16.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/roomcapturesession/instruction.json",
+    "confidence": "verified",
+    "critical": true,
+    "notes": "Suggested copy: moveCloseToWall 'Move closer to the wall', moveAwayFromWall 'Step back from the wall', turnOnLight 'Turn on more lights', slowDown 'Slow down', lowTexture 'Point at something with detail', normal hides the banner. Delivered only when Configuration.isCoachingEnabled is true (default true). WWDC23 VoiceOver strings Apple uses: 'Move device to start', 'Point camera at bottom edge of wall'."
+   },
+   {
+    "claim": "RoomCaptureSession API surface for driving a scan, including the iOS 17 additions used for multi-room (house) mode.",
+    "api": "class RoomCaptureSession\ninit()\ninit(arSession: ARSession?)          // iOS 17+, WWDC23 shows init(arSession: ARSession? = nil)\nstatic var isSupported: Bool { get }\nfunc run(configuration: RoomCaptureSession.Configuration)\nfunc stop()\nfunc stop(pauseARSession: Bool = true)   // iOS 17+\nvar delegate: (any RoomCaptureSessionDelegate)?\nvar arSession: ARSession { get }\nstruct Configuration { init(); var isCoachingEnabled: Bool }\nenum CaptureError : LocalizedError { case deviceNotSupported, deviceTooHot, exceedSceneSizeLimit, invalidARConfiguration, worldTrackingFailure, internalError; var errorDescription: String? }",
+    "availability": "iOS 16.0+; stop(pauseARSession:) and init(arSession:) iOS 17.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/roomcapturesession.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Map CaptureError to user copy: deviceTooHot 'Phone is too hot, let it cool for a minute', exceedSceneSizeLimit 'This scan got too large. Finish this room and start the next one', worldTrackingFailure 'Lost tracking. Point at the last wall you scanned'. There is no beautifyObjects on RoomCaptureSession.Configuration; that option lives on RoomBuilder.ConfigurationOptions (used by StructureBuilder too)."
+   },
+   {
+    "claim": "House mode: keep one ARSession alive across rooms by calling stop(pauseARSession: false) after each room and run(configuration:) again for the next; then StructureBuilder merges the CapturedRoom array into a CapturedStructure in one coordinate system with duplicate walls removed. Apple recommends a single floor, 1 to 4 bedrooms plus living/kitchen/dining, max ~2,000 sq ft (186 m2), lighting 50 lux or more.",
+    "api": "class StructureBuilder            // iOS 17+\ninit(options: StructureBuilder.ConfigurationOptions)   // typealias ConfigurationOptions = RoomBuilder.ConfigurationOptions; static let beautifyObjects\nfunc capturedStructure(from: [CapturedRoom]) async throws -> CapturedStructure\nstruct CapturedStructure : Codable, Sendable { var rooms: [CapturedRoom]; var walls, doors, windows, openings, floors: [CapturedStructure.Surface]; var objects: [CapturedStructure.Object]; var sections: [CapturedStructure.Section]; var identifier: UUID; var version: Int\n  func export(to: URL, metadataURL: URL?, modelProvider: CapturedStructure.ModelProvider?, exportOptions: CapturedStructure.USDExportOptions) throws }",
+    "availability": "iOS 17.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/structurebuilder.json",
+    "confidence": "verified",
+    "critical": true,
+    "notes": "WWDC23 10192 code: roomCaptureSession.run(configuration:); roomCaptureSession.stop(pauseARSession: false); roomCaptureSession.run(configuration:); roomCaptureSession.stop(). Alternative for scans at different times: save ARWorldMap (ARSession.getCurrentWorldMap / async currentWorldMap()) and relocalize via ARWorldTrackingConfiguration.initialWorldMap before the next run. With RoomCaptureView, pass your own ARSession via init(frame:arSession:) so the same session survives view recreation."
+   },
+   {
+    "claim": "CapturedRoom is Codable (save as JSON for the project file) and exports USDZ in three formats that map directly to the product's post-scan modes: .parametric (editable primitives, Clean architectural model), .mesh (polygonal walls with cut-outs, default), .model (ModelProvider furniture models). metadataURL writes a USDZ node name to UUID map for picking objects in the viewer.",
+    "api": "struct CapturedRoom : Codable, Sendable\nvar identifier: UUID; var story: Int; var version: Int\nvar walls, doors, windows, openings, floors: [CapturedRoom.Surface]\nvar objects: [CapturedRoom.Object]\nvar sections: [CapturedRoom.Section]   // iOS 17+\nfunc export(to: URL, exportOptions: CapturedRoom.USDExportOptions) throws\nfunc export(to: URL, metadataURL: URL?, modelProvider: CapturedRoom.ModelProvider?, exportOptions: CapturedRoom.USDExportOptions) throws\nstruct USDExportOptions : OptionSet { static let parametric; static let mesh; static let model }",
+    "availability": "iOS 16.0+ (sections, model option, metadataURL/modelProvider iOS 17.0+)",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroom/usdexportoptions.json",
+    "confidence": "verified",
+    "critical": true,
+    "notes": "WWDC23 declaration shows defaults: export(to url: URL, metadataURL: URL? = nil, modelProvider: ModelProvider? = nil, exportOptions: USDExportOptions = .mesh). Apple sample writes Room.json (JSONEncoder of CapturedRoom) plus Room.usdz (.parametric) into a temp 'Export' folder and shares the folder with UIActivityViewController. Sample comment also mentions '.all' exporting both in one USDZ (not in the current doc JSON; treat as unverified)."
+   },
+   {
+    "claim": "CapturedRoom.Surface / Object / Section members needed for the floor plan, object editing and room labels.",
+    "api": "struct CapturedRoom.Surface { var identifier: UUID; var parentIdentifier: UUID?; var category: CapturedRoom.Surface.Category; var confidence: CapturedRoom.Confidence; var transform: simd_float4x4; var dimensions: simd_float3; var story: Int; var completedEdges: Set<CapturedRoom.Surface.Edge>; var curve: CapturedRoom.Surface.Curve?; var polygonCorners: [simd_float3] }\nenum CapturedRoom.Surface.Category { case wall, door(isOpen: Bool), window, opening, floor }\nstruct CapturedRoom.Object { var identifier: UUID; var parentIdentifier: UUID?; var category: CapturedRoom.Object.Category; var confidence: CapturedRoom.Confidence; var transform: simd_float4x4; var dimensions: simd_float3; var story: Int; var attributes: [any CapturedRoomAttribute] }\nenum CapturedRoom.Object.Category { case storage, refrigerator, stove, bed, sink, washerDryer, toilet, bathtub, oven, dishwasher, table, sofa, chair, fireplace, television, stairs }\nstruct CapturedRoom.Section { var label: CapturedRoom.Section.Label; var center: simd_float3; var story: Int }   // Label: livingRoom, kitchen, diningRoom (WWDC23 also lists bedroom, bathroom)",
+    "availability": "iOS 16.0+; Section, parentIdentifier, polygonCorners, curve, attributes iOS 17.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/capturedroom/surface.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Object editing UI: show category name as the label, allow rename, allow delete, allow moving via transform; RoomPlan objects are bounding boxes (dimensions) so the editor is box-based. Confidence enum (low/medium/high) can drive a 'check this' badge on the completion screen."
+   },
+   {
+    "claim": "Object Capture is pure SwiftUI on iOS 17+: ObjectCaptureView renders the camera feed, reticle, bounding box and capture dial for a wrapped ObjectCaptureSession; ObjectCapturePointCloudView shows a turntable review of the point cloud. Removing ObjectCaptureView from the hierarchy and recreating it with the same session resumes the capture.",
+    "api": "@MainActor @preconcurrency struct ObjectCaptureView<Overlay> : View where Overlay : View\ninit(session: ObjectCaptureSession)\ninit(session: ObjectCaptureSession, cameraFeedOverlay: () -> Overlay)\nfunc hideObjectReticle(_ isHidden: Bool) -> ObjectCaptureView<Overlay>\n@MainActor struct ObjectCapturePointCloudView : View\ninit(session: ObjectCaptureSession)\nfunc showShotLocations(_ show: Bool) -> ObjectCapturePointCloudView",
+    "availability": "iOS 17.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/realitykit/objectcaptureview.json",
+    "confidence": "verified",
+    "critical": true,
+    "notes": "Apple GuidedCapture sample: ZStack { ObjectCaptureView(session: session, cameraFeedOverlay: { GradientBackground() }).blur(radius: showPreviewModel ? 45 : 0); if shouldShowOverlayView { CaptureOverlayView(session:) } } with .sheet for Help and .sheet for OnboardingView. Overlay hidden when help shown, preview shown, session paused, or cameraTracking != .normal (ARKit coaching overlay appears automatically then)."
+   },
+   {
+    "claim": "ObjectCaptureSession state machine and observable properties drive every button in the capture overlay. Area mode (iOS 18 sample) is simply: skip startDetecting() and call startCapturing() directly, with hideObjectReticle(true).",
+    "api": "@MainActor class ObjectCaptureSession : Observable, Identifiable\ninit()\n@MainActor static var isSupported: Bool { get }\n@MainActor func start(imagesDirectory: URL, configuration: ObjectCaptureSession.Configuration = Configuration())\nfunc startDetecting() -> Bool\nfunc startCapturing()\nfunc resetDetection() -> Bool\nfunc beginNewScanPass()\nfunc beginNewScanPassAfterFlip()\nfunc requestImageCapture()\nfunc pause(); func resume(); func finish(); func cancel()\nvar state: ObjectCaptureSession.CaptureState\nvar feedback: Set<ObjectCaptureSession.Feedback>\nvar cameraTracking: ObjectCaptureSession.Tracking\nvar userCompletedScanPass: Bool\nvar numberOfShotsTaken: Int\n@MainActor var maximumNumberOfInputImages: Int { get }\nvar canRequestImageCapture: Bool\nvar isAutoCaptureEnabled: Bool\nvar shouldPlayHaptics: Bool\nvar isPaused: Bool\nvar stateUpdates, feedbackUpdates, userCompletedScanPassUpdates, numberOfShotsTakenUpdates, cameraTrackingUpdates, isPausedUpdates, canRequestImageCaptureUpdates  // AsyncSequence streams\nenum CaptureState { case initializing, ready, detecting, capturing, finishing, completed, failed(any Error) }\nenum Tracking { case normal, limited(reason: ObjectCaptureSession.Tracking.Reason), notAvailable }\nstruct Configuration { init(); var checkpointDirectory: URL?; var isOverCaptureEnabled: Bool }",
+    "availability": "iOS 17.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/realitykit/objectcapturesession.json",
+    "confidence": "verified",
+    "critical": true,
+    "notes": "start() is valid once per session; imagesDirectory must be empty and writable, checkpointDirectory must be empty if it exists (otherwise .failed). Session stops capturing at maximumNumberOfInputImages unless isOverCaptureEnabled. Sample sets checkpointDirectory = Snapshots/ and reuses it in PhotogrammetrySession.Configuration.checkpointDirectory to speed reconstruction."
+   },
+   {
+    "claim": "Object Capture feedback enum and Apple's exact user strings for it (from the GuidedCapture sample FeedbackMessages.swift). Messages are shown centered in bold white headline text with a minimum on-screen duration of 2.0 s and deduplicated so a repeating feedback does not flicker.",
+    "api": "enum ObjectCaptureSession.Feedback : Hashable\ncase objectTooFar        // 'Move Closer'\ncase objectTooClose      // 'Move Farther Away'\ncase environmentTooDark  // 'More Light Required'\ncase environmentLowLight // 'More Light Required'\ncase movingTooFast       // 'Move slower'\ncase outOfFieldOfView    // 'Aim at your object'\ncase objectNotDetected   // manual box shown; sample text: 'Can't find your object. It should be larger than 3in (8cm)'\ncase objectNotFlippable  // sample offers 'Flip object anyway' / continue without flipping\ncase overCapturing       // shot counter turns red",
+    "availability": "iOS 17.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/realitykit/objectcapturesession/feedback-swift.enum.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Sample TimedMessageList: feedbackMessageMinimumDurationSecs = 2.0; re-adding an existing message resets its endTime to nil. FeedbackView: Text(message).font(.headline).fontWeight(.bold).foregroundColor(.white), .environment(\\.colorScheme, .dark), .transition(.opacity). Guidance per state: ready 'Move close and center the dot on your object, then tap Continue'; detecting 'Move around to ensure that the whole object is inside the box'."
+   },
+   {
+    "claim": "GuidedCapture sample view hierarchy and state machines to mirror: ContentView switches on AppDataModel.state (notSet, ready, capturing, skipReconstruct, prepareToReconstruct, reconstructing, viewing, completed, restart, failed): capturing shows CapturePrimaryView, reconstructing/viewing present ReconstructionPrimaryView as a sheet, failed shows an alert. CaptureOverlayView buttons per session state: ready = Files | Continue (startDetecting) | Help; detecting = Reset Box (resetDetection) | Start Capture (startCapturing) | Help; capturing = '%d/%d' shot counter | (none) | manual shutter (requestImageCapture, enabled by canRequestImageCapture); Cancel top-left always, Next top-right once userCompletedScanPass (opens the review/onboarding sheet). Review sheet (OnboardingView) shows ObjectCapturePointCloudView on top, then title + detail text, then buttons Continue / Skip / Finish / 'Can't flip your object?' / 'Flip object anyway' / Cancel.",
+    "api": "OnboardingState: dismiss, tooFewImages, firstSegment, firstSegmentNeedsWork, firstSegmentComplete, secondSegment, secondSegmentNeedsWork, secondSegmentComplete, thirdSegment, thirdSegmentNeedsWork, thirdSegmentComplete, flipObject, flipObjectASecondTime, flippingObjectNotRecommended, captureFromLowerAngle, captureFromHigherAngle, reconstruction, additionalOrbitOnCurrentSegment\nOrbit: case orbit1, orbit2, orbit3 (SF Symbols 1.circle / 1.circle.fill ...)",
+    "availability": "iOS 17.0+ (sample deployment target 17.0; Apple's current sample page says iOS 18+)",
+    "source_url": "https://github.com/sfomuseum/ios-guided-capture/blob/main/GuidedCapture/OnboardingStateMachine.swift",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Transitions: firstSegmentComplete -> reconstruction | flipObject | flippingObjectNotRecommended; flipObject -> secondSegment | captureFromLowerAngle; flippingObjectNotRecommended -> captureFromLowerAngle | flipObject; secondSegmentComplete -> flipObjectASecondTime | captureFromHigherAngle; thirdSegmentComplete -> reconstruction. Continue on a flippable object calls session.beginNewScanPassAfterFlip(), on a non-flippable one session.beginNewScanPass(). Finish calls session.finish() and shows a spinner while state == .finishing."
+   },
+   {
+    "claim": "Apple's exact onboarding copy for object scanning (GuidedCapture OnboardingTutorialView+LocalizedString.swift), reusable nearly verbatim.",
+    "api": "",
+    "availability": "",
+    "source_url": "https://github.com/sfomuseum/ios-guided-capture/blob/main/GuidedCapture/OnboardingTutorialView+LocalizedString.swift",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "'Keep moving around your object.' / 'You need at least %d images of your object to create a model.'; 'Keep going to complete the first segment.' / 'For best quality, capture three segments. Tap Skip if you can't make it all the way around, but your final model may have missing areas.'; 'First segment complete.'; 'Flip object on its side and capture again.' / 'Make sure that areas you captured previously can still be seen. Avoid flipping your object if it changes the shape.'; 'Flipping this object is not recommended.' / 'Your object may have single color surfaces or be too reflective to add more segments. Tap Continue to capture more detail without flipping, or Flip Object Anyway.'; 'Capture your object again from a lower angle.' / 'Move down to be level with the base of your object and capture again.'; 'Second segment complete.'; 'Flip object on the opposite side and capture again'; 'Capture your object again from a higher angle.' / 'Move above your object and make sure that areas you captured previously can still be seen.'; 'Keep going to complete the final segment.'; 'All segments complete.' / 'Tap Finish to process your object.' Help page: 'Opaque, matte objects with varied surface textures scan best. Capture all sides of your object in a series of orbits.' pros: Varied Surface Texture, Non-reflective matte surface, Solid opaque; cons: Shiny materials, Transparent/translucent objects. Environment: 'Make sure you have even, good lighting and a stable environment for scanning. If scanning outdoors, cloudy days work best.'"
+   },
+   {
+    "claim": "On-device photogrammetry on iOS supports only the .reduced detail level (<50k triangles, 2048x2048 diffuse/normal/AO, ~10 MB). .preview, .medium, .full, .raw are macOS/Mac Catalyst only. modelFile defaults to .reduced. This caps the 'Realistic' object output quality on the phone; higher levels require a Mac.",
+    "api": "enum PhotogrammetrySession.Request.Detail { case preview, reduced, medium, full, raw, custom }   // reduced: iOS 17.0+; preview/medium/full: macOS 12.0+ / Mac Catalyst 15.0+ only\ncase modelFile(url: URL, detail: PhotogrammetrySession.Request.Detail = .reduced, geometry: PhotogrammetrySession.Request.Geometry? = nil)\ncase modelEntity(detail:geometry:), case bounds, case poses, case pointCloud\nclass PhotogrammetrySession   // iOS 17.0+\nconvenience init(input: URL, configuration: PhotogrammetrySession.Configuration) throws\nfunc process(requests: [PhotogrammetrySession.Request]) throws\nvar outputs: PhotogrammetrySession.Outputs\nfunc cancel()\nstatic var isSupported: Bool\nstruct Configuration { var checkpointDirectory: URL?; var isObjectMaskingEnabled: Bool; var sampleOrdering; var featureSensitivity; var ignoreBoundingBox: Bool; var meshPrimitive (macOS); var customDetailSpecification }",
+    "availability": "iOS 17.0+ (reduced only)",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/realitykit/photogrammetrysession/request/detail.json",
+    "confidence": "verified",
+    "critical": true,
+    "notes": "Doc text on .reduced: 'Currently the only supported level on iOS.' WWDC23 10191 says the same. A 2023 blog claims medium works on iOS; treat as unverified, do not architect around it. Outputs loop cases handled by the sample: inputComplete, requestProgress(fraction), requestProgressInfo(remaining time + stage), requestComplete, requestError, processingComplete, processingCancelled, invalidSample, skippedSample, automaticDownsampling, stitchingIncomplete. Show a ProgressBarView(progress, estimatedRemainingTime, processingStageDescription)."
+   },
+   {
+    "claim": "Raw LiDAR mesh visualization in RealityKit is one line (depth-colored wireframe), and per-face coverage coloring needs ARMeshAnchor geometry which is fully readable on iOS.",
+    "api": "ARView.debugOptions.insert(.showSceneUnderstanding)   // struct ARView.DebugOptions : OptionSet, iOS 13+; showSceneUnderstanding = depth-colored wireframe of scene-understanding meshes\nconfiguration.sceneReconstruction = .meshWithClassification\nclass func ARWorldTrackingConfiguration.supportsSceneReconstruction(_ sceneReconstruction: ARConfiguration.SceneReconstruction) -> Bool   // iOS 13.4+\nclass ARMeshGeometry { var vertices: ARGeometrySource; var normals: ARGeometrySource; var faces: ARGeometryElement; var classification: ARGeometrySource? }   // iOS 13.4+\narView.environment.sceneUnderstanding.options.insert(.occlusion)\narView.raycast(from: CGPoint, allowing: .estimatedPlane, alignment: .any)",
+    "availability": "iOS 13.4+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/arkit/visualizing-and-interacting-with-a-reconstructed-scene.json",
+    "confidence": "verified",
+    "critical": true,
+    "notes": "Apple sample 'Visualizing and interacting with a reconstructed scene': arView.automaticallyConfigureSession = false; run ARWorldTrackingConfiguration with .meshWithClassification; tap -> raycast -> AnchorEntity(world: result.worldTransform) sphere marker; classification lookup by iterating anchor.geometry.faces and comparing centerOf(faceWithIndex:) distance <= 0.05 m. For custom coverage colors you must build your own MeshResource per ARMeshAnchor (debug option colors by depth only)."
+   },
+   {
+    "claim": "Tracking loss / relocalization UX: ARCoachingOverlayView shows Apple's standard 'Move iPhone to start' / relocalization animation and appears automatically in limited tracking; ObjectCaptureView shows it by itself when cameraTracking != .normal. For house mode relocalization between rooms use goal .tracking and handle the 'Start Over' delegate callback.",
+    "api": "class ARCoachingOverlayView : UIView   // iOS 13+\nvar session: ARSession?\nvar sessionProvider: (any ARSessionProviding)?\nvar goal: ARCoachingOverlayView.Goal   // enum Goal { case tracking, horizontalPlane, verticalPlane, anyPlane, geoTracking }\nvar activatesAutomatically: Bool   // default true\nvar isActive: Bool\nfunc setActive(_ active: Bool, animated: Bool)\nvar delegate: (any ARCoachingOverlayViewDelegate)?   // coachingOverlayViewWillActivate(_:), coachingOverlayViewDidDeactivate(_:), coachingOverlayViewDidRequestSessionReset(_:)\nfunc ARSession.getCurrentWorldMap(completionHandler: @escaping @Sendable (ARWorldMap?, (any Error)?) -> Void)\nfunc ARSession.currentWorldMap() async throws -> ARWorldMap   // iOS 12+",
+    "availability": "iOS 13.0+ (world map iOS 12+)",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/arkit/arcoachingoverlayview/goal-swift.enum.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "RoomCaptureView already embeds its own coaching; only add ARCoachingOverlayView to custom ARView/ARSCNView screens. Check ARFrame.worldMappingStatus == .mapped before saving a world map."
+   },
+   {
+    "claim": "SwiftUI wrapper contract for ARView / ARSCNView / RoomCaptureView on iOS 18: UIViewRepresentable with makeUIView/updateUIView, a Coordinator for delegates, dismantleUIView to stop sessions; SwiftUI owns frame/bounds/center/transform, never set them yourself.",
+    "api": "@MainActor @preconcurrency protocol UIViewRepresentable : View where Self.Body == Never\nassociatedtype UIViewType : UIView\nfunc makeUIView(context: Self.Context) -> Self.UIViewType\nfunc updateUIView(_ uiView: Self.UIViewType, context: Self.Context)\nfunc makeCoordinator() -> Self.Coordinator\nstatic func dismantleUIView(_ uiView: Self.UIViewType, coordinator: Self.Coordinator)\nfunc sizeThatFits(_ proposal: ProposedViewSize, uiView: Self.UIViewType, context: Self.Context) -> CGSize?\ntypealias Context = UIViewRepresentableContext<Self>",
+    "availability": "iOS 13.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/swiftui/uiviewrepresentable.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Pattern for RoomCaptureView: makeUIView creates RoomCaptureView(frame: .zero) (or init(frame:arSession:)), sets captureSession.delegate and delegate = context.coordinator (an NSObject subclass conforming to RoomCaptureViewDelegate + RoomCaptureSessionDelegate, with the NSCoding stubs), calls captureSession.run(configuration:) ; drive stop() from a @Binding/observable 'isScanning' flag inside updateUIView; dismantleUIView calls captureSession.stop(). Create the view once; do not recreate it on every SwiftUI update or the scan restarts."
+   },
+   {
+    "claim": "Navigation and export presentation on iOS 16+/18: NavigationStack with a typed path for Home -> Project -> Scan -> Result; sheets for export; ShareLink for the system share sheet with file URLs (URL is already Transferable), including multiple files.",
+    "api": "nonisolated struct NavigationStack<Data, Root> where Root : View\ninit(root: () -> Root)\ninit(path: Binding<[Data]>, root: () -> Root)   // plus .navigationDestination(for: T.self) { ... }\nnonisolated struct ShareLink<Data, PreviewImage, PreviewIcon, Label> : View where Data : RandomAccessCollection, Data.Element : Transferable\ninit(item: Item, subject: Text? = nil, message: Text? = nil)\ninit(items: Data, subject: Text? = nil, message: Text? = nil)\ninit<I>(item: I, subject: Text? = nil, message: Text? = nil, preview: SharePreview<PreviewImage, PreviewIcon>)\ninit(item: Item, subject: Text? = nil, message: Text? = nil, label: () -> Label)",
+    "availability": "iOS 16.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/swiftui/sharelink.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Example: ShareLink(item: usdzURL, preview: SharePreview(\"Living room.usdz\", image: Image(uiImage: thumb))) { Label(\"Share USDZ\", systemImage: \"square.and.arrow.up\") }. Apple's UIKit sample shares a whole folder URL via UIActivityViewController (popover on iPad needs sourceView). Files must live in a location the share sheet can read (Documents or tmp)."
+   },
+   {
+    "claim": "Haptics: prefer the SwiftUI modifier on iOS 17+; the UIKit generator's init(style:) is now marked deprecated in favor of init(style:view:). ObjectCaptureSession also has built-in haptics (shouldPlayHaptics).",
+    "api": "nonisolated func View.sensoryFeedback<T>(_ feedback: SensoryFeedback, trigger: T) -> some View where T : Equatable   // iOS 17.0+; e.g. .sensoryFeedback(.success, trigger: scanFinished), .impact(weight:intensity:), .selection, .warning, .error\n@MainActor class UIImpactFeedbackGenerator   // iOS 10+\nconvenience init(style: UIImpactFeedbackGenerator.FeedbackStyle, view: UIView)\ninit(style: UIImpactFeedbackGenerator.FeedbackStyle)   // deprecated\nfunc prepare()\nfunc impactOccurred(); func impactOccurred(intensity: CGFloat); func impactOccurred(at: CGPoint); func impactOccurred(intensity: CGFloat, at: CGPoint)\nenum FeedbackStyle { case light, medium, heavy, rigid, soft }",
+    "availability": "sensoryFeedback iOS 17.0+; UIImpactFeedbackGenerator iOS 10.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/swiftui/view/sensoryfeedback(_:trigger:).json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Use haptics sparingly during scans: a light impact when a wall/door is first detected, .success when the scan finishes, .warning on tracking loss. Do not fire on every didUpdate."
+   },
+   {
+    "claim": "Keep the screen awake during scanning and reconstruction with UIApplication.isIdleTimerDisabled; Apple says to reset it to false when done. Hide the home indicator with persistentSystemOverlays(.hidden) (preference only).",
+    "api": "var UIApplication.isIdleTimerDisabled: Bool { get set }   // iOS 2.0+\nnonisolated func View.persistentSystemOverlays(_ visibility: Visibility) -> some View   // iOS 16.0+",
+    "availability": "iOS 2.0+ / iOS 16.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/uikit/uiapplication/isidletimerdisabled.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "In SwiftUI: .onAppear { UIApplication.shared.isIdleTimerDisabled = true } .onDisappear { UIApplication.shared.isIdleTimerDisabled = false } on the scan and reconstruction screens only."
+   },
+   {
+    "claim": "Orientation: Apple's own Object Capture sample locks the whole app to portrait (INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait, UIRequiresFullScreen = YES) and rotates only its feedback text with device orientation. Programmatic rotation, if ever needed, is requestGeometryUpdate.",
+    "api": "func UIWindowScene.requestGeometryUpdate(_ geometryPreferences: UIWindowScene.GeometryPreferences, errorHandler: ((any Error) -> Void)? = nil)   // iOS 16.0+; e.g. windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))",
+    "availability": "iOS 16.0+",
+    "source_url": "https://github.com/sfomuseum/ios-guided-capture/blob/main/GuidedCapture.xcodeproj/project.pbxproj",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Recommendation: lock scanning screens to portrait (RoomPlan and Object Capture UIs are designed for it), allow all orientations on the 3D viewer/floor plan if desired via a per-view supportedInterfaceOrientations override; simplest is portrait-only for v1 in XcodeGen: UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]. Also required Info.plist: NSCameraUsageDescription (sample text: 'This app uses the camera to scan objects.'); GuidedCapture sets UIFileSharingEnabled and LSSupportsOpeningDocumentsInPlace so scans show in the Files app."
+   },
+   {
+    "claim": "Dynamic Type basics: use system text styles (.font(.body/.headline/.title)) which scale automatically; scale custom paddings/icon sizes with @ScaledMetric; clamp AR overlays with .dynamicTypeSize(...) so the HUD does not cover the camera at accessibility sizes.",
+    "api": "@propertyWrapper struct ScaledMetric<Value> where Value : BinaryFloatingPoint   // iOS 14+\ninit(wrappedValue: Value); init(wrappedValue: Value, relativeTo: Font.TextStyle)\nenum DynamicTypeSize : CaseIterable, Comparable { case xSmall, small, medium, large, xLarge, xxLarge, xxxLarge, accessibility1...accessibility5; var isAccessibilitySize: Bool }   // iOS 15+\nfunc View.dynamicTypeSize(_ dynamicTypeSize: DynamicTypeSize) -> some View\n@Environment(\\.dynamicTypeSize) var dynamicTypeSize",
+    "availability": "iOS 14.0+ / 15.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/swiftui/dynamictypesize.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Light/dark: the camera HUD should be forced dark (.preferredColorScheme(.dark) or .environment(\\.colorScheme, .dark) like Apple's FeedbackView) while lists/settings follow the system. Give every icon-only button an .accessibilityLabel."
+   },
+   {
+    "claim": "Foundation can format feet and inches but not tape-measure fractions; Measurement.FormatStyle with usage .asProvided keeps your unit, .personHeight yields '6 ft, 2.8 in' style. Fractional inches (1/8, 1/16) and the trade notation 12'-6 1/2\" require a small custom formatter.",
+    "api": "struct Measurement<UnitType>.FormatStyle   // iOS 15+\ninit(width: Measurement<UnitType>.FormatStyle.UnitWidth, locale: Locale, usage: MeasurementFormatUnitUsage<UnitType>, numberFormatStyle: FloatingPointFormatStyle<Double>?)\nmeasurement.formatted(.measurement(width: .abbreviated, usage: .asProvided))\nstatic var MeasurementFormatUnitUsage.asProvided / .general / .personHeight / .road\nMeasurement<UnitLength>(value: x, unit: .meters).converted(to: .inches)",
+    "availability": "iOS 15.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/foundation/measurementformatunitusage.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Custom formatter sketch: totalInches = meters * 39.3700787; feet = Int(totalInches / 12); rem = totalInches - feet*12; sixteenths = Int((rem * 16).rounded()); carry when sixteenths == 192 -> feet += 1; reduce fraction by gcd; render as \"12' 6 1/2\\\"\" (or \"12'-6 1/2\\\"\" architectural). Area: sqft = m2 * 10.7639, show one decimal or whole number ('142 sq ft'). Metric side: cm with 0.5 cm resolution or mm."
+   },
+   {
+    "claim": "US remodeling/construction convention: dimensions in feet and inches with fractional inches, standard tape resolution is 1/16 in (1/8 acceptable for rough layout, 1/32 for finish/cabinet work); architectural drawings write feet-inches with a hyphen (12'-6 1/2\"); area in square feet. LiDAR accuracy (about 1 to 2 percent) does not justify finer than 1/8 in on wall lengths, so show 1/8 in by default with a 1/16 option.",
+    "api": "",
+    "availability": "",
+    "source_url": "https://guidecalculator.com/conversion/inches-to-fraction-calculator",
+    "confidence": "likely",
+    "critical": false,
+    "notes": "Sources: Fine Homebuilding 'Carpenter's Number Code' (16ths on tape), Noble Desktop / VDCI blueprint reading (feet-inch hyphen notation), Canvas FAQ (1 to 2 percent of tape-verified length). Show both unit systems side by side in the measurement panel: primary large 'ft in', secondary small metric; global toggle in settings with default from Locale.current.measurementSystem."
+   },
+   {
+    "claim": "Apple RoomPlan sample app flow (Create a 3D model of an interior room, WWDC22 10127): screen 1 Onboarding with a single big 'Start Scanning' button (presented fullScreen into a RoomCaptureViewNavigationController); screen 2 RoomCaptureView with nav bar 'Cancel' and 'Done'; tapping Done while scanning stops the session (view animates the final model), tapping Done again dismisses; an 'Export' button fades in only after the scan stops and shares a folder containing Room.usdz (.parametric) plus Room.json.",
+    "api": "",
+    "availability": "iOS 16.0+",
+    "source_url": "https://developer.apple.com/tutorials/data/documentation/roomplan/create-a-3d-model-of-an-interior-room-by-guiding-the-user-through-an-ar-experience.json",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Storyboard strings: 'RoomPlan', 'Start Scanning', 'Cancel', 'Done', 'Export'. There is a separate 'UnsupportedDevice' storyboard scene selected in SceneDelegate when RoomCaptureSession.isSupported is false; do the same with a plain SwiftUI 'This iPhone has no LiDAR' screen. WWDC22 guidance to bake into onboarding: single room up to 30 x 30 ft (9 x 9 m), 50 lux or more, open curtains, close doors to avoid scanning neighboring space, avoid full-height mirrors/glass, very dark surfaces and very high ceilings, keep scans under 5 minutes (battery/thermal)."
+   },
+   {
+    "claim": "Competitor start screens converge on: a project/library grid of past captures with thumbnails, a single prominent '+' or 'New capture' button, then a mode picker (Polycam: Space, Room/Floorplan, Object, Photo, 360; Scaniverse: Small Object / Medium Object / Large Object / Area plus Mesh vs Splat; magicplan: floor -> room type -> Auto-Scan/Manual). Capture screens use a large red record button, a '?' help/tips button shown before scanning, and a Done button; processing is a separate step with a quality/speed choice (Scaniverse: Speed / Area / Detail; Polycam: Fast / Space / Object / Custom with depth range up to 5 m and voxel size).",
+    "api": "",
+    "availability": "",
+    "source_url": "https://learn.poly.cam/hc/en-us/articles/48565771018772-Which-Capture-Mode-Should-I-Use",
+    "confidence": "likely",
+    "critical": false,
+    "notes": "Polycam help: 'To start a new capture on the Polycam home screen, tap the + button, then from the list of capture options, select your desired mode.' Space Mode outputs three things from one scan: LiDAR mesh, 3D floorplan model, 2D floorplan with measurements (exactly the Mapper multi-output idea). 3dwithus review: modes 'LiDAR', 'Photo', 'ROOM' as buttons, question-mark icon gives tips before scanning, post-scan 'Ruler' measure tool and 'Blueprint' floor plan."
+   },
+   {
+    "claim": "Coverage coloring conventions: Scaniverse paints not-yet-captured surfaces red and striped/white where the draft mesh already exists, with a range slider to limit LiDAR depth; magicplan draws white lines along a wall while it is being detected and turns the wall green with a check mark when captured, orange when it needs rescanning; Canvas shows a live 'painted' preview of covered area; RoomPlan draws animated outlines on detected walls/openings/objects and grows a mini model at the bottom.",
+    "api": "",
+    "availability": "",
+    "source_url": "https://help.magicplan.app/auto-scan-your-floor-plan",
+    "confidence": "likely",
+    "critical": false,
+    "notes": "Scaniverse color facts come from search snippets of nianticspatial.com/dev.scaniverse.com pages (pages fetched, colors only in snippets). Recommended for Mapper raw-mesh mode: tint ARMeshAnchor faces by observation count (fresh = translucent red/orange, confirmed = green/white), which matches user expectations trained by these apps."
+   },
+   {
+    "claim": "Live guidance wording and cadence used by shipping apps: magicplan 'move device and point camera at top edge of wall', 'move slowly'; Polycam 'start at the entrance and walk slowly along the left wall, aiming the camera in toward the center of the room ... slow, steady walking pace'; Canvas 'Start in a corner of the room with a lot of details (book shelf, picture frames, patterns)', stand 5 to 10 ft away, sweep up to the ceiling then down, step sideways 1 to 2 steps, repeat around the perimeter, 'Tap Done to complete the scan'; Scaniverse 'Spend 1-3 minutes scanning', 'Walk at a slow, natural pace', three perimeter passes (level, tilted up, tilted down). Apple's Object Capture shows one short imperative message at a time, bold white, minimum 2 s.",
+    "api": "",
+    "availability": "",
+    "source_url": "https://support.canvas.io/article/10-tutorial-how-to-scan-a-room-with-canvas",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Pattern to copy: one message at a time, top-center or above the controls, imperative verb first, 2 to 6 words, shown at least 2 s, replaced (not stacked) when the condition changes, hidden when everything is fine. Tips are shown once before the record button (with a 'Don't show again' toggle)."
+   },
+   {
+    "claim": "Post-scan flows in shipping apps: magicplan ends a room with a review screen ('Confirm Scan' or 'Discard & Rescan'), lets you continue to the next room, then 'Done' and a 'Configure Floor Plan' sheet (include Plumbing Fixtures / Appliances / Furniture toggles, 'Remember my choices', Session Replay video) before 'Generate Floor Plan'; result is an editable plan (swap objects, adjust doors/windows/dimensions). Polycam and Scaniverse show the processed model in a viewer with measure, crop, annotate, rescale, label and export (OBJ, FBX, USDZ, STL, DAE, PLY, DXF, LAS).",
+    "api": "",
+    "availability": "",
+    "source_url": "https://help.magicplan.app/auto-scan-your-floor-plan",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Mapper equivalent: after Done -> RoomPlan mini model review with 'Keep' / 'Rescan' -> in house mode 'Next room' loop -> result screen with segmented control Realistic | Clean | Floor plan | Mesh, measure tool, share sheet."
+   },
+   {
+    "claim": "Measurement tool conventions from Apple's Measure app: tap '+' to drop a point at the center reticle, yellow guide lines snap start/end points to detected edges, the reticle snaps to corners/edges on LiDAR phones, a ruler overlay with tick marks appears along the line when the phone is close, and rectangles are auto-detected. Snapping for Mapper: raycast against the mesh (ARView.raycast allowing .estimatedPlane / mesh) and snap to the nearest RoomPlan wall corner or polygonCorners within a screen radius; show a magnifier loupe only if the tap point is under the finger (Apple uses a fixed center reticle instead, which avoids the loupe entirely).",
+    "api": "arView.raycast(from: CGPoint, allowing: ARRaycastQuery.Target, alignment: ARRaycastQuery.TargetAlignment) -> [ARRaycastResult]",
+    "availability": "iOS 13.0+ (LiDAR ruler overlay iPhone 12 Pro+)",
+    "source_url": "https://support.apple.com/en-za/102468",
+    "confidence": "likely",
+    "critical": false,
+    "notes": "Recommended: center-reticle + big '+' button (thumb reachable) rather than tap-anywhere; a second tap closes the segment; long-press a point to drag; show live length label mid-segment; haptic .selection when a snap occurs."
+   },
+   {
+    "claim": "Apple sample coding patterns for the RoomPlan view controller (verbatim from the Apple sample mirror) to port into the SwiftUI coordinator.",
+    "api": "private func startSession() { isScanning = true; roomCaptureView?.captureSession.run(configuration: roomCaptureSessionConfig); setActiveNavBar() }\nprivate func stopSession() { isScanning = false; roomCaptureView?.captureSession.stop(); setCompleteNavBar() }\n@IBAction func doneScanning(_ sender: UIBarButtonItem) { if isScanning { stopSession() } else { cancelScanning(sender) } }\n@IBAction func exportResults(_ sender: UIButton) { let destinationFolderURL = FileManager.default.temporaryDirectory.appending(path: \"Export\"); let destinationURL = destinationFolderURL.appending(path: \"Room.usdz\"); let capturedRoomURL = destinationFolderURL.appending(path: \"Room.json\"); try FileManager.default.createDirectory(at: destinationFolderURL, withIntermediateDirectories: true); let jsonData = try JSONEncoder().encode(finalResults); try jsonData.write(to: capturedRoomURL); try finalResults?.export(to: destinationURL, exportOptions: .parametric); let activityVC = UIActivityViewController(activityItems: [destinationFolderURL], applicationActivities: nil); activityVC.modalPresentationStyle = .popover; present(activityVC, animated: true) }",
+    "availability": "iOS 16.0+",
+    "source_url": "https://github.com/XRealityZone/apple-wwdc-ar-demo/blob/main/CreateA3DModelOfAnInteriorRoomByGuidingTheUserThroughAnARExperience/RoomPlanExampleApp/RoomCaptureViewController.swift",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "Fetched via gh api (authed). Kodeco tutorial adds the SwiftUI bridge: captureSession(_:didUpdate:) stores the room and sets viewModel.canExport = true on the main queue."
+   },
+   {
+    "claim": "Object Capture sample requirements and limits to surface in onboarding: LiDAR + A14 or later; object should be larger than 3 in (8 cm); auto-capture stops at maximumNumberOfInputImages unless over-capture is on; area mode (iOS 18 sample) 'Areas larger than 6 feet may have reduced mesh and texture quality unless processed at a higher detail level on Mac'.",
+    "api": "",
+    "availability": "iOS 17.0+ (area mode UI iOS 18 sample)",
+    "source_url": "https://developer.apple.com/videos/play/wwdc2024/10107/",
+    "confidence": "verified",
+    "critical": false,
+    "notes": "WWDC24: 'Simply skip the call to startDetecting and proceed directly to startCapturing. This will start the area mode experience with the new UI' and 'we recommend turning off the object reticle frame' via hideObjectReticle."
+   }
+  ],
+  "gotchas": [
+   "PhotogrammetrySession on iOS can only produce .reduced detail (doc: 'Currently the only supported level on iOS'); .medium/.full/.preview/.raw are macOS-only cases and will not compile behind an iOS availability check. Plan 'Realistic object' = reduced (<50k tris, 2K textures).",
+   "RoomCaptureViewDelegate inherits NSCoding: the SwiftUI Coordinator must be `class Coordinator: NSObject, RoomCaptureViewDelegate, RoomCaptureSessionDelegate` with `func encode(with coder: NSCoder) {}` and `required init?(coder: NSCoder) { fatalError() }` (plus a normal init), otherwise the conformance fails to compile.",
+   "Never recreate RoomCaptureView inside updateUIView; SwiftUI state changes would restart the scan. Create once in makeUIView and control run/stop through the coordinator.",
+   "RoomPlan objects are bounding boxes with a category; there is no per-object mesh. Object editing UI must be box based (move/rotate/resize/delete/rename), not vertex editing.",
+   "RoomCaptureView has no Done button and no export; the app owns Cancel/Done/Export chrome. After stop(), the view plays the final-model animation only if shouldPresent returned true.",
+   "stop(pauseARSession:) and init(arSession:) are iOS 17+, StructureBuilder/CapturedStructure/Section are iOS 17+; nothing in this topic needs iOS 18 except Apple's current Object Capture sample project setting. iOS 18.0 deployment target is fine.",
+   "ObjectCaptureSession.start() may be called once per session; imagesDirectory must be empty; a non-empty checkpointDirectory moves the session to .failed. Create fresh UUID folders per scan.",
+   "When ObjectCaptureSession.cameraTracking != .normal, ARKit's coaching overlay appears automatically inside ObjectCaptureView; hide your own overlay buttons then (sample's shouldShowOverlayView).",
+   "Apple's Object Capture sample locks the whole app to portrait and UIRequiresFullScreen; landscape support for AR scanning views is not demonstrated by Apple and RoomCaptureView layout in landscape is untested here.",
+   "UIImpactFeedbackGenerator.init(style:) is deprecated on the iOS 26 SDK (use init(style:view:) or SwiftUI .sensoryFeedback which is iOS 17+).",
+   "Foundation has no fraction formatter; feet-inch-fraction and sq ft strings need a hand-written formatter (rounding to 1/8 or 1/16 with carry).",
+   "Free Apple ID sideloading gives no special entitlements; nothing in RoomPlan/Object Capture/ARKit needs one, but NSCameraUsageDescription must be in Info.plist or the app crashes on first camera use.",
+   "Polycam help pages (learn.poly.cam) and Scaniverse (podfeet) returned 403 to the fetcher; their UI details here come from search snippets and a third-party review, so treat exact label names as approximate.",
+   "RoomCaptureSession.CaptureError.exceedSceneSizeLimit fires on large open spaces; house mode must scan room by room (also magicplan's advice: 'Scan one room at a time', 'Close room doors to prevent capturing adjoining spaces')."
+  ],
+  "recommendations": [
+   "Screen map to mirror Apple + competitors: Home (project grid, big 'New Scan' button) -> Mode sheet (Room / House / Object, each with a one-line description and icon) -> Tips sheet shown once per mode ('Don't show again') -> Capture screen (portrait, forced dark HUD, Cancel top-left, Done top-right, one guidance banner, mini model bottom for rooms, shot counter/dial for objects) -> Review (RoomPlan final model animation or ObjectCapturePointCloudView; 'Keep' / 'Rescan'; in House mode 'Next room' / 'Finish house') -> Processing (ProgressView with stage text and estimated time) -> Result (segmented control Realistic | Clean | Floor plan | Mesh, measure tool, Share via ShareLink, object list for edit).",
+   "Room mode: use RoomCaptureView (not a custom RoomCaptureSession UI) for v1; it already implements coaching text, outlines and the mini model that users expect. Only build a custom session UI later if the raw-mesh coverage coloring must be shown during the same scan.",
+   "House mode: one ARSession created by the app, RoomCaptureView(frame:arSession:), stop(pauseARSession: false) between rooms, StructureBuilder(options: [.beautifyObjects]) at the end. Instruct: 'Finish this room, walk to the doorway of the next room while keeping the camera up, then tap Next room'. Store every CapturedRoom as JSON immediately so a crash loses at most one room.",
+   "Object mode: copy the GuidedCapture state machine exactly (ready -> Continue -> detecting -> Start Capture -> capturing -> Next -> review sheet with orbit 1/2/3 and flip logic -> Finish -> reconstruction with .reduced). Use Apple's copy strings verbatim; they are already tested with amateurs.",
+   "Guidance banner rules: one message, imperative, 2 to 6 words, bold white on translucent dark pill, top-center under the nav bar, min 2 s on screen, replaced not stacked, hidden on normal. Map RoomCaptureSession.Instruction and ObjectCaptureSession.Feedback to fixed strings (given above).",
+   "Measurements: default US display 'ft in' rounded to 1/8 in with 1/16 option, metric secondary line, area in sq ft (whole numbers) and m2 (one decimal). Write one MeasurementFormatter helper and unit-test it in a Swift package-free way (plain XCTest target in XcodeGen) since the CI cannot run the app.",
+   "Measurement tool: center reticle + '+' button, snap to RoomPlan corners (walls' polygonCorners / transform-derived corners) within ~24 pt, yellow guide line when aligned with a wall edge, live label, haptic .selection on snap.",
+   "Keep the screen on with isIdleTimerDisabled only on capture and processing screens; add .sensoryFeedback(.success) on scan completion and .warning on tracking loss.",
+   "Portrait-only for v1 (matches Apple's Object Capture sample). Support Dynamic Type in lists/settings, clamp the AR HUD at .xxxLarge.",
+   "Onboarding copy, Room: 'Stand in a corner. Hold the phone upright at chest height.' / 'Walk slowly along each wall, keeping the wall in view.' / 'Tilt up to the ceiling and down to the floor once per wall.' / 'Point at doors and windows for a second.' / 'Close doors to other rooms. Turn on the lights.' / 'Tap Done when the mini model looks complete.' Object: 'Put the object on a plain surface with space around it.' / 'Center the dot on the object and tap Continue.' / 'Walk around it slowly in three orbits: level, low, high.' / 'Flip it if it is solid and textured; skip flipping if it is shiny or floppy.' House: 'Scan one room at a time.' / 'Start each room in the doorway you just came through so the phone keeps tracking.' / 'Keep the camera pointed at the walls while you walk between rooms.' / 'Best for one floor, up to about 2,000 sq ft.'"
+  ],
+  "open_questions": [
+   "Does the iOS 26 SDK (Xcode 26.6) still restrict PhotogrammetrySession to .reduced on iOS 18 devices, or has a newer OS unlocked .medium? Doc JSON today says reduced only; verify in the first CI build with `#if os(iOS)` and a compile check of `.medium` availability.",
+   "RoomCaptureView behavior in landscape is undocumented; if landscape is wanted for the viewer only, confirm the scan screen can stay portrait via per-view orientation lock in a SwiftUI app (UIHostingController subclass or AppDelegate supportedInterfaceOrientationsFor).",
+   "Whether sharing a whole export folder via ShareLink works as well as UIActivityViewController with a folder URL (Apple's sample shares the folder). Fallback is zipping or sharing the USDZ file alone.",
+   "Exact RoomPlan section labels available on iOS 18 (doc JSON lists livingRoom/kitchen/diningRoom; WWDC23 also mentions bedroom and bathroom).",
+   "Polycam and Scaniverse exact UI labels could not be fetched directly (403); if pixel-level parity matters, look at App Store screenshots manually."
+  ]
+ },
+ "verdicts": [],
+ "unverified_critical_claims": [
+  "RoomCaptureView is a UIKit UIView (not SwiftUI) that runs the whole room scan UX for you: camera feed, animated real-time outlines of walls/doors/windows/openings/objects, framework coaching text, and a miniature 3D model of the room at the bottom (toggle with isModelEnabled). After you call captureSession.stop() and your delegate returns true from captureView(shouldPresent:error:), the view itself animates the final post-processed room for the user to review; no built-in Done button exists, the app supplies Done/Cancel/Export chrome.",
+  "RoomPlan's live guidance vocabulary is a six-case enum; mirror these as the only guidance messages during room scanning (plus tracking/coaching from ARKit).",
+  "House mode: keep one ARSession alive across rooms by calling stop(pauseARSession: false) after each room and run(configuration:) again for the next; then StructureBuilder merges the CapturedRoom array into a CapturedStructure in one coordinate system with duplicate walls removed. Apple recommends a single floor, 1 to 4 bedrooms plus living/kitchen/dining, max ~2,000 sq ft (186 m2), lighting 50 lux or more.",
+  "CapturedRoom is Codable (save as JSON for the project file) and exports USDZ in three formats that map directly to the product's post-scan modes: .parametric (editable primitives, Clean architectural model), .mesh (polygonal walls with cut-outs, default), .model (ModelProvider furniture models). metadataURL writes a USDZ node name to UUID map for picking objects in the viewer.",
+  "Object Capture is pure SwiftUI on iOS 17+: ObjectCaptureView renders the camera feed, reticle, bounding box and capture dial for a wrapped ObjectCaptureSession; ObjectCapturePointCloudView shows a turntable review of the point cloud. Removing ObjectCaptureView from the hierarchy and recreating it with the same session resumes the capture.",
+  "ObjectCaptureSession state machine and observable properties drive every button in the capture overlay. Area mode (iOS 18 sample) is simply: skip startDetecting() and call startCapturing() directly, with hideObjectReticle(true).",
+  "On-device photogrammetry on iOS supports only the .reduced detail level (<50k triangles, 2048x2048 diffuse/normal/AO, ~10 MB). .preview, .medium, .full, .raw are macOS/Mac Catalyst only. modelFile defaults to .reduced. This caps the 'Realistic' object output quality on the phone; higher levels require a Mac.",
+  "Raw LiDAR mesh visualization in RealityKit is one line (depth-colored wireframe), and per-face coverage coloring needs ARMeshAnchor geometry which is fully readable on iOS."
+ ]
+}
