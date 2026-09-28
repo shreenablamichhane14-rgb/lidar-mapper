@@ -132,7 +132,9 @@ struct CleanFloor: Codable, Equatable, Sendable {
     var outline: [Vec2]
     /// Floor elevation (world y), meters.
     var elevation: Float
-    /// Floor area hidden under objects, square meters.
+    /// Floor area hidden under movable objects, square meters. The footprints themselves are
+    /// derived from the room's `DetectedObject` boxes when drawing (RoomModel
+    /// `CleanMeshBuilder` occluded parts), so no polygon is stored here.
     var occludedArea: Float
     /// Where the elevation came from (D13).
     var provenance: Provenance
@@ -184,7 +186,9 @@ struct DetectedObject: Codable, Equatable, Identifiable, Sendable {
 }
 
 /// Object categories: the 16 RoomPlan categories plus SPEC categories RoomPlan lacks.
-/// Display names come from Copy through `copyKey`. Raw values are persisted.
+/// Display names come from `Copy.FloorPlan.categoryName(_:)` (an exhaustive switch in
+/// FloorPlan, docs/MODULES.md 3.16); `copyKey` is a stable name for logs. Raw values are
+/// persisted.
 enum ObjectCategory: String, Codable, CaseIterable, Sendable {
     case bathtub, bed, chair, dishwasher, fireplace, oven, refrigerator, sink, sofa, stairs,
          storage, stove, table, television, toilet, washerDryer
@@ -201,7 +205,7 @@ enum ObjectCategory: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    /// Key the UI maps to a Copy string.
+    /// Stable name for logs and JSON (the raw value).
     var copyKey: String { rawValue }
 }
 

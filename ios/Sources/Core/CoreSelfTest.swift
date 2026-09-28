@@ -234,6 +234,30 @@ enum CoreSelfTest {
             check("seal.io", false, "\(error)")
         }
 
+        // CR-4: JSON size cap; CR-6: no parent folder is recreated by a late write
+        do {
+            let small = folder.appendingPathComponent("small.json")
+            try ProjectStore.writeJSON(seal, to: small)
+            check("json.readsUnderCap", (try? ProjectStore.readJSON(SealFile.self, from: small)) == seal)
+            do {
+                _ = try ProjectStore.readJSON(SealFile.self, from: small, maxBytes: 8)
+                check("json.sizeCap", false, "did not throw")
+            } catch let error as CoreError {
+                if case .fileTooLarge = error { } else { check("json.sizeCap", false, "\(error)") }
+            }
+            let gone = folder.appendingPathComponent("discarded", isDirectory: true)
+            expectThrows("write.noParents") {
+                try ProjectStore.writeData(Data("x".utf8), to: gone.appendingPathComponent("late.jpg"), createParents: false)
+            }
+            check("write.noParentsLeavesNoFolder", !FileManager.default.fileExists(atPath: gone.path))
+            expectThrows("ensureInside.missingRoot") {
+                _ = try ProjectStore.ensureDirectory(gone.appendingPathComponent("rooms"), inside: gone)
+            }
+            check("ensureInside.creates", (try? ProjectStore.ensureDirectory(folder.appendingPathComponent("rooms/r"), inside: folder)) != nil)
+        } catch {
+            check("json.io", false, "\(error)")
+        }
+
         // Package layout
         let package = ProjectPackage(root: URL(fileURLWithPath: "/p/x.mapperproj", isDirectory: true))
         check("package.editLog", package.editLogURL.path.hasSuffix("/x.mapperproj/edits/editlog.json"))
@@ -241,15 +265,53 @@ enum CoreSelfTest {
         check("package.rawRoom", package.rawRoomURL(session: session, room: room).path
               .hasSuffix("raw/sessions/\(session.uuidString)/rooms/\(room.uuidString)"))
         check("package.keyframePath", RawScanFolder.keyframeImagePath(12) == "keyframes/00012.jpg")
+        check("package.attempt", package.pipelineAttemptURL.path.hasSuffix("/x.mapperproj/derived/pipeline_attempt.json"))
+        let scanFolder = RawScanFolder(url: URL(fileURLWithPath: "/p/InProgress/scan", isDirectory: true))
+        check("package.liveRoom", scanFolder.liveCapturedRoomURL.lastPathComponent == "capturedroom-live.json"
+              && scanFolder.worldMapURL.lastPathComponent == "worldmap.arworldmap")
+
+        // CR-4: record paths resolve only inside their folder
+        for bad in ["", "/etc/x", "../x", "keyframes/../../x", "a//b", "./x", "a\\b", "x/.."] {
+            check("path.rejects \(bad)", !RawScanFolder.isSafeRelativePath(bad) && scanFolder.resolve(bad) == nil)
+        }
+        check("path.accepts", RawScanFolder.isSafeRelativePath("keyframes/00001.jpg")
+              && scanFolder.resolve("keyframes/00001.jpg")?.path == "/p/InProgress/scan/keyframes/00001.jpg")
+
+        // CR-4: package names and file protection
+        let canonical = UUID()
+        check("packageName.canonical", ProjectStore.projectID(fromPackageName: canonical.uuidString + ".mapperproj") == canonical)
+        check("packageName.rejects", ProjectStore.projectID(fromPackageName: canonical.uuidString.lowercased() + ".mapperproj") == nil
+              && ProjectStore.projectID(fromPackageName: "x.mapperproj") == nil
+              && ProjectStore.projectID(fromPackageName: canonical.uuidString) == nil)
+        let unlessOpen = Data.WritingOptions.completeFileProtectionUnlessOpen
+        check("protection.edits", ProjectStore.defaultProtection(for: package.editLogURL) == unlessOpen)
+        check("protection.exports", ProjectStore.defaultProtection(for: package.exportsURL.appendingPathComponent("a/b.pdf")) == unlessOpen)
+        check("protection.thumbnail", ProjectStore.defaultProtection(for: package.thumbnailURL) == unlessOpen)
+        check("protection.rawAndDerived", ProjectStore.defaultProtection(for: package.rawRoomURL(session: session, room: room)
+                                                                          .appendingPathComponent("poses.ptrk")) == []
+              && ProjectStore.defaultProtection(for: package.cleanModelURL) == []
+              && ProjectStore.defaultProtection(for: package.derivedURL.appendingPathComponent("thumbnail.jpg")) == [])
 
         // Measurements, categories, recordings
-        check("measure.lowConfidence", MeasuredValue(value: 3, sigma: 0.021, provenance: .measured).isLowConfidence
-              && !MeasuredValue(value: 3, sigma: 0.02, provenance: .measured).isLowConfidence
-              && !MeasuredValue(value: 3, sigma: nil, provenance: .inferred).isLowConfidence)
+        // CR-2: 2 sigma above max(4 cm, 3 percent of the length); areas and volumes relative only
+        check("measure.lowConfidence.short", MeasuredValue(value: 0.5, sigma: 0.021, provenance: .measured).isLowConfidence
+              && !MeasuredValue(value: 0.5, sigma: 0.019, provenance: .measured).isLowConfidence)
+        check("measure.lowConfidence.long", MeasuredValue(value: 3, sigma: 0.046, provenance: .measured).isLowConfidence
+              && !MeasuredValue(value: 3, sigma: 0.044, provenance: .measured).isLowConfidence
+              && !MeasuredValue(value: 10, sigma: 0.1, provenance: .measured).isLowConfidence(kind: .wallLength))
+        check("measure.lowConfidence.area", MeasuredValue(value: 20, sigma: 0.31, provenance: .measured).isLowConfidence(kind: .area)
+              && !MeasuredValue(value: 20, sigma: 0.29, provenance: .measured).isLowConfidence(kind: .area))
+        check("measure.lowConfidence.noSigma", !MeasuredValue(value: 3, sigma: nil, provenance: .inferred).isLowConfidence
+              && !MeasuredValue(value: 3, sigma: .nan, provenance: .measured).isLowConfidence(length: 3))
         check("category.count", ObjectCategory.allCases.count == 24 && !ObjectCategory.toilet.isMovable && ObjectCategory.sofa.isMovable)
         let recording = SnapshotRecording.synthetic(count: 5)
         check("recording.jsonl", (try? SnapshotRecording.decodeJSONLines(recording.encodeJSONLines())) == recording)
-        check("error.copyKey", MapperError.outOfMemory(step: .textureHigh).copyKey == "error.outOfMemory")
+        check("error.copyKey", MapperError.outOfMemory(step: .textureHigh).copyKey == "error.outOfMemory"
+              && MapperError.lowMemory.copyKey == "error.lowMemory")
+        let fake = FakeScanEngine(recording: .synthetic(count: 3))
+        _ = try? fake.start()
+        fake.discard()
+        check("fakeEngine.discard", fake.state == .idle)
 
         return failures
     }

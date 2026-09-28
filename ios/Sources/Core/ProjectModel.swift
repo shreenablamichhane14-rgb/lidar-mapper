@@ -54,7 +54,11 @@ enum ScanMode: String, Codable, CaseIterable, Sendable {
     case room, house, object, quickMeasure, advancedSpace, advancedObject
 }
 
-/// Overall project state. Raw values are persisted.
+/// Overall project state. Raw values are persisted. `.capturing` is valid only while a scan
+/// is on screen: the scan flow moves the project to `.needsProcessing` in the same update
+/// that appends a finished room, and at launch AppShell's `RecoveryService` reconciles any
+/// project left in `.capturing` (adds sealed rooms and enqueues it, or deletes it when it
+/// has no rooms and no recoverable scan).
 enum ProjectStatus: String, Codable, CaseIterable, Sendable {
     case capturing, needsProcessing, processing, ready, needsAttention
 }

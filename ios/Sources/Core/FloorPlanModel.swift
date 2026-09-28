@@ -6,7 +6,9 @@ import simd
 struct PlanModel: Codable, Equatable, Sendable {
     /// One level per floor.
     var levels: [PlanLevel]
-    /// Angle of true north from plan +y, radians (0 when unknown).
+    /// Angle of true north measured counter-clockwise from plan +y, radians (0 when unknown).
+    /// Export's `PDFPlanWriter.Options.northAngle` is measured counter-clockwise from +x, so
+    /// callers pass `Double.pi / 2 + Double(northAngle)`.
     var northAngle: Float
     /// Stamp of the step that produced it (D11).
     var stamp: DerivedStamp?

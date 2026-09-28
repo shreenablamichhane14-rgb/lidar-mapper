@@ -1,7 +1,9 @@
 import Foundation
 
-/// App-level failures shown to the user. Core holds no UI text: `copyKey` names the Copy
-/// entry the UI shows for each case.
+/// App-level failures shown to the user. Core holds no UI text. Screens map each case to
+/// its Copy title and body with an exhaustive `switch` (ScanUI `ScanErrorCopy`, docs/MODULES.md
+/// 3.24), so a new case is a compile error until it has text; `copyKey` is a stable name for
+/// logs and diagnostics only.
 enum MapperError: Error, Equatable, Sendable {
     /// Not enough free storage to start or continue (D18).
     case lowStorage(freeBytes: Int64)
@@ -13,6 +15,9 @@ enum MapperError: Error, Equatable, Sendable {
     case trackingFailed
     /// The device is too hot to continue.
     case deviceTooHot
+    /// Available memory fell below the capture floor (or iOS sent a memory warning); the
+    /// engine finished the room early to avoid being closed by the system.
+    case lowMemory
     /// The scene exceeded RoomPlan's size limit.
     case sceneTooLarge
     /// RoomPlan failed; the payload is a diagnostic description for the log.
@@ -30,7 +35,7 @@ enum MapperError: Error, Equatable, Sendable {
     /// The user cancelled.
     case cancelled
 
-    /// Stable key the UI maps to a Copy string, for example "error.lowStorage".
+    /// Stable key for logs and diagnostics, for example "error.lowStorage".
     var copyKey: String {
         switch self {
         case .lowStorage: return "error.lowStorage"
@@ -38,6 +43,7 @@ enum MapperError: Error, Equatable, Sendable {
         case .cameraDenied: return "error.cameraDenied"
         case .trackingFailed: return "error.trackingFailed"
         case .deviceTooHot: return "error.deviceTooHot"
+        case .lowMemory: return "error.lowMemory"
         case .sceneTooLarge: return "error.sceneTooLarge"
         case .roomPlanFailed: return "error.roomPlanFailed"
         case .objectCaptureFailed: return "error.objectCaptureFailed"
@@ -58,4 +64,6 @@ enum CoreError: Error, Equatable, Sendable {
     case missingFile(String)
     /// The manifest was written by a newer build with this schema version.
     case unsupportedSchema(Int)
+    /// A file is larger than its read cap (CR-4); `name` is the file name, `bytes` its size.
+    case fileTooLarge(name: String, bytes: Int64)
 }

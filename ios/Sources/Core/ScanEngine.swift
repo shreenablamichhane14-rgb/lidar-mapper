@@ -128,8 +128,10 @@ enum ScanEngineEvent: Equatable, Sendable {
 /// - `onEvent` is always called on the main queue (`DispatchQueue.main.async`), carrying
 ///   only value types. UI wraps an engine in a `@MainActor final class ScanFlowModel:
 ///   ObservableObject` and never retains ARFrames or ARKit buffers.
+/// - `state` (and any result an engine exposes) is written only on main, in the same main
+///   hop that emits the matching event; the engine queue keeps its own private copy.
 protocol ScanEngine: AnyObject {
-    /// Current lifecycle state (read on main).
+    /// Current lifecycle state (written and read on main only).
     var state: ScanEngineState { get }
     /// Event callback, always invoked on the main queue.
     var onEvent: ((ScanEngineEvent) -> Void)? { get set }
@@ -141,8 +143,13 @@ protocol ScanEngine: AnyObject {
     func resume()
     /// Finishes the current room or scan and seals its raw folder.
     func finish()
-    /// Stops without finishing; captured raw data stays in InProgress for recovery.
+    /// Stops without finishing; captured raw data stays in InProgress for recovery. Pending
+    /// writes finish first (recorders detached, final flush, writer closed).
     func cancel()
+    /// The user confirmed Discard: stops like `cancel()`, then deletes this capture's
+    /// InProgress folder only after nothing more will be written, then reports
+    /// `.stateChanged(.idle)`.
+    func discard()
 }
 
 /// A recorded or synthetic sequence of snapshots, stored as JSON or JSON Lines (one
@@ -266,6 +273,11 @@ final class FakeScanEngine: ScanEngine {
     func cancel() {
         stopTimer()
         setState(.idle)
+    }
+
+    /// Same as `cancel()`: a replay writes no raw data, so there is nothing to delete.
+    func discard() {
+        cancel()
     }
 
     /// Delivers the next snapshot, finishing or looping at the end.
