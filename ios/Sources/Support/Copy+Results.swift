@@ -1,5 +1,6 @@
 import Foundation
 
+/// Strings of the Results module (docs/MODULES.md 3.26).
 extension Copy {
     /// Result screen text that `Copy.Viewer`, `Copy.Processing`, `Copy.Measure` and
     /// `Copy.Errors` do not already hold (Results, docs/MODULES.md 3.26; docs/UX_COPY.md

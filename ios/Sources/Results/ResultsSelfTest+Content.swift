@@ -77,6 +77,7 @@ enum ResultsSelfTestFixtures {
     }
 }
 
+/// The content and file checks of `ResultsSelfTest`.
 extension ResultsSelfTest {
     // MARK: - Content
 
