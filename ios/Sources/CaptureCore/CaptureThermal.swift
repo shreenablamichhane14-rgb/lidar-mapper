@@ -56,6 +56,7 @@ final class ThermalGovernor {
         currentLevel = ThermalLevel(stateReader())
     }
 
+    /// Removes the notification observer if the owner never called `stop()`.
     deinit {
         if let token = observer { center.removeObserver(token) }
     }

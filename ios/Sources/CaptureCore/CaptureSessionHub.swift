@@ -186,6 +186,7 @@ final class ARSessionHub: NSObject, ARSessionDelegate {
         CaptureCoreLog.write("hub init, mode \(profile.mode.rawValue), mesh \(expectsMesh), depth \(expectsDepth)")
     }
 
+    /// Stops the timer, the memory warning observer and the monitors, and logs "hub deinit".
     deinit {
         checkTimer?.cancel()
         if let token = memoryObserver { NotificationCenter.default.removeObserver(token) }

@@ -93,6 +93,7 @@ final class ARDelegateRelay: NSObject, ARSessionDelegate {
     }
 }
 
+/// CaptureCore's settings key (Diagnostics writes it).
 extension SettingsKey {
     /// Bool, absent means on: whether the hub installs `ARDelegateRelay` when another object
     /// replaced the session delegate. Diagnostics can turn it off.

@@ -38,6 +38,7 @@ extension ARSessionHub {
 
     /// Kinds of anchor callbacks.
     enum AnchorChange {
+        /// `session(_:didAdd:)`, `session(_:didUpdate:)` and `session(_:didRemove:)`.
         case added, updated, removed
     }
 

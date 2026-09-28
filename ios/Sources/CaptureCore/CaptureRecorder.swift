@@ -53,6 +53,7 @@ protocol ScanRecorder: AnyObject {
     var stats: RecorderStats { get }
 }
 
+/// Default empty implementations of the four hub callbacks and of `flushNow()`.
 extension ScanRecorder {
     /// Default: ignores frames.
     func hub(_ hub: ARSessionHub, didUpdate frame: ARFrame) {}

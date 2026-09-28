@@ -41,6 +41,7 @@ final class StorageWatchdog {
         readFreeBytes = freeBytes
     }
 
+    /// Cancels the timer if the owner never called `stop()`.
     deinit {
         timer?.cancel()
     }
@@ -65,19 +66,17 @@ final class StorageWatchdog {
         lock.lock()
         callbackQueue = queue
         self.onChange = onChange
-        let needsTimer = timer == nil
-        var newTimer: DispatchSourceTimer?
-        if needsTimer {
+        if timer == nil {
             let source = DispatchSource.makeTimerSource(queue: sampleQueue)
             source.schedule(deadline: .now(), repeating: interval, leeway: .seconds(1))
             source.setEventHandler { [weak self] in
-                self?.sample()
+                _ = self?.sample()
             }
+            // Resumed under the lock, so a concurrent stop() never cancels a suspended source.
+            source.resume()
             timer = source
-            newTimer = source
         }
         lock.unlock()
-        newTimer?.resume()
     }
 
     /// Stops sampling and drops the callback. Idempotent.

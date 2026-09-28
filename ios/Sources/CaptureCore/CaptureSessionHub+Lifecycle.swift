@@ -211,16 +211,16 @@ extension ARSessionHub {
 
     /// Starts the 1 s identity check and housekeeping timer on `queue` (idempotent).
     func startChecks() {
-        let timer = locked { () -> DispatchSourceTimer? in
-            guard checkTimer == nil else { return nil }
+        locked { () -> Void in
+            guard checkTimer == nil else { return }
             let source = DispatchSource.makeTimerSource(queue: queue)
             source.schedule(deadline: .now() + ARSessionHub.checkInterval,
                             repeating: ARSessionHub.checkInterval, leeway: .milliseconds(100))
             source.setEventHandler { [weak self] in self?.runChecks() }
+            // Resumed under the lock, so a concurrent stopChecks() never cancels a suspended source.
+            source.resume()
             checkTimer = source
-            return source
         }
-        timer?.resume()
     }
 
     /// Cancels the timer (idempotent).

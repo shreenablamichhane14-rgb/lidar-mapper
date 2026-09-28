@@ -57,7 +57,7 @@ enum ARFrameReading {
             samples.sort()
             return samples[samples.count / 2]
         }
-        guard let median = medianRead ?? nil else { return nil }
+        guard let medianValue = medianRead, let median = medianValue else { return nil }
         var confidence: Float = 0.5
         if let confidenceMap = sceneDepth.confidenceMap {
             let meanRead = readPlane(confidenceMap, format: kCVPixelFormatType_OneComponent8,
@@ -70,7 +70,7 @@ enum ARFrameReading {
                 }
                 return count > 0 ? Float(sum) / Float(count) / 2 : nil
             }
-            if let mean = meanRead ?? nil { confidence = mean }
+            if let meanValue = meanRead, let mean = meanValue { confidence = mean }
         }
         return (median, confidence)
     }
