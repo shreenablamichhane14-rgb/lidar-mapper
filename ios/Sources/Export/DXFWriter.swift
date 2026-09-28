@@ -8,7 +8,10 @@ import simd
 /// minimal file. Newer versions (AC1015 and later) would allow LWPOLYLINE and
 /// $INSUNITS but require handles and owner links on every object, which is where
 /// hand-written DXF usually breaks. The cost: R12 has no $INSUNITS, so the drawing is
-/// unitless and 1 drawing unit = 1 meter (importers ask for or assume units).
+/// unitless. `text(for:)` and `data(for:)` write 1 drawing unit = 1 meter (importers ask
+/// for or assume units); `text(for:millimeters:unitsNote:)` and
+/// `data(for:millimeters:unitsNote:)` write 1 drawing unit = 1 millimeter and state the
+/// unit in a TEXT note below the drawing (D23), which is what the export screen uses.
 ///
 /// Structure: HEADER ($ACADVER, $EXTMIN, $EXTMAX), TABLES (LTYPE CONTINUOUS, one LAYER
 /// entry per plan layer plus layer "0", STYLE STANDARD), empty BLOCKS, ENTITIES, EOF.
@@ -246,5 +249,104 @@ enum DXFWriter {
                 point(p, codeOffset: 1)
             }
         }
+    }
+}
+
+/// Millimeter output with a units note (MODULES 3.18a, D23). The plan is scaled and the
+/// note is added as an ordinary text entity before the unchanged R12 writer above runs,
+/// so extents, dimension layout and text heights all follow the same code path as the
+/// meter output.
+extension DXFWriter {
+    /// Layer that receives the units note when the plan declares or uses it.
+    static let notesLayerName = "A-ANNO-NOTE"
+    /// Layer used for the units note when the plan has no notes layer.
+    static let fallbackNotesLayerName = "0"
+    /// Drawing units per meter in the millimeter output.
+    static let millimetersPerMeter: Double = 1000
+    /// Text height of the units note in meters, used when the plan's dimension text
+    /// height is not a positive finite number.
+    static let defaultNoteHeightMeters: Double = 0.12
+
+    /// The DXF file as text. When `millimeters` is true every coordinate, radius, text
+    /// height, dimension offset and the dimension text height are multiplied by 1000 (1
+    /// drawing unit = 1 mm), so `$EXTMIN` and `$EXTMAX` scale too; when false the
+    /// geometry is written in meters exactly like `text(for:)`. When `unitsNote` is not
+    /// nil and not blank, one TEXT entity with that string is appended on the notes
+    /// layer ("A-ANNO-NOTE" when the plan has it, else "0"), left-aligned with the
+    /// lower-left corner of `plan.bounds()` and one note height below the drawing. Still
+    /// R12, still no `$INSUNITS`, no DIMENSION entities and no new layers.
+    static func text(for plan: Plan2D, millimeters: Bool, unitsNote: String?) throws -> String {
+        guard !plan.entities.isEmpty else { throw ExportError.emptyPlan }
+        let factor: Double = millimeters ? millimetersPerMeter : 1
+        var output = millimeters ? scaledPlan(plan, by: factor) : plan
+        if let note = unitsNote, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            output.entities.append(unitsNoteEntity(note, for: output, unitsPerMeter: factor))
+        }
+        return try text(for: output)
+    }
+
+    /// The DXF file as bytes; see `text(for:millimeters:unitsNote:)`.
+    static func data(for plan: Plan2D, millimeters: Bool, unitsNote: String?) throws -> Data {
+        Data(try text(for: plan, millimeters: millimeters, unitsNote: unitsNote).utf8)
+    }
+
+    /// A copy of `plan` with every length multiplied by `factor`: points, radii, text
+    /// heights, dimension offsets and `dimensionTextHeight`. Angles, labels, layer names
+    /// and colors are unchanged. Layout code in `Plan2D` is linear in these values, so
+    /// the scaled plan's bounds and dimension layouts are the original ones times `factor`.
+    static func scaledPlan(_ plan: Plan2D, by factor: Double) -> Plan2D {
+        var result = plan
+        result.dimensionTextHeight = plan.dimensionTextHeight * factor
+        result.entities = plan.entities.map { entity in
+            Plan2D.Entity(layer: entity.layer, geometry: scaledGeometry(entity.geometry, by: factor))
+        }
+        return result
+    }
+
+    /// One entity's geometry with every length multiplied by `factor`.
+    static func scaledGeometry(_ geometry: Plan2D.Geometry, by factor: Double) -> Plan2D.Geometry {
+        switch geometry {
+        case let .line(from, to):
+            return .line(from: from * factor, to: to * factor)
+        case let .polyline(points, closed):
+            let scaled: [SIMD2<Double>] = points.map { point in point * factor }
+            return .polyline(points: scaled, closed: closed)
+        case let .arc(center, radius, startAngle, endAngle):
+            return .arc(center: center * factor, radius: radius * factor, startAngle: startAngle, endAngle: endAngle)
+        case let .circle(center, radius):
+            return .circle(center: center * factor, radius: radius * factor)
+        case let .text(position, height, string, rotation):
+            return .text(position: position * factor, height: height * factor, string: string, rotation: rotation)
+        case let .dimension(from, to, offset, label):
+            return .dimension(from: from * factor, to: to * factor, offset: offset * factor, label: label)
+        }
+    }
+
+    /// Name of the plan layer the units note goes on: `notesLayerName` when the plan
+    /// declares or uses it (exact match first, then ignoring case), else
+    /// `fallbackNotesLayerName`.
+    static func notesLayer(in plan: Plan2D) -> String {
+        let layers = plan.resolvedLayers()
+        if layers.contains(where: { $0.name == notesLayerName }) { return notesLayerName }
+        if let match = layers.first(where: { $0.name.caseInsensitiveCompare(notesLayerName) == .orderedSame }) {
+            return match.name
+        }
+        return fallbackNotesLayerName
+    }
+
+    /// The units note as a horizontal text entity below the drawing. `plan` is already in
+    /// output units; `unitsPerMeter` is 1000 for millimeters and 1 for meters. The note
+    /// uses the plan's dimension text height, its baseline starts at the left edge of the
+    /// bounds and sits two note heights below their bottom, so its top clears the
+    /// drawing by one note height. A plan without finite bounds gets the note at the origin.
+    static func unitsNoteEntity(_ note: String, for plan: Plan2D, unitsPerMeter: Double) -> Plan2D.Entity {
+        let planHeight = plan.dimensionTextHeight
+        let height: Double = planHeight.isFinite && planHeight > 0 ? planHeight : defaultNoteHeightMeters * unitsPerMeter
+        var position = SIMD2<Double>(0, 0)
+        if let bounds = plan.bounds() {
+            position = SIMD2<Double>(bounds.min.x, bounds.min.y - 2 * height)
+        }
+        let geometry = Plan2D.Geometry.text(position: position, height: height, string: note, rotation: 0)
+        return Plan2D.Entity(layer: notesLayer(in: plan), geometry: geometry)
     }
 }
