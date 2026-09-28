@@ -21,7 +21,7 @@ enum MeasureSpoken {
                     continue
                 }
             }
-            out.append(current.open + word(current.core) + current.close)
+            out.append(current.leading + word(current.core) + current.trailing)
             i += 1
         }
         return out.joined(separator: " ")
@@ -32,35 +32,35 @@ enum MeasureSpoken {
     /// A token split into leading "(", core text and trailing ")".
     private struct Token {
         /// Leading parentheses.
-        var open: String
+        var leading: String
         /// The token without parentheses.
         var core: String
         /// Trailing parentheses.
-        var close: String
+        var trailing: String
     }
 
     /// Splits the parentheses off a token.
     private static func parts(_ token: String) -> Token {
         var core = Substring(token)
-        var open = ""
-        var close = ""
+        var leading = ""
+        var trailing = ""
         while core.first == "(" {
-            open.append("(")
+            leading.append("(")
             core = core.dropFirst()
         }
         while core.last == ")" {
-            close.append(")")
+            trailing.append(")")
             core = core.dropLast()
         }
-        return Token(open: open, core: String(core), close: close)
+        return Token(leading: leading, core: String(core), trailing: trailing)
     }
 
     /// Two-token forms: "sq ft", "cu ft", and whole inches followed by a fraction ("7 3/8\"").
     private static func mergedPair(_ first: Token, _ second: Token) -> String? {
-        guard first.close.isEmpty, second.open.isEmpty else { return nil }
+        guard first.trailing.isEmpty, second.leading.isEmpty else { return nil }
         if second.core == "ft" {
-            if first.core == "sq" { return first.open + Copy.MeasureCore.Spoken.squareFeet + second.close }
-            if first.core == "cu" { return first.open + Copy.MeasureCore.Spoken.cubicFeet + second.close }
+            if first.core == "sq" { return first.leading + Copy.MeasureCore.Spoken.squareFeet + second.trailing }
+            if first.core == "cu" { return first.leading + Copy.MeasureCore.Spoken.cubicFeet + second.trailing }
             return nil
         }
         guard isInteger(first.core), second.core.hasSuffix("\"") else { return nil }
@@ -68,7 +68,7 @@ enum MeasureSpoken {
         let words = [number(first.core), Copy.MeasureCore.Spoken.and,
                      Copy.MeasureCore.Spoken.fraction(fraction.numerator, fraction.denominator),
                      Copy.MeasureCore.Spoken.inches]
-        return first.open + words.joined(separator: " ") + second.close
+        return first.leading + words.joined(separator: " ") + second.trailing
     }
 
     /// Spoken form of one token without parentheses.
