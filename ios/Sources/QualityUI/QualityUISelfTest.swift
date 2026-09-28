@@ -214,7 +214,6 @@ enum QualityUISelfTest {
         let strings = [
             Copy.Quality.checking, Copy.Quality.checkingSlow, Copy.Quality.noteDepthStripped,
             Copy.Quality.noteMeshStripped, Copy.Quality.noteRoomPlanFailed, Copy.Quality.noteDark,
-            Copy.Quality.discardConfirmTitle, Copy.Quality.discardConfirmBody, Copy.Quality.discardConfirmKeep,
             Copy.Scanning.cancelConfirmDiscard, Copy.Quality.title, Copy.Quality.missingAreas,
             Copy.Quality.showMissingAreas,
         ]
