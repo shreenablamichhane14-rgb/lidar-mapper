@@ -4,7 +4,8 @@ import simd
 /// Plain-Swift checks for RoomModel (no XCTest), in the style of `UnitsSelfTest`: `run()`
 /// returns one line per failing check ("name: detail"), empty when all pass. Deterministic, no
 /// ARKit, RoomPlan session, camera or network; temporary files only under
-/// `FileManager.default.temporaryDirectory`, removed afterwards.
+/// `FileManager.default.temporaryDirectory`, removed afterwards. The build 5 checks (wall
+/// orientation and the CR-1 operations, names starting "b5.") are in RoomModelSelfTestB5.swift.
 enum RoomModelSelfTest {
     /// Failing checks as "name: detail".
     static func run() -> [String] {
