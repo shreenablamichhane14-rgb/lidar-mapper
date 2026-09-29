@@ -5,7 +5,9 @@ import simd
 // The large-object hub recorder (docs/MODULES.md 3.39): on the hub queue it only copies the
 // camera pose at most 10 times a second; once a seed is set it schedules a 1 Hz pass on its own
 // serial queue "mapper.largeobject" (QoS utility) that regrows the box from CoverageLive's faces,
-// updates the sector coverage and decides the object message (LargeObjectTrackerPass.swift).
+// updates the sector coverage and decides the object message (`LargeObjectPass.run` in
+// LargeObjectTrackerPass.swift). The last state stays readable after `finishRecording`, so the
+// model can still write the crop edit when the engine stopped the pass by itself.
 // The message reaches Coverage's GuidanceEngine through `extraConditions` (CR-9) in the engine's
 // guidance hook. Every value shared between queues is guarded by one lock; readers are safe on
 // any thread and never compute. Not actor-isolated: the hook closure is formed here, outside any
