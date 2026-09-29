@@ -213,7 +213,8 @@ final class CoverageLiveRecorder: ScanRecorder {
     /// Sets `viewCoverage`; in live-room mode also `nearbyMissing` (options above) and `overallComplete`.
     func augment(_ input: inout GuidanceInput) {
         let values = locked { () -> (view: Float?, live: Bool, nearby: [MissingArea], complete: Bool) in
-            (published.summary.viewCoverage, published.liveRoomMode, published.nearby, published.overallComplete)
+            (view: published.summary.viewCoverage, live: published.liveRoomMode, nearby: published.nearby,
+             complete: published.overallComplete)
         }
         input.viewCoverage = values.view
         if values.live {
@@ -225,7 +226,7 @@ final class CoverageLiveRecorder: ScanRecorder {
     /// Sets `coverageFraction` and `minimap` (with `camera` and `heading`, CR-8).
     func augment(_ snapshot: inout LiveScanSnapshot) {
         let values = locked { () -> (fraction: Float, map: MinimapSnapshot?) in
-            (published.summary.coverageFraction, published.minimap)
+            (fraction: published.summary.coverageFraction, map: published.minimap)
         }
         snapshot.coverageFraction = values.fraction
         if let map = values.map { snapshot.minimap = map }

@@ -116,7 +116,7 @@ enum CoverageLiveMinimap {
         guard fx.isFinite, fy.isFinite, fx >= -1, fy >= -1, fx <= Float(width), fy <= Float(height) else { return nil }
         let x = min(max(Int(fx), 0), width - 1)
         let y = min(max(Int(fy), 0), height - 1)
-        return (x, y)
+        return (x: x, y: y)
     }
 
     /// Column and row of a plan point in an existing snapshot (for readers and the self-test).

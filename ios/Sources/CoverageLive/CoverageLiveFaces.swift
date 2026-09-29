@@ -93,7 +93,8 @@ enum CoverageLiveFaces {
             high = simd_max(high, p)
             any = true
         }
-        return any ? (low, high) : (.zero, .zero)
+        if any { return (min: low, max: high) }
+        return (min: .zero, max: .zero)
     }
 
     /// Voxel key per face (`grid.key(for: centroid)`) and the unique keys of the anchor (area-0
@@ -108,7 +109,7 @@ enum CoverageLiveFaces {
             perFace.append(key)
             if face.area > 0 { unique.insert(key) }
         }
-        return (perFace, Array(unique))
+        return (perFace: perFace, unique: Array(unique))
     }
 
     // MARK: Visibility
