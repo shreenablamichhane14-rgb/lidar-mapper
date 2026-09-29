@@ -4,11 +4,16 @@ import ImageIO
 
 /// Builds `derived/plan.json` from `derived/clean.json` (pipeline step `.floorPlan`, D11).
 /// The plan is written from the base clean model; edits are applied when it is loaded
-/// (`PlanModelStore.loadEdited`). The input hash is the `cleanModel` stamp plus the floors.
+/// (`PlanModelStore.loadEdited`). The input hash is the `cleanModel` stamp, the floors and the
+/// builder rules version.
 final class FloorPlanStep: ProcessingStep {
     /// Step identity and memory budget (50 MB, no reduced variant).
     let id: PipelineStepID = .floorPlan
     let memoryBudgetBytes: UInt64 = 50 * 1024 * 1024
+
+    /// (3.37c) Added to the input hash extra, so plans built under older builder rules (walls
+    /// reversed by the plan builder) are rebuilt with their clean model.
+    static let rulesVersion = "planBuilder-rules=2"
 
     /// Floors of the project (the manifest's floors are used when empty).
     private let floors: [FloorRecord]
@@ -23,11 +28,17 @@ final class FloorPlanStep: ProcessingStep {
         floors.isEmpty ? ctx.manifest.floors : floors
     }
 
-    /// Hash of the `cleanModel` stamp and the floor list (no raw seals, no edits).
+    /// Hash of the `cleanModel` stamp, the floor list and `rulesVersion` (no raw seals, no edits).
     func inputHash(_ ctx: StepContext) throws -> String {
         let clean = FloorPlanStepSupport.upstreamHash(ctx.package, step: .cleanModel)
         let floorList = effectiveFloors(ctx).map { "\($0.id):\($0.elevation):\($0.name)" }.joined(separator: ",")
-        return InputHasher.hash(seals: [], editRevision: nil, extra: ["clean=\(clean)", "floors=\(floorList)"])
+        return FloorPlanStep.hash(cleanStamp: clean, floorList: floorList, rules: FloorPlanStep.rulesVersion)
+    }
+
+    /// The input hash of the step for an upstream `cleanModel` stamp hash, a floor list and a
+    /// rules version (pure, so the self-test can compare rules versions).
+    static func hash(cleanStamp: String, floorList: String, rules: String) -> String {
+        InputHasher.hash(seals: [], editRevision: nil, extra: ["clean=\(cleanStamp)", "floors=\(floorList)", rules])
     }
 
     /// Reads clean.json, builds the plan and writes plan.json atomically.

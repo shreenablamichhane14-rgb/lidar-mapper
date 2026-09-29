@@ -91,8 +91,11 @@ final class CleanModelStep: ProcessingStep {
     let id: PipelineStepID = .cleanModel
     /// Peak memory budget, bytes (200 MB, no reduced variant).
     let memoryBudgetBytes: UInt64 = 200 * 1024 * 1024
-    /// Version of the builder rules, part of the input hash so a rule change rebuilds.
-    static let rulesVersion = "cleanModel-rules=1"
+    /// Version of the builder rules, part of the input hash so a rule change rebuilds. Version 2
+    /// (build 5, 3.37b): walls outside the loop are reversed so the room is on their left, so
+    /// every clean.json made before is rebuilt when its project is next processed (AppShell's
+    /// upgrade pass enqueues ready projects once).
+    static let rulesVersion = "cleanModel-rules=2"
     /// Supplies the consolidated measured mesh of a room.
     private let meshProvider: (ProjectPackage, UUID) -> MeshWithAttributes?
 

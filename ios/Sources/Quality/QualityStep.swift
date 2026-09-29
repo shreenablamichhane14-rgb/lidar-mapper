@@ -4,6 +4,8 @@ import Foundation
 /// the rebuilt room. `inputHash` = InputHasher.hash(seals: [room seal], editRevision: nil,
 /// extra: [buildRoom stamp hash or "-", consolidateMesh stamp hash or "-"]), so it runs after
 /// the Done evaluation (extra ["done"]) and again whenever the room or mesh is rebuilt.
+/// Build 5 (CR-10): the seals of the room's sealed mesh-pass folders (`passes`) join the hashed
+/// seals, and their pose samples and keyframe records join the room's.
 ///
 /// Pipeline step `.quality` for one room (docs/ARCHITECTURE.md 5.2): reads the room's sealed
 /// folder (pose track, keyframes, capture log), RoomPlan's saved room (raw or rebuilt
@@ -24,33 +26,51 @@ final class QualityStep: ProcessingStep {
     let id: PipelineStepID = .quality
     /// The room this step evaluates (the stamp subject).
     let room: RoomRecord
+    /// Mesh-pass folders whose poses and keyframes join the room's.
+    let passes: [RawScanFolder]
 
     /// Full budget, 300 MB.
     var memoryBudgetBytes: UInt64 { QualityStep.fullBudgetBytes }
     /// Reduced budget, 150 MB: the same evaluation over fewer faces.
     var reducedMemoryBudgetBytes: UInt64? { QualityStep.reducedBudgetBytes }
 
-    /// A step for one room.
-    init(room: RoomRecord) {
+    /// `passes` defaults to empty, so `QualityStep(room:)` call sites keep compiling.
+    /// Pass folders oldest first (LiveMeshView `MeshPassFolders.forRoom(_:in:)`); a missing or
+    /// unsealed one is logged and skipped when the step runs, never an error.
+    init(room: RoomRecord, passes: [RawScanFolder] = []) {
         self.room = room
+        self.passes = passes
     }
 
     // MARK: - Hash
 
-    /// The room seal plus the room's current `buildRoom` and `consolidateMesh` stamp hashes
-    /// from `derived/index.json` ("-" when absent). The variant is not hashed.
+    /// The room seal and the seal of every sealed pass folder (the ones the run reads, in
+    /// order), plus the room's current `buildRoom` and `consolidateMesh` stamp hashes from
+    /// `derived/index.json` ("-" when absent). The variant is not hashed. With no passes it is
+    /// the build 4 hash.
     func inputHash(_ ctx: StepContext) throws -> String {
         let folder = CapturedRoomStore.rawFolder(ctx.package, room: room)
         let seal = try? ProjectStore.readJSON(SealFile.self, from: folder.sealURL)
+        let sealedPasses = QualityPassFolders.sealed(passes, roomFolder: folder, roomID: room.id, logSkips: false)
+        var seals: [SealFile?] = [seal]
+        for pass in sealedPasses {
+            seals.append(pass.seal)
+        }
         let index = try? ProjectStore.readJSON(DerivedIndex.self, from: ctx.package.derivedIndexURL)
         let built = index?.stamp(step: .buildRoom, subject: room.id)?.inputHash
         let mesh = index?.stamp(step: .consolidateMesh, subject: room.id)?.inputHash
-        return QualityStep.inputHash(seal: seal, buildRoomStamp: built, consolidateMeshStamp: mesh)
+        return QualityStep.inputHash(seals: seals, buildRoomStamp: built, consolidateMeshStamp: mesh)
     }
 
     /// The step hash for a seal and the two stamp hashes (nil stamps hash as "-").
     static func inputHash(seal: SealFile?, buildRoomStamp: String?, consolidateMeshStamp: String?) -> String {
-        InputHasher.hash(seals: seal.map { [$0] } ?? [], editRevision: nil,
+        QualityStep.inputHash(seals: [seal], buildRoomStamp: buildRoomStamp, consolidateMeshStamp: consolidateMeshStamp)
+    }
+
+    /// The step hash for the room seal followed by the pass seals (nil entries skipped) and the
+    /// two stamp hashes (nil stamps hash as "-").
+    static func inputHash(seals: [SealFile?], buildRoomStamp: String?, consolidateMeshStamp: String?) -> String {
+        InputHasher.hash(seals: seals.compactMap { $0 }, editRevision: nil,
                          extra: [buildRoomStamp ?? "-", consolidateMeshStamp ?? "-"])
     }
 
@@ -89,7 +109,7 @@ final class QualityStep: ProcessingStep {
             return
         }
         ctx.progress(0.05)
-        let files = QualityRoomFiles.load(folder, roomID: record.id)
+        let inputs = QualitySealedInputs.load(room: folder, roomID: record.id, passes: passes)
         try ctx.checkCancelled()
         ctx.progress(0.15)
 
@@ -102,7 +122,7 @@ final class QualityStep: ProcessingStep {
         }
         if mesh.map({ $0.triangleCount == 0 }) ?? true {
             source = "fast"
-            mesh = MeshConsolidator.fastWorldMesh(MeshConsolidator.latestChunks(in: [folder]))
+            mesh = MeshConsolidator.fastWorldMesh(MeshConsolidator.latestChunks(in: inputs.folders))
         }
         let worldMesh = mesh ?? MeshWithAttributes(mesh: TriangleMesh())
         try ctx.checkCancelled()
@@ -116,8 +136,8 @@ final class QualityStep: ProcessingStep {
         let loaded = ProcessInfo.processInfo.systemUptime
 
         let limit = reduced ? QualityStep.reducedFaceLimit : QualityEvaluator.maxEvaluationFaces
-        let result = QualityEvaluator.evaluateRecords(roomID: record.id, room: cleanRoom, mesh: worldMesh, poses: files.poses,
-                                                      keyframes: files.keyframes, log: files.log, inputHash: hash,
+        let result = QualityEvaluator.evaluateRecords(roomID: record.id, room: cleanRoom, mesh: worldMesh, poses: inputs.poses,
+                                                      keyframes: inputs.keyframes, log: inputs.room.log, inputHash: hash,
                                                       now: Date(), faceLimit: limit)
         let scored = ProcessInfo.processInfo.systemUptime
         try ctx.checkCancelled()
@@ -132,7 +152,8 @@ final class QualityStep: ProcessingStep {
         let variant = reduced ? "reduced" : "full"
         let timings = [("load", loaded - started), ("score", scored - loaded),
                        ("save", ProcessInfo.processInfo.systemUptime - scored)]
-        QualityEvaluator.logSummary(label: "quality step (\(variant), \(source) mesh)", result: result,
+        let label = "quality step (\(variant), \(source) mesh)" + QualityEvaluator.passLabel(inputs)
+        QualityEvaluator.logSummary(label: label, result: result,
                                     meshTriangles: worldMesh.triangleCount, timings: timings)
     }
 

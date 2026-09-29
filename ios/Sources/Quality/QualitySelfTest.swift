@@ -3,17 +3,18 @@ import simd
 
 // Plain-Swift checks of the Quality module (no XCTest), run from Settings > Diagnostics like
 // UnitsSelfTest. Fixtures live in QualitySelfTestFixtures.swift, file checks in
-// QualitySelfTest+Files.swift. Deterministic (fixed ids, dates and poses); about 15 room
-// evaluations of a 4340-face mesh with 34 observations each plus one sealed folder in the
-// temporary directory, well under 2 s on an A15.
+// QualitySelfTest+Files.swift. Deterministic (fixed ids, dates and poses); about 22 room
+// evaluations of a 4340-face mesh with up to 34 observations each plus two small temporary
+// packages (one sealed room; one room with mesh-pass folders), well under 2 s on an A15.
 //
-// CHECK COUNT (117 when every group runs to the end):
+// CHECK COUNT (140 when every group runs to the end):
 //   boundary, faces and orientation      17
 //   observations and the light test      11
 //   full walk, wall 2, windows, Codable  25
 //   wall factors and texture light       17
 //   no room, no mesh, winding, hashes    26
 //   sealed folder, store and step        21
+//   mesh-pass folders (CR-10)            23
 // The thresholds were checked against a numpy port of Coverage on the same fixtures (walls,
 // floor and ceiling fully observed, texture 0.957, wall 2 hidden: walls 0.83 and a 7.0 m^2
 // missing area, small window: 2.3 m^2 less).
@@ -30,7 +31,7 @@ enum QualitySelfTest {
         checkFactorsAndLight(&c, full: full)
         checkPaths(&c, full: full)
         checkFiles(&c)
-        if c.failures.isEmpty && c.count < 100 {
+        if c.failures.isEmpty && c.count < 130 {
             c.failures.append("selfTest: only \(c.count) checks ran")
         }
         return c.failures

@@ -14,6 +14,7 @@ enum FloorPlanSelfTest {
         drawingChecks(&log)
         interactionChecks(&log)
         renderChecks(&log)
+        revisionChecks(&log)
         return log.failures
     }
 
@@ -22,7 +23,7 @@ enum FloorPlanSelfTest {
         PlanBuilder.build(from: FloorPlanSelfTestFixtures.rectangleModel(), floors: FloorPlanSelfTestFixtures.floors)
     }
 
-    /// PlanBuilder: levels, room, walls, dimensions, openings, fixtures, axes, flips, L shape.
+    /// PlanBuilder: levels, room, walls, dimensions, openings, fixtures, axes, legacy walls, L shape.
     private static func builderChecks(_ log: inout FloorPlanSelfTestLog) {
         typealias F = FloorPlanSelfTestFixtures
         let plan = rectanglePlan()
@@ -86,18 +87,21 @@ enum FloorPlanSelfTest {
         log.expect("build.planAxesInverse", PlanAxes.toWorld(SIMD2<Float>(1, 3), y: 0).z == -3)
         log.expect("build.deterministic", rectanglePlan() == plan)
 
-        let flipped = PlanBuilder.build(from: F.flippedWallModel(), floors: F.floors)
-        let south = flipped.levels.first?.walls.first { $0.id == F.southWall }
-        log.expect("build.flippedWallReversed", south?.a == Vec2(x: 0, y: 0) && south?.b == Vec2(x: 4, y: 0),
+        // 3.37c: a legacy wall whose normal points to the right of start -> end is kept as
+        // stored (not reversed), with its opening offset, hinge end and spans unchanged. This
+        // replaces the build 4 check that expected it reversed with mirrored spans and hinge.
+        let legacy = PlanBuilder.build(from: F.flippedWallModel(), floors: F.floors)
+        let south = legacy.levels.first?.walls.first { $0.id == F.southWall }
+        log.expect("build.rightNormalWallKeepsStart", south?.a == Vec2(x: 4, y: 0) && south?.b == Vec2(x: 0, y: 0),
                    "got \(String(describing: south?.a)) -> \(String(describing: south?.b))")
-        let flippedDoor = flipped.levels.first?.openings.first { $0.id == F.door }
-        log.near("build.flippedDoorOffset", flippedDoor?.offset ?? -1, 1.0)
-        log.expect("build.flippedDoorHinge", flippedDoor?.swing?.hingeAtStart == false)
+        let legacyDoor = legacy.levels.first?.openings.first { $0.id == F.door }
+        log.near("build.rightNormalDoorOffset", legacyDoor?.offset ?? -1, 2.1)
+        log.expect("build.rightNormalDoorHinge", legacyDoor?.swing?.hingeAtStart == true)
         let span = south?.occludedSpans.first
         let spanLower: Float = span?.lowerBound ?? -1
         let spanUpper: Float = span?.upperBound ?? -1
-        let spanOK = abs(spanLower - 3) < 0.0001 && abs(spanUpper - 3.5) < 0.0001
-        log.expect("build.flippedOccludedSpan", spanOK, "got \(String(describing: span))")
+        let spanOK = abs(spanLower - 0.5) < 0.0001 && abs(spanUpper - 1.0) < 0.0001
+        log.expect("build.rightNormalOccludedSpan", spanOK, "got \(String(describing: span))")
 
         let lShape = PlanBuilder.build(from: F.lShapedModel(), floors: F.floors)
         let lLevel = lShape.levels.first
