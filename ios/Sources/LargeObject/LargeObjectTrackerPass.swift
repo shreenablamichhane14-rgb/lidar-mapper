@@ -132,3 +132,45 @@ enum LargeObjectPass {
         return all(low .<= bounds.max) && all(high .>= bounds.min)
     }
 }
+
+/// What a tap found: the seed, the floor under it and the first box (nil when nothing grew).
+struct LargeObjectLocation: Equatable {
+    /// The seed point, world meters.
+    var seed: SIMD3<Float>
+    /// Floor height near the seed, when found.
+    var floorY: Float?
+    /// The first box, when the growth found enough points.
+    var box: OrientedBox?
+    /// True when the seed lies in a wall column (the "tapped a wall" hint).
+    var seedInWallColumn: Bool
+    /// Samples near the seed and points grown (for the log).
+    var sampleCount: Int
+    var grownPoints: Int
+}
+
+/// The tap's work off main (flow step 2): the ray pick against the live faces, then the first
+/// floor, growth and box around the seed. Pure.
+enum LargeObjectLocator {
+    /// Farthest tap hit, meters.
+    static let pickDistance: Float = 6
+
+    /// `anchorsOnRay`, `worldMesh` and `pick` within `pickDistance`; nil when the ray hits no face.
+    static func pick(_ ray: Ray, anchors: [CoverageAnchorFaces]) -> SIMD3<Float>? {
+        let crossing = LargeObjectSeed.anchorsOnRay(ray, anchors: anchors, maxDistance: pickDistance)
+        guard !crossing.isEmpty else { return nil }
+        return LargeObjectSeed.pick(ray, mesh: LargeObjectSeed.worldMesh(crossing), maxDistance: pickDistance)
+    }
+
+    /// `samples(from:near:)`, `floorHeight`, `growDetailed` and `box` around `seed`.
+    static func locate(seed: SIMD3<Float>, anchors: [CoverageAnchorFaces]) -> LargeObjectLocation {
+        let samples = LargeObjectSeed.samples(from: anchors, near: seed)
+        guard let floorY = LargeObjectSeed.floorHeight(seed: seed, samples: samples) else {
+            return LargeObjectLocation(seed: seed, floorY: nil, box: nil, seedInWallColumn: false,
+                                       sampleCount: samples.count, grownPoints: 0)
+        }
+        let growth = LargeObjectSeed.growDetailed(seed: seed, samples: samples, floorY: floorY)
+        let box = LargeObjectSeed.box(points: growth.points, floorY: floorY)
+        return LargeObjectLocation(seed: seed, floorY: floorY, box: box, seedInWallColumn: growth.seedInWallColumn,
+                                   sampleCount: samples.count, grownPoints: growth.points.count)
+    }
+}
