@@ -297,14 +297,14 @@ enum MeasureToolSnaps {
         let a = PlanAxes.toPlan(wall.start.simd)
         let b = PlanAxes.toPlan(wall.end.simd)
         let chord = Segment2D(a: a, b: b).distance(to: plan)
-        guard let arc = wall.arc, arc.radius.isFinite, arc.radius > 0 else { return chord }
+        guard let arc = wall.arc, arc.radius.isFinite, arc.radius > 0, arc.startAngle.isFinite,
+              arc.endAngle.isFinite else { return chord }
         let center = PlanAxes.toPlan(arc.center.simd)
         let offset = plan - center
-        var angle = atan2(offset.y, offset.x)
-        let twoPi = 2 * Float.pi
-        while angle < arc.startAngle { angle += twoPi }
-        while angle > arc.startAngle + twoPi { angle -= twoPi }
-        guard angle <= arc.endAngle else { return chord }
+        let twoPi: Float = 2 * Float.pi
+        var sweep = (atan2(offset.y, offset.x) - arc.startAngle).truncatingRemainder(dividingBy: twoPi)
+        if sweep < 0 { sweep += twoPi }
+        guard sweep <= arc.endAngle - arc.startAngle else { return chord }
         let radial: Float = abs(simd_length(offset) - arc.radius)
         return min(radial, chord)
     }

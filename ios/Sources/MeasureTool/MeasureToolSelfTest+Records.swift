@@ -27,7 +27,10 @@ extension MeasureToolSelfTest {
         let good = F.context()
         let shaky = F.context(tracking: 0.3)
         let distance = MeasureToolSnaps.value(distanceDraft(), context: good)
-        let distanceOK = distance.map { near(Float($0.value), 2) && ($0.sigma ?? 0) > 0 } ?? false
+        let distanceOK: Bool = distance.map { value -> Bool in
+            let sigma: Double = value.sigma ?? 0
+            return near(Float(value.value), 2) && sigma > 0
+        } ?? false
         let distanceLow = distance.map { MeasureDisplay.isLowConfidence($0, kind: .distance) } ?? true
         log.check("value.distanceGoodEvidence", distanceOK && !distanceLow, "\(String(describing: distance))")
         let shakyDistance = MeasureToolSnaps.value(distanceDraft(), context: shaky)
@@ -46,28 +49,32 @@ extension MeasureToolSelfTest {
         let threePoints = MeasureToolSnaps.value(area, context: good)
         let wallDraft = MeasureToolSnaps.value(MeasureToolDraft(kind: .wall, points: [F.free(2, 1, 0)], value: nil),
                                                context: good)
-        log.check("value.areaFromThreePoints", twoPoints == nil && wallDraft == nil
-                  && threePoints.map { near(Float($0.value), 0.5) } == true, "\(String(describing: threePoints))")
+        let threeOK: Bool = threePoints.map { near(Float($0.value), 0.5) } ?? false
+        let noneOK: Bool = twoPoints == nil && wallDraft == nil
+        log.check("value.areaFromThreePoints", noneOK && threeOK, "\(String(describing: threePoints))")
 
         let weakCorner = F.context(wall1Observations: 0)
         let corner = MeasureToolPoint(position: SIMD3<Float>(2, 1, 0), snap: .plane, feature: .wall, element: F.wall1)
         let angleDraft = MeasureToolDraft(kind: .angle, points: [F.free(1, 1, -1), corner, F.free(3, 1, -1)], value: nil)
         let angle = MeasureToolSnaps.value(angleDraft, context: weakCorner)
-        let angleOK = angle.map { near(Float($0.value), Float.pi / 2, 1e-4) && $0.isLowConfidence(kind: .angle) } ?? false
+        let angleOK: Bool = angle.map { value -> Bool in
+            let right: Bool = near(Float(value.value), Float.pi / 2, 1e-4)
+            return right && value.isLowConfidence(kind: MeasurementKind.angle)
+        } ?? false
         log.check("value.angleWeakCornerLow", angleOK, "\(String(describing: angle))")
 
         var small = smallFloorArea()
         small.value = MeasureToolSnaps.value(small, context: good)
         let smallRecord = MeasureToolSnaps.record(for: small, context: good, id: F.uuid(90), now: F.date(0))
-        let recordLow = smallRecord.map { MeasureToolSnaps.isLowConfidence(record: $0, context: good) } ?? true
-        log.check("value.smallAreaFlagFromSides", !MeasureToolSnaps.isLowConfidence(draft: small, context: good) && !recordLow,
-                  "\(String(describing: small.value))")
+        let recordLow: Bool = smallRecord.map { MeasureToolSnaps.isLowConfidence(record: $0, context: good) } ?? true
+        let draftLow: Bool = MeasureToolSnaps.isLowConfidence(draft: small, context: good)
+        log.check("value.smallAreaFlagFromSides", !draftLow && !recordLow, "\(String(describing: small.value))")
 
         var weak = smallFloorArea()
         weak.value = MeasureToolSnaps.value(weak, context: shaky)
-        let weakStored = weak.value.map { $0.isLowConfidence(kind: .area) } ?? false
-        log.check("value.weakAreaFlagged", MeasureToolSnaps.isLowConfidence(draft: weak, context: shaky) && weakStored,
-                  "\(String(describing: weak.value))")
+        let weakStored: Bool = weak.value.map { $0.isLowConfidence(kind: MeasurementKind.area) } ?? false
+        let weakDraft: Bool = MeasureToolSnaps.isLowConfidence(draft: weak, context: shaky)
+        log.check("value.weakAreaFlagged", weakDraft && weakStored, "\(String(describing: weak.value))")
     }
 
     // MARK: - Records (7 checks)
@@ -76,11 +83,22 @@ extension MeasureToolSelfTest {
     static func recordChecks(_ log: MeasureToolSelfTestLog) {
         let context = F.context()
         let walls = MeasureToolSnaps.wallRecords(F.walls()[0], context: context, now: F.date(0))
-        let lengthOK = walls.count == 2 && walls[0].kind == .wallLength && near(Float(walls[0].result.value), 4)
-            && (walls[0].result.sigma ?? 0) >= 0.015 - 1e-9
-        let heightOK = walls.count == 2 && walls[1].kind == .height && near(Float(walls[1].result.value), 2.5)
-            && (walls[1].result.sigma ?? 0) >= 0.015 - 1e-9
-        let tagsOK = walls.allSatisfy { $0.snaps == [.edge, .edge] && $0.source == .viewer && $0.roomID == F.roomID }
+        let floorSigma: Double = 0.015 - 1e-9
+        var lengthOK = false
+        var heightOK = false
+        if walls.count == 2 {
+            let length = walls[0]
+            let height = walls[1]
+            let lengthSigma: Double = length.result.sigma ?? 0
+            let heightSigma: Double = height.result.sigma ?? 0
+            lengthOK = length.kind == MeasurementKind.wallLength && near(Float(length.result.value), 4) && lengthSigma >= floorSigma
+            heightOK = height.kind == MeasurementKind.height && near(Float(height.result.value), 2.5) && heightSigma >= floorSigma
+        }
+        let edgeSnaps: [SnapKind] = [.edge, .edge]
+        let tagsOK: Bool = walls.allSatisfy { record -> Bool in
+            let tagged: Bool = record.snaps == edgeSnaps && record.source == MeasurementSource.viewer
+            return tagged && record.roomID == F.roomID
+        }
         log.check("wallRecords.lengthAndHeight", lengthOK && heightOK && tagsOK, "\(walls)")
 
         let curved = F.curvedWall()
@@ -92,23 +110,28 @@ extension MeasureToolSelfTest {
         var draft = distanceDraft()
         draft.value = MeasureToolSnaps.value(draft, context: context)
         let made = MeasureToolSnaps.record(for: draft, context: context, id: F.uuid(91), now: F.date(1))
-        let madeOK = made.map { $0.points.count == 2 && $0.snaps.count == 2 && $0.source == .viewer
-            && $0.roomID == F.roomID && $0.kind == .distance && $0.name.isEmpty } ?? false
+        let madeOK: Bool = made.map { record -> Bool in
+            let counts: Bool = record.points.count == 2 && record.snaps.count == 2
+            let tags: Bool = record.source == MeasurementSource.viewer && record.kind == MeasurementKind.distance
+            return counts && tags && record.roomID == F.roomID && record.name.isEmpty
+        } ?? false
         log.check("record.distance", madeOK, "\(String(describing: made))")
 
         let single = MeasureToolDraft(kind: .distance, points: [F.free(1, 1, -1)], value: nil)
         let twoCorners = MeasureToolDraft(kind: .area, points: [F.free(1, 0, -1), F.free(2, 0, -1)], value: nil)
         let wallDraft = MeasureToolDraft(kind: .wall, points: [F.free(2, 1, 0)], value: nil)
-        let none = MeasureToolSnaps.record(for: single, context: context, id: F.uuid(92), now: F.date(2)) == nil
-            && MeasureToolSnaps.record(for: twoCorners, context: context, id: F.uuid(93), now: F.date(2)) == nil
-            && MeasureToolSnaps.record(for: wallDraft, context: context, id: F.uuid(94), now: F.date(2)) == nil
-        log.check("record.incompleteIsNil", none)
+        let singleNil: Bool = MeasureToolSnaps.record(for: single, context: context, id: F.uuid(92), now: F.date(2)) == nil
+        let cornersNil: Bool = MeasureToolSnaps.record(for: twoCorners, context: context, id: F.uuid(93), now: F.date(2)) == nil
+        let wallNil: Bool = MeasureToolSnaps.record(for: wallDraft, context: context, id: F.uuid(94), now: F.date(2)) == nil
+        log.check("record.incompleteIsNil", singleNil && cornersNil && wallNil)
 
         if var named = made {
             named.name = "Hall"
             let moved = MeasureToolSnaps.moving(named, index: 1, to: F.free(3.5, 1, -1), context: context)
-            let movedOK = near(Float(moved.result.value), 2.5) && moved.id == named.id && moved.name == "Hall"
-                && moved.createdAt == named.createdAt && moved.points[1] == Vec3(x: 3.5, y: 1, z: -1)
+            let sameIdentity: Bool = moved.id == named.id && moved.name == "Hall" && moved.createdAt == named.createdAt
+            let target = Vec3(x: 3.5, y: 1, z: -1)
+            let movedPoint: Bool = moved.points.count == 2 && moved.points[1] == target
+            let movedOK: Bool = sameIdentity && movedPoint && near(Float(moved.result.value), 2.5)
             log.check("moving.distanceRecomputed", movedOK, "\(moved)")
         } else {
             log.check("moving.distanceRecomputed", false, "no record")
@@ -120,15 +143,17 @@ extension MeasureToolSelfTest {
         let other = MeasurementRecord(id: F.uuid(95), kind: .height, points: walls.last?.points ?? [],
                                       snaps: [.edge, .edge], result: MeasuredValue(value: 2.5, sigma: 0.01, provenance: .measured),
                                       source: .viewer, name: "", roomID: nil, createdAt: F.date(5))
-        let pairOK = walls.allSatisfy { MeasureToolSnaps.isWallRecord($0, among: walls + [other]) }
-            && !MeasureToolSnaps.isWallRecord(other, among: walls + [other])
+        let everything: [MeasurementRecord] = walls + [other]
+        let pairsFound: Bool = walls.allSatisfy { MeasureToolSnaps.isWallRecord($0, among: everything) }
+        let pairOK: Bool = pairsFound && !MeasureToolSnaps.isWallRecord(other, among: everything)
         let onWall = MeasurementRecord(id: F.uuid(96), kind: .distance, points: [Vec3(x: 2, y: 1.25, z: 0), Vec3(x: 3, y: 1, z: -1)],
                                        snaps: [.plane, .meshSurface], result: MeasuredValue(value: 1.5, sigma: 0.01, provenance: .measured),
                                        source: .viewer, name: "", roomID: nil, createdAt: F.date(6))
         let rebuilt = MeasureToolSnaps.point(of: onWall, at: 0, context: context)
         let freePoint = MeasureToolSnaps.point(of: onWall, at: 1, context: context)
-        log.check("records.wallPairingAndRebuild", pairOK && rebuilt.element == F.wall1 && rebuilt.feature == .wall
-                  && freePoint.element == nil && freePoint.snap == .meshSurface, "\(rebuilt)")
+        let rebuiltOK: Bool = rebuilt.element == F.wall1 && rebuilt.feature == SnapSetFeature.wall
+        let freeOK: Bool = freePoint.element == nil && freePoint.snap == SnapKind.meshSurface
+        log.check("records.wallPairingAndRebuild", pairOK && rebuiltOK && freeOK, "\(rebuilt)")
     }
 
     // MARK: - Presentation (7 checks)
@@ -143,8 +168,8 @@ extension MeasureToolSelfTest {
         let expected = [Copy.MeasureTool.numbered(distance, 1), Copy.MeasureTool.numbered(distance, 2),
                         Copy.MeasureTool.numbered(area, 1), "Hall width"]
         let titles = rows.map { $0.title }
-        log.check("rows.titles", titles == expected && expected[0] == "Distance 1" && expected[2] == "Surface area 1",
-                  "\(titles)")
+        let literalOK: Bool = expected[0] == "Distance 1" && expected[2] == "Surface area 1"
+        log.check("rows.titles", titles == expected && literalOK, "\(titles)")
 
         var accuracyOK = true
         for prefs in [imperial, metric] {
@@ -178,17 +203,22 @@ extension MeasureToolSelfTest {
                    Copy.MeasureTool.areaFirst, Copy.MeasureTool.areaNext, Copy.MeasureTool.areaClose,
                    Copy.MeasureTool.angleFirst, Copy.MeasureTool.angleCorner, Copy.MeasureTool.angleSecond,
                    Copy.MeasureTool.noSurface]
-        log.check("hint.texts", hintsOK && Set(all).count == all.count && all.allSatisfy { !$0.isEmpty })
+        let distinct: Bool = Set(all).count == all.count
+        let filled: Bool = all.allSatisfy { !$0.isEmpty }
+        log.check("hint.texts", hintsOK && distinct && filled)
 
         let door = MeasureToolPoint(position: .zero, snap: .corner, feature: .door, element: F.door)
         let mesh = MeasureToolPoint(position: .zero, snap: .meshVertex)
-        log.check("snapText.doorAndMesh", MeasureToolPresentation.snapText(door) == Copy.Measure.snapped(to: "door")
-                  && MeasureToolPresentation.snapText(mesh) == nil)
+        let doorText: Bool = MeasureToolPresentation.snapText(door) == Copy.Measure.snapped(to: "door")
+        let meshText: Bool = MeasureToolPresentation.snapText(mesh) == nil
+        log.check("snapText.doorAndMesh", doorText && meshText)
 
         let kindsOK = MeasurementKind.allCases.allSatisfy { !MeasureToolPresentation.kindTitle($0).isEmpty }
         let tools = MeasureToolKind.allCases
-        let tableOK = tools.map { $0.minimumPoints } == [2, 2, 1, 3, 3]
-            && tools.map { $0.measurementKind } == [.distance, .height, .wallLength, .area, .angle]
+        let minimums: [Int] = tools.map { $0.minimumPoints }
+        let kinds: [MeasurementKind] = tools.map { $0.measurementKind }
+        let expectedKinds: [MeasurementKind] = [.distance, .height, .wallLength, .area, .angle]
+        let tableOK: Bool = minimums == [2, 2, 1, 3, 3] && kinds == expectedKinds
         log.check("kinds.titlesAndTable", kindsOK && tableOK)
 
         let pickerTitles = tools.map { MeasureToolPresentation.title(of: $0) }
@@ -198,14 +228,16 @@ extension MeasureToolSelfTest {
             return
         }
         let label = MeasureToolPresentation.label(first.result, kind: first.kind, prefs: metric)
-        let labelOK = label.value == MeasureDisplay.valueText(first.result, kind: first.kind, prefs: metric)
-            && label.accuracy == MeasureDisplay.accuracyText(first.result, kind: first.kind, prefs: metric)
-        log.check("titles.pickerAndLabel", Set(pickerTitles).count == 5 && pickerTitles.allSatisfy { !$0.isEmpty } && labelOK,
-                  "\(pickerTitles)")
+        let valueText: String = MeasureDisplay.valueText(first.result, kind: first.kind, prefs: metric)
+        let accuracyText: String? = MeasureDisplay.accuracyText(first.result, kind: first.kind, prefs: metric)
+        let labelOK: Bool = label.value == valueText && label.accuracy == accuracyText
+        let titlesOK: Bool = Set(pickerTitles).count == 5 && pickerTitles.allSatisfy { !$0.isEmpty }
+        log.check("titles.pickerAndLabel", titlesOK && labelOK, "\(pickerTitles)")
 
         let line = MeasureToolPresentation.logLine(first, event: "created")
-        let lineOK = line.contains("kind=distance") && line.contains("(1000, 1000, -1000)")
-            && line.contains("(3000, 1000, -1000)") && line.contains("created")
+        let kindOK: Bool = line.contains("kind=distance") && line.contains("created")
+        let pointsOK: Bool = line.contains("(1000, 1000, -1000)") && line.contains("(3000, 1000, -1000)")
+        let lineOK: Bool = kindOK && pointsOK
         log.check("logLine.kindAndMillimeters", lineOK, line)
     }
 
@@ -246,7 +278,8 @@ extension MeasureToolSelfTest {
             let package = ProjectPackage(root: root)
             try EditStore.saveMeasurements(records, to: package)
             let loaded = EditStore.loadMeasurements(package)
-            log.check("store.roundTrip", records.count == 3 && loaded == records, "saved \(records.count), loaded \(loaded.count)")
+            let same: Bool = loaded == records
+            log.check("store.roundTrip", records.count == 3 && same, "saved \(records.count), loaded \(loaded.count)")
         } catch {
             log.check("store.roundTrip", false, "\(error)")
         }

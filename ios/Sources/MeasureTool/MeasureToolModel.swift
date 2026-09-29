@@ -19,15 +19,15 @@ import simd
     /// Copy.Measure.snapToggle; on by default.
     @Published var snappingEnabled: Bool
     /// The measurement being placed.
-    @Published internal(set) var draft: MeasureToolDraft
+    @Published var draft: MeasureToolDraft
     /// Saved measurements of the project (all sources), createdAt order.
-    @Published internal(set) var records: [MeasurementRecord]
+    @Published var records: [MeasurementRecord]
     /// List rows of `records`, same order.
     @Published private(set) var rows: [MeasureToolRow]
     /// The hint for the next tap.
-    @Published internal(set) var hint: String
+    @Published var hint: String
     /// Latest "Snapped to ..." text, cleared after 1.5 s.
-    @Published internal(set) var snapText: String?
+    @Published var snapText: String?
     /// False until the first context is built.
     @Published private(set) var isReady: Bool
     /// Units of every value.
@@ -39,7 +39,7 @@ import simd
     /// `Copy.Errors.saveFailed.body` after a failed write; the screen shows it and clears it.
     @Published var errorText: String?
     /// Low confidence of the draft's live value (areas from their sides, E3).
-    @Published internal(set) var draftIsLowConfidence: Bool
+    @Published var draftIsLowConfidence: Bool
 
     /// The project measured.
     let projectID: UUID
@@ -54,18 +54,20 @@ import simd
     nonisolated static let snapTextNanoseconds: UInt64 = 1_500_000_000
 
     /// The snap context in use.
-    internal(set) var context: MeasureToolContext = .empty
+    private(set) var context: MeasureToolContext = .empty
     /// The project's package, once resolved.
     private(set) var package: ProjectPackage?
     /// Hide Furniture: movable objects are not snap targets.
     private var excludesMovable = false
+    /// The Hide Furniture flag the current context was built with.
+    private var contextExcludesMovable = false
     /// Measurements completed in this session, newest last, for Undo (both records of a Wall tap
     /// form one entry; the draft is what Undo reopens).
-    internal var completed: [MeasureToolCompletion] = []
+    var completed: [MeasureToolCompletion] = []
     /// Saves not yet finished.
     private var pendingWrites = 0
     /// Bumped on every local change of `records`, so a reload never overwrites newer edits.
-    internal var localRevision = 0
+    var localRevision = 0
     /// Latest context request; older results are dropped.
     private var contextToken = 0
     /// Loads running (a Hide Furniture change waits for them).
@@ -75,11 +77,11 @@ import simd
     /// Low-confidence flags of records by id, with the record they were computed for.
     private var flagCache: [UUID: (record: MeasurementRecord, flag: Bool)] = [:]
     /// Clears `snapText` when it fires; replaced by every new tag.
-    internal var snapClearTask: Task<Void, Never>?
+    var snapClearTask: Task<Void, Never>?
     /// Records being dragged, as they were before the drag.
-    internal var dragOriginals: [UUID: MeasurementRecord] = [:]
+    var dragOriginals: [UUID: MeasurementRecord] = [:]
     /// Feature under the finger during a drag (a haptic fires when it changes).
-    internal var dragFeature: SnapSetFeature?
+    var dragFeature: SnapSetFeature?
     /// The edits notification subscription.
     private var editsSubscription: AnyCancellable?
 
@@ -145,7 +147,7 @@ import simd
             MeasureToolSnaps.context(model: model, evidence: evidence, excludeMovable: exclude)
         }.value
         guard token == contextToken else { return }
-        apply(context: built)
+        apply(context: built, excludesMovable: exclude)
     }
 
     /// Loads what changed off main and applies it. The context is rebuilt when `forceContext` or
@@ -174,10 +176,10 @@ import simd
         }
         if let built = result.context, token == contextToken {
             contextStamp = result.stamp
-            apply(context: built)
-            if result.excludeMovable != excludesMovable {
-                await rebuildContext()
-            }
+            apply(context: built, excludesMovable: result.excludeMovable)
+        }
+        if loadsInFlight == 0, contextExcludesMovable != excludesMovable {
+            await rebuildContext()
         }
         if !isReady {
             isReady = true
@@ -187,9 +189,11 @@ import simd
         }
     }
 
-    /// Uses a new context: the draft value, its flag and the row flags are recomputed.
-    private func apply(context built: MeasureToolContext) {
+    /// Uses a new context built with the given Hide Furniture flag: the draft value, its flag and
+    /// the row flags are recomputed.
+    private func apply(context built: MeasureToolContext, excludesMovable exclude: Bool) {
         context = built
+        contextExcludesMovable = exclude
         flagCache = [:]
         updateDraftValue()
         refreshRows()

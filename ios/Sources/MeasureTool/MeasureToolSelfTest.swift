@@ -104,11 +104,13 @@ enum MeasureToolSelfTest {
     static func snapChecks(_ log: MeasureToolSelfTestLog) {
         let context = F.context()
         let s = context.snaps
-        let aligned = s.cornerElements.count == s.corners.count && s.cornerFeatures.count == s.corners.count
-            && s.edgeElements.count == s.edges.count && s.edgeFeatures.count == s.edges.count
-            && s.planeElements.count == s.planes.count && s.planeFeatures.count == s.planes.count
-            && s.planeRegions.count == s.planes.count
-        let floors = s.planeFeatures.filter { $0 == .floor }.count
+        let cornersAligned: Bool = s.cornerElements.count == s.corners.count && s.cornerFeatures.count == s.corners.count
+        let edgesAligned: Bool = s.edgeElements.count == s.edges.count && s.edgeFeatures.count == s.edges.count
+        let planeCount = s.planes.count
+        let planesAligned: Bool = s.planeElements.count == planeCount && s.planeFeatures.count == planeCount
+        let regionsAligned: Bool = s.planeRegions.count == planeCount
+        let floors: Int = s.planeFeatures.filter { $0 == SnapSetFeature.floor }.count
+        let aligned: Bool = cornersAligned && edgesAligned && planesAligned && regionsAligned
         log.check("combined.parallelArrays", aligned && floors == 2 && !s.corners.isEmpty,
                   "corners \(s.corners.count), planes \(s.planes.count), floors \(floors)")
 
@@ -116,57 +118,63 @@ enum MeasureToolSelfTest {
         let short = SnapSet(corners: [SIMD3<Float>(9, 0, 0), SIMD3<Float>(9, 1, 0)], cornerElements: [nil],
                             edges: [(SIMD3<Float>(9, 0, 0), SIMD3<Float>(9, 1, 0))], planes: [plane])
         let joined = MeasureToolSnaps.combined([short, short])
-        let padded = joined.cornerElements.count == 4 && joined.cornerFeatures == [.corner, .corner, .corner, .corner]
-            && joined.edgeFeatures == [.edge, .edge] && joined.planeFeatures == [.wall, .wall]
-            && joined.planeRegions.count == 2 && joined.edgeElements.count == 2
-        log.check("combined.padsShortArrays", padded, "corners \(joined.cornerElements.count)")
+        let cornerPad: [SnapSetFeature] = [.corner, .corner, .corner, .corner]
+        let edgePad: [SnapSetFeature] = [.edge, .edge]
+        let planePad: [SnapSetFeature] = [.wall, .wall]
+        let featuresPadded: Bool = joined.cornerFeatures == cornerPad && joined.edgeFeatures == edgePad
+            && joined.planeFeatures == planePad
+        let countsPadded: Bool = joined.cornerElements.count == 4 && joined.planeRegions.count == 2
+            && joined.edgeElements.count == 2
+        log.check("combined.padsShortArrays", featuresPadded && countsPadded, "corners \(joined.cornerElements.count)")
 
         let corner = MeasureToolSnaps.resolve(F.hit(SIMD3<Float>(0.03, 0, 0), tag: .rawMesh), parts: [],
                                               context: context, snapping: true)
-        log.check("resolve.floorCorner", corner.snap == .corner && corner.feature == .corner
-                  && near(corner.position, .zero), "\(corner)")
+        let cornerKind: Bool = corner.snap == SnapKind.corner && corner.feature == SnapSetFeature.corner
+        log.check("resolve.floorCorner", cornerKind && near(corner.position, SIMD3<Float>.zero), "\(corner)")
         let onWall = MeasureToolSnaps.resolve(F.hit(SIMD3<Float>(2, 1.25, -0.02), tag: .rawMesh), parts: [],
                                               context: context, snapping: true)
-        log.check("resolve.wallPlane", onWall.snap == .plane && onWall.feature == .wall && onWall.element == F.wall1
-                  && near(onWall.position.z, 0), "\(onWall)")
+        let wallKind: Bool = onWall.snap == SnapKind.plane && onWall.feature == SnapSetFeature.wall
+        log.check("resolve.wallPlane", wallKind && onWall.element == F.wall1 && near(onWall.position.z, 0), "\(onWall)")
 
         let sofaCorner = SIMD3<Float>(0.52, 0.8, -2.05)
         let withSofa = context.snaps.hit(sofaCorner)
         let withoutSofa = F.context(excludeMovable: true).snaps.hit(sofaCorner)
-        log.check("resolve.hideFurniture", withSofa.feature == .objectEdge && withoutSofa.feature != .objectEdge,
+        let sofaSnaps: Bool = withSofa.feature == SnapSetFeature.objectEdge
+        let sofaGone: Bool = withoutSofa.feature != SnapSetFeature.objectEdge
+        log.check("resolve.hideFurniture", sofaSnaps && sofaGone,
                   "with \(String(describing: withSofa.feature)), without \(String(describing: withoutSofa.feature))")
 
         let merged = MeasureToolSnaps.resolve(F.hit(SIMD3<Float>(5, 0.02, -1), tag: .rawMesh), parts: [],
                                               context: context, snapping: true)
-        log.check("resolve.mergedFloor", merged.snap == .plane && merged.feature == .floor && near(merged.position.y, 0),
-                  "\(merged)")
+        let mergedKind: Bool = merged.snap == SnapKind.plane && merged.feature == SnapSetFeature.floor
+        log.check("resolve.mergedFloor", mergedKind && near(merged.position.y, 0), "\(merged)")
 
         let parts = [F.scanPart()]
         let vertex = MeasureToolSnaps.resolve(F.scanHit(SIMD3<Float>(20.01, 0, 20)), parts: parts, context: context,
                                               snapping: true)
-        log.check("resolve.meshVertex", vertex.snap == .meshVertex && near(vertex.position, SIMD3<Float>(20, 0, 20))
-                  && vertex.feature == nil, "\(vertex)")
+        let vertexKind: Bool = vertex.snap == SnapKind.meshVertex && vertex.feature == nil
+        log.check("resolve.meshVertex", vertexKind && near(vertex.position, SIMD3<Float>(20, 0, 20)), "\(vertex)")
         let surface = MeasureToolSnaps.resolve(F.scanHit(SIMD3<Float>(20.05, 0, 20)), parts: parts, context: context,
                                                snapping: true)
-        log.check("resolve.meshSurface", surface.snap == .meshSurface && near(surface.position, SIMD3<Float>(20.05, 0, 20)),
-                  "\(surface)")
+        let surfaceKind: Bool = surface.snap == SnapKind.meshSurface
+        log.check("resolve.meshSurface", surfaceKind && near(surface.position, SIMD3<Float>(20.05, 0, 20)), "\(surface)")
         let off = MeasureToolSnaps.resolve(F.scanHit(SIMD3<Float>(20.01, 0, 20)), parts: parts, context: context,
                                            snapping: false)
         let offCorner = MeasureToolSnaps.resolve(F.hit(SIMD3<Float>(0.03, 0, 0), tag: .rawMesh), parts: [],
                                                  context: context, snapping: false)
-        log.check("resolve.snappingOff", off.snap == .meshSurface && off.feature == nil
-                  && near(off.position, SIMD3<Float>(20.01, 0, 20)) && offCorner.snap == .meshSurface,
-                  "\(off), \(offCorner)")
+        let offKinds: Bool = off.snap == SnapKind.meshSurface && off.feature == nil && offCorner.snap == SnapKind.meshSurface
+        log.check("resolve.snappingOff", offKinds && near(off.position, SIMD3<Float>(20.01, 0, 20)), "\(off), \(offCorner)")
 
         let element = MeasureToolSnaps.resolve(F.hit(SIMD3<Float>(30, 5, 30), tag: .element(F.wall1)), parts: [],
                                                context: context, snapping: true)
-        log.check("resolve.elementTag", element.snap == .plane && element.element == F.wall1 && element.feature == nil,
-                  "\(element)")
+        let elementKind: Bool = element.snap == SnapKind.plane && element.feature == nil
+        log.check("resolve.elementTag", elementKind && element.element == F.wall1, "\(element)")
 
         let byDoor = MeasureToolSnaps.wall(for: F.hit(SIMD3<Float>(4, 1, -1.4), tag: .element(F.door)), context: context)
         let byScan = MeasureToolSnaps.wall(for: F.hit(SIMD3<Float>(2, 1.25, -0.02), tag: .rawMesh), context: context)
         let nearEdge = MeasureToolSnaps.wall(for: F.hit(SIMD3<Float>(2, 0.03, -0.01), tag: .rawMesh), context: context)
-        log.check("wall.fromTagDoorAndScan", byDoor?.id == F.wall2 && byScan?.id == F.wall1 && nearEdge?.id == F.wall1,
+        let wallsFound: Bool = byDoor?.id == F.wall2 && byScan?.id == F.wall1
+        log.check("wall.fromTagDoorAndScan", wallsFound && nearEdge?.id == F.wall1,
                   "door \(String(describing: byDoor?.id)), scan \(String(describing: byScan?.id))")
         let onFloor = MeasureToolSnaps.wall(for: F.hit(SIMD3<Float>(2, 0, -2.5), tag: .rawMesh), context: context)
         let onSofa = MeasureToolSnaps.wall(for: F.hit(SIMD3<Float>(0.05, 0.5, -2.5), tag: .element(F.sofa)), context: context)
@@ -187,7 +195,9 @@ enum MeasureToolSelfTest {
         other.floor.outline = other.floor.outline.map { Vec2(x: $0.x + 10, y: $0.y) }
         let sideBySide = CleanModel(rooms: [F.room(), other], sourceIsStructure: false, stamp: nil)
         let inOther = MeasureToolSnaps.room(containing: SIMD3<Float>(12, 0, -2), in: sideBySide)
-        log.check("room.outlineAndMerged", inside?.id == F.roomID && inMerged?.id == F.roomID && inOther?.id == F.id(40),
+        let otherID = F.id(40)
+        let roomsFound: Bool = inside?.id == F.roomID && inMerged?.id == F.roomID
+        log.check("room.outlineAndMerged", roomsFound && inOther?.id == otherID,
                   "\(String(describing: inside?.id)), \(String(describing: inMerged?.id)), \(String(describing: inOther?.id))")
 
         let upper = F.room(elevation: 3, id: F.id(42), record: F.uuid(43), merged: false)
@@ -195,27 +205,29 @@ enum MeasureToolSelfTest {
         let low = MeasureToolSnaps.room(containing: SIMD3<Float>(2, 0.1, -2), in: stacked)
         let high = MeasureToolSnaps.room(containing: SIMD3<Float>(2, 3.1, -2), in: stacked)
         let empty = MeasureToolSnaps.room(containing: SIMD3<Float>(2, 0.1, -2), in: .empty)
-        log.check("room.stackedPicksOwnFloor", low?.id == F.roomID && high?.id == F.id(42) && empty == nil,
+        let upperID = F.id(42)
+        let stackedOK: Bool = low?.id == F.roomID && high?.id == upperID
+        log.check("room.stackedPicksOwnFloor", stackedOK && empty == nil,
                   "low \(String(describing: low?.id)), high \(String(describing: high?.id))")
 
         let context = F.context()
         let onWall = MeasureToolPoint(position: SIMD3<Float>(2, 1, 0), snap: .plane, feature: .wall, element: F.wall1)
         let wallEvidence = MeasureToolSnaps.evidence(for: onWall, context: context)
-        log.check("evidence.snappedWall", near(wallEvidence.distance, 1.0) && wallEvidence.observations == 4
-                  && wallEvidence.snap == .roomSurface, "\(wallEvidence)")
+        let wallSnap: Bool = wallEvidence.snap == MeasurementSnapKind.roomSurface && wallEvidence.observations == 4
+        log.check("evidence.snappedWall", wallSnap && near(wallEvidence.distance, 1.0), "\(wallEvidence)")
         let onDoor = MeasureToolPoint(position: SIMD3<Float>(4, 1, -1.4), snap: .plane, feature: .door, element: F.door)
         let doorEvidence = MeasureToolSnaps.evidence(for: onDoor, context: context)
         log.check("evidence.doorUsesHostWall", near(doorEvidence.distance, 1.2) && doorEvidence.observations == 5,
                   "\(doorEvidence)")
         let freeEvidence = MeasureToolSnaps.evidence(for: F.free(2, 1, -2), context: context)
-        log.check("evidence.freeUsesTypicalWall", near(freeEvidence.distance, 1.4) && freeEvidence.observations == 5
-                  && freeEvidence.snap == MeasurementSnapKind.none, "\(freeEvidence)")
+        let freeSnap: Bool = freeEvidence.snap == MeasurementSnapKind.none && freeEvidence.observations == 5
+        log.check("evidence.freeUsesTypicalWall", freeSnap && near(freeEvidence.distance, 1.4), "\(freeEvidence)")
         let bare = MeasureToolSnaps.context(model: F.model(), evidence: [:], excludeMovable: false)
         let defaults = MeasureToolSnaps.evidence(for: F.free(2, 1, -2), context: bare)
         let vertex = MeasureToolSnaps.evidence(for: MeasureToolPoint(position: SIMD3<Float>(2, 1, -2), snap: .meshVertex),
                                                context: bare)
-        log.check("evidence.defaults", near(defaults.distance, 2.0) && defaults.observations == 3
-                  && vertex.snap == .vertex, "\(defaults)")
+        let defaultCounts: Bool = defaults.observations == 3 && vertex.snap == MeasurementSnapKind.vertex
+        log.check("evidence.defaults", defaultCounts && near(defaults.distance, 2.0), "\(defaults)")
     }
 }
 
