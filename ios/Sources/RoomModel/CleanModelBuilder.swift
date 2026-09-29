@@ -48,13 +48,25 @@ enum CleanModelBuilder {
         let floorProvenance: Provenance = (input.isProvisional || !outline.isClosed) ? .estimated : floorLevel.provenance
         let reference = referencePoint(polygon: polygon, segments: segments)
         var walls: [CleanWall] = []
+        var outsideLoop = 0
+        var reversedCount = 0
         for (index, segment) in segments.enumerated() {
             let inLoop = outline.isClosed && index < outline.walls.count
+            if !inLoop {
+                outsideLoop += 1
+                if needsReversal(segment, reference: reference) { reversedCount += 1 }
+            }
             walls.append(cleanWall(segment, inLoop: inLoop, reference: reference, geometry: geometry, options: options))
+        }
+        if outsideLoop > 0 {
+            LogStore.shared.write("room \(recordID): \(reversedCount) of \(outsideLoop) walls outside the loop reversed (room on the left)",
+                                  category: RoomOutline.logCategory)
         }
 
         let ceiling = ceilingFor(segments: segments, polygon: polygon, floorY: floorLevel.elevation, mesh: mesh,
                                  gate: options.ceilingCoverageGate)
+        // Openings attach to the built (possibly reversed) walls, so their offsets and default
+        // swings are measured from each wall's final start.
         var openings: [CleanOpening] = []
         for surface in input.openings {
             if let opening = cleanOpening(surface, walls: walls, polygon: polygon, floorY: floorLevel.elevation,
@@ -163,23 +175,35 @@ enum CleanModelBuilder {
         return sum / Float(segments.count)
     }
 
-    /// A clean wall from a segment. Loop walls face their left side (counter-clockwise loop);
-    /// other walls face `reference`.
+    /// A clean wall from a segment, satisfying the orientation invariant (CR-1, 3.37b): the room
+    /// is on the left of start -> end and the normal is always the left perpendicular. Loop walls
+    /// are unchanged (counter-clockwise loop, room on the left); a wall outside the loop whose
+    /// left perpendicular points away from `reference` is reversed (`WallSegment.reversed`:
+    /// start and end swapped, arc unchanged).
     static func cleanWall(_ segment: WallSegment, inLoop: Bool, reference: SIMD2<Float>, geometry: Provenance,
                           options: CleanBuildOptions) -> CleanWall {
+        let oriented = (!inLoop && needsReversal(segment, reference: reference)) ? segment.reversed : segment
+        let normal = PlanAxes.toWorld(leftNormal(oriented), y: 0)
+        return CleanWall(id: oriented.id,
+                         start: Vec3(PlanAxes.toWorld(oriented.start, y: oriented.baseY)),
+                         end: Vec3(PlanAxes.toWorld(oriented.end, y: oriented.baseY)),
+                         height: oriented.height, normal: Vec3(normal), thickness: options.interiorThickness,
+                         thicknessSource: .estimated, arc: oriented.arc, confidence: oriented.confidence,
+                         completedEdges: oriented.completedEdges, occludedSpans: [], provenance: geometry)
+    }
+
+    /// Unit left perpendicular of a segment's start -> end in plan coordinates (zero for a
+    /// degenerate segment).
+    static func leftNormal(_ segment: WallSegment) -> SIMD2<Float> {
         let d = segment.direction
-        var planNormal = SIMD2<Float>(-d.y, d.x)
-        if !inLoop {
-            let middle = (segment.start + segment.end) * 0.5
-            if simd_dot(planNormal, reference - middle) < 0 { planNormal = -planNormal }
-        }
-        let normal = PlanAxes.toWorld(planNormal, y: 0)
-        return CleanWall(id: segment.id,
-                         start: Vec3(PlanAxes.toWorld(segment.start, y: segment.baseY)),
-                         end: Vec3(PlanAxes.toWorld(segment.end, y: segment.baseY)),
-                         height: segment.height, normal: Vec3(normal), thickness: options.interiorThickness,
-                         thicknessSource: .estimated, arc: segment.arc, confidence: segment.confidence,
-                         completedEdges: segment.completedEdges, occludedSpans: [], provenance: geometry)
+        return SIMD2<Float>(-d.y, d.x)
+    }
+
+    /// True when a wall outside the loop must be reversed to put `reference` (a point inside
+    /// the room) on its left: `simd_dot(leftNormal, reference - middle) < 0`.
+    static func needsReversal(_ segment: WallSegment, reference: SIMD2<Float>) -> Bool {
+        let middle = (segment.start + segment.end) * 0.5
+        return simd_dot(leftNormal(segment), reference - middle) < 0
     }
 
     /// A clean opening: attached by `parentIdentifier`, else to the nearest parallel wall within
