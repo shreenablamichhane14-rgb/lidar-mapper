@@ -217,7 +217,7 @@ enum PlanRenderer {
         case PlanLayers.wallsEstimated, PlanLayers.occluded: return 1.1
         case PlanLayers.doors, PlanLayers.doorSwingEstimated, PlanLayers.windows: return 0.9
         case PlanLayers.furniture, PlanLayers.fixtures, PlanLayers.notes, PlanLayers.scaleBar: return 0.8
-        case PlanLayers.dimensions: return 0.6
+        case PlanLayers.dimensions, PlanLayers.roomBoundaries: return 0.6
         case PlanLayers.grid: return 0.4
         default: return 1
         }

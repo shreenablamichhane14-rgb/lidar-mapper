@@ -153,12 +153,21 @@ enum PlanWallDrawing {
         }
     }
 
-    /// A curved wall sampled along its arc (RoomModel's `WallArc`: plan angles, the covered
-    /// side contains the middle angle, the radius blends from |a - center| to |b - center| so
-    /// the samples meet the corners, as in RoomModel's outline). Nil when the arc is unusable
-    /// (the caller then draws the wall straight). Openings are drawn on the chord and occluded
-    /// spans are not marked on curved walls.
-    private static func drawCurved(_ g: WallGeometry, arc: WallArc, into sketch: inout PlanSketch) -> PlanHit? {
+    /// The inner and outer faces of a wall as polylines, plan meters: two points each for a
+    /// straight wall, the arc samples the drawing uses for a curved one (the outer face equals
+    /// the inner one when the wall has no thickness). Nil when the wall has no usable geometry.
+    /// Used to decide which room edges a wall covers (`PlanDrawing` room boundaries).
+    static func faces(of wall: PlanWall) -> (inner: [SIMD2<Float>], outer: [SIMD2<Float>])? {
+        guard let g = geometry(of: wall) else { return nil }
+        if let arc = wall.arc, let samples = curveSamples(g, arc: arc) { return samples }
+        return (inner: [g.a, g.b], outer: [g.outer(0), g.outer(g.length)])
+    }
+
+    /// Inner and outer face samples of a curved wall (RoomModel's `WallArc`: plan angles, the
+    /// covered side contains the middle angle, the radius blends from |a - center| to
+    /// |b - center| so the samples meet the corners, as in RoomModel's outline). Nil when the
+    /// arc is unusable.
+    private static func curveSamples(_ g: WallGeometry, arc: WallArc) -> (inner: [SIMD2<Float>], outer: [SIMD2<Float>])? {
         let c = PlanAxes.toPlan(arc.center.simd)
         guard PlanSketch.isFinite(c), arc.radius.isFinite, arc.radius > 1e-3,
               arc.startAngle.isFinite, arc.endAngle.isFinite else { return nil }
@@ -188,6 +197,16 @@ enum PlanWallDrawing {
             inner.append(i == 0 ? g.a : (i == steps ? g.b : onArc))
             outer.append(c + direction * max(0, radius + outward * g.thickness))
         }
+        return (inner: inner, outer: outer)
+    }
+
+    /// A curved wall sampled along its arc (`curveSamples`). Nil when the arc is unusable (the
+    /// caller then draws the wall straight). Openings are drawn on the chord and occluded
+    /// spans are not marked on curved walls.
+    private static func drawCurved(_ g: WallGeometry, arc: WallArc, into sketch: inout PlanSketch) -> PlanHit? {
+        guard let samples = curveSamples(g, arc: arc) else { return nil }
+        let inner = samples.inner
+        let outer = samples.outer
         sketch.polyline(PlanLayers.walls, inner, closed: false)
         let estimated = g.wall.thicknessSource == .estimated
         if g.thickness > 1e-4 {
