@@ -17,7 +17,7 @@ import SwiftUI
     @Published private(set) var shotCount = 0
     /// `maximumNumberOfInputImages`, never a constant (RESEARCH 3.3 recommended 1).
     @Published private(set) var shotLimit = 0
-    /// Camera tracking is `.normal`, and the session is paused (controls show only when normal, unpaused).
+    /// Tracking is `.normal`; the session is paused. Mapper's controls show only while normal and not paused.
     @Published private(set) var trackingNormal = true
     @Published private(set) var isPaused = false
     /// `.overCapturing` present: the shot counter turns red.
