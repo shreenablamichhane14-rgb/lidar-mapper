@@ -18,6 +18,10 @@ struct HomeErrorAlert: Equatable {
 /// itself: it calls `onNewScan` after the mode picker closed, `onOpen` for a row (never for a
 /// `.capturing` project, which is not listed) and `onSettings` for the gear button.
 ///
+/// The mode picker enables the modes AppShell passes in `availableModes` (build 5: Room, House,
+/// Object and Quick Measure on capable devices) and shows the reason from `unavailableReasons`
+/// under a disabled one; Home never decides availability and never routes by project kind.
+///
 /// Delete first calls `ProcessingRunner.cancel(projectID:)`; while the project's job still runs
 /// the row stays disabled with a spinner, and `ProjectLibrary.delete` runs once the job has
 /// ended, so no step writes into a deleted package. Disk work (thumbnails, the size logged for a
@@ -30,8 +34,12 @@ struct HomeScreen: View {
     @ObservedObject var library: ProjectLibrary
     /// Processing state per project (Pipeline).
     @ObservedObject var runner: ProcessingRunner
-    /// Modes the picker enables (build 4: `[.room]`).
+    /// Modes the picker enables (AppShell decides; build 4 passed `[.room]`).
     let availableModes: Set<ScanMode>
+    /// Why a disabled mode cannot start, shown under its picker row (for example
+    /// `Copy.Errors.objectUnsupported.title`); a disabled mode without one reads
+    /// `Copy.HomeUI.comingLater`.
+    let unavailableReasons: [ScanMode: String]
     /// Called with the picked mode once the mode picker has closed.
     let onNewScan: (ScanMode) -> Void
     /// Called with a project id when its row is tapped.
@@ -86,12 +94,14 @@ struct HomeScreen: View {
     /// Height of the New Scan button, following the text size.
     @ScaledMetric(relativeTo: .title3) private var newScanHeight: CGFloat = 58
 
-    /// Creates Home.
+    /// Creates Home. `unavailableReasons` defaults to none, so the build 4 call form still works.
     init(library: ProjectLibrary, runner: ProcessingRunner, availableModes: Set<ScanMode>,
-         onNewScan: @escaping (ScanMode) -> Void, onOpen: @escaping (UUID) -> Void, onSettings: @escaping () -> Void) {
+         unavailableReasons: [ScanMode: String] = [:], onNewScan: @escaping (ScanMode) -> Void,
+         onOpen: @escaping (UUID) -> Void, onSettings: @escaping () -> Void) {
         _library = ObservedObject(wrappedValue: library)
         _runner = ObservedObject(wrappedValue: runner)
         self.availableModes = availableModes
+        self.unavailableReasons = unavailableReasons
         self.onNewScan = onNewScan
         self.onOpen = onOpen
         self.onSettings = onSettings

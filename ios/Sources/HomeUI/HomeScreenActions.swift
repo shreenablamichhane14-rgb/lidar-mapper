@@ -11,13 +11,14 @@ extension HomeScreen {
     func withDialogs<Content: View>(_ content: Content) -> some View {
         content
             .sheet(isPresented: $showModePicker, onDismiss: { startPickedMode() }) {
-                ModePickerSheet(availableModes: availableModes, onPick: { mode in
-                    pickedMode = mode
-                    showModePicker = false
-                }, onCancel: {
-                    pickedMode = nil
-                    showModePicker = false
-                })
+                ModePickerSheet(availableModes: availableModes, unavailableReasons: unavailableReasons,
+                                onPick: { mode in
+                                    pickedMode = mode
+                                    showModePicker = false
+                                }, onCancel: {
+                                    pickedMode = nil
+                                    showModePicker = false
+                                })
                 .presentationDetents([.medium, .large])
             }
             .alert(Copy.Project.renameTitle, isPresented: $isRenameAlertShown, presenting: renameTarget) { target in

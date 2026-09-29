@@ -35,8 +35,21 @@ struct HomeModeEntry: Equatable, Identifiable, Sendable {
     let detail: String
     /// SF Symbol name of the row icon.
     let symbol: String
-    /// False when this version cannot start the mode (shown with `Copy.HomeUI.comingLater`).
+    /// False when this device or version cannot start the mode (AppShell decides; the row then
+    /// shows `note`).
     let isEnabled: Bool
+    /// Shown under a disabled mode: its reason, else `Copy.HomeUI.comingLater`; nil when enabled.
+    let note: String?
+
+    /// Creates an entry. `note` defaults to nil, so the build 4 form without a note still works.
+    init(mode: ScanMode, title: String, detail: String, symbol: String, isEnabled: Bool, note: String? = nil) {
+        self.mode = mode
+        self.title = title
+        self.detail = detail
+        self.symbol = symbol
+        self.isEnabled = isEnabled
+        self.note = note
+    }
 
     /// Stable identity for `ForEach`.
     var id: String { mode.rawValue }
@@ -48,11 +61,12 @@ struct HomeModeEntry: Equatable, Identifiable, Sendable {
 enum HomePresentation {
     // MARK: - Contract (MODULES.md 3.28)
 
-    /// Row subtitle by mode: "Room, Sep 28", "3 rooms, Sep 28" (House, with the room count),
-    /// "Object, Sep 28", "Quick Measure, Sep 28". Advanced space scans read like a room (or a
-    /// house when they hold several rooms); advanced object scans read like an object.
+    /// Row subtitle by mode: "Room, Sep 28", "3 rooms, Sep 28" (House, with the count of
+    /// `activeRooms`, so a room replaced by a Rescan is not counted twice), "Object, Sep 28",
+    /// "Quick Measure, Sep 28". Advanced space scans read like a room (or a house when they hold
+    /// several active rooms); advanced object scans read like an object.
     static func subtitle(for manifest: ProjectManifest, dateText: String) -> String {
-        let roomCount = manifest.rooms.count
+        let roomCount = activeRooms(manifest).count
         switch manifest.kind {
         case .room:
             return Copy.Home.roomSubtitle(dateText)
@@ -69,8 +83,9 @@ enum HomePresentation {
 
     /// `.processing` while the runner holds a running or waiting job for the project, or while
     /// the manifest says it still needs processing (resumed after launch); otherwise
-    /// `.needsWork` when a room or object is `.needsRescan`; otherwise nil. Processing wins
-    /// because the quality of a room is only final once its job ends.
+    /// `.needsWork` when an active room (`activeRooms`, CR-7) or an object is `.needsRescan`;
+    /// otherwise nil. A superseded room never raises the badge: its Rescan replaced it.
+    /// Processing wins because the quality of a room is only final once its job ends.
     static func badge(for manifest: ProjectManifest, processing: ProjectProcessingState?) -> HomeBadge? {
         if let state = processing, state.isRunning || state.isQueued {
             return .processing
@@ -78,7 +93,7 @@ enum HomePresentation {
         if manifest.status == .processing || manifest.status == .needsProcessing {
             return .processing
         }
-        let roomNeedsScan = manifest.rooms.contains { $0.status == .needsRescan }
+        let roomNeedsScan = activeRooms(manifest).contains { $0.status == .needsRescan }
         let objectNeedsScan = manifest.objects.contains { $0.status == .needsRescan }
         if roomNeedsScan || objectNeedsScan {
             return .needsWork
@@ -241,28 +256,77 @@ enum HomePresentation {
         return formatter.string(from: date)
     }
 
-    // MARK: - Mode picker
+    // MARK: - Rooms
 
+    /// Rooms that count for a project: CR-7 `supersededBy == nil` (a room replaced by a Rescan
+    /// keeps its record but no longer counts). Manifest order. Status is not filtered, so the
+    /// count matches what the build 4 subtitle showed for projects without a Rescan.
+    static func activeRooms(_ manifest: ProjectManifest) -> [RoomRecord] {
+        manifest.rooms.filter { $0.supersededBy == nil }
+    }
+}
+
+// MARK: - Mode picker
+
+extension HomePresentation {
     /// The five picker rows in UX_COPY order: Room, House / Building, Object, Quick Measure,
-    /// Advanced Scan. A row is enabled when its mode is in `availableModes` (build 4: Room only).
-    /// The Advanced row picks `.advancedSpace`, or `.advancedObject` when only that one is
-    /// available.
-    static func modeEntries(availableModes: Set<ScanMode>) -> [HomeModeEntry] {
+    /// Advanced Scan. A row is enabled when its mode is in `availableModes` (AppShell decides;
+    /// build 5 enables House, Object and Quick Measure on capable devices). A disabled row's
+    /// `note` is its reason from `unavailableReasons` (for example
+    /// `Copy.Errors.objectUnsupported.title`), else `Copy.HomeUI.comingLater`; an enabled row
+    /// has no note even when a reason is passed. The Advanced row picks `.advancedSpace`, or
+    /// `.advancedObject` when only that one is available, and takes the reason of either.
+    static func modeEntries(availableModes: Set<ScanMode>, unavailableReasons: [ScanMode: String]) -> [HomeModeEntry] {
         let onlyAdvancedObject = availableModes.contains(.advancedObject) && !availableModes.contains(.advancedSpace)
         let advancedMode: ScanMode = onlyAdvancedObject ? .advancedObject : .advancedSpace
+        let otherAdvanced: ScanMode = onlyAdvancedObject ? .advancedSpace : .advancedObject
         let advancedEnabled = availableModes.contains(.advancedSpace) || availableModes.contains(.advancedObject)
-        return [
-            HomeModeEntry(mode: .room, title: Copy.Modes.room, detail: Copy.Modes.roomDetail,
-                          symbol: symbol(for: .room), isEnabled: availableModes.contains(.room)),
-            HomeModeEntry(mode: .house, title: Copy.Modes.house, detail: Copy.Modes.houseDetail,
-                          symbol: symbol(for: .house), isEnabled: availableModes.contains(.house)),
-            HomeModeEntry(mode: .object, title: Copy.Modes.object, detail: Copy.Modes.objectDetail,
-                          symbol: symbol(for: .object), isEnabled: availableModes.contains(.object)),
-            HomeModeEntry(mode: .quickMeasure, title: Copy.Modes.quickMeasure, detail: Copy.Modes.quickMeasureDetail,
-                          symbol: symbol(for: .quickMeasure), isEnabled: availableModes.contains(.quickMeasure)),
-            HomeModeEntry(mode: advancedMode, title: Copy.Modes.advanced, detail: Copy.Modes.advancedDetail,
-                          symbol: symbol(for: advancedMode), isEnabled: advancedEnabled),
-        ]
+        let plainModes: [ScanMode] = [.room, .house, .object, .quickMeasure]
+        var entries: [HomeModeEntry] = plainModes.map { mode in
+            let enabled = availableModes.contains(mode)
+            let note = modeNote(isEnabled: enabled, reasons: [unavailableReasons[mode]])
+            return HomeModeEntry(mode: mode, title: typeText(for: mode), detail: modeDetail(for: mode),
+                                 symbol: symbol(for: mode), isEnabled: enabled, note: note)
+        }
+        let advancedReasons: [String?] = [unavailableReasons[advancedMode], unavailableReasons[otherAdvanced]]
+        let advancedNote = modeNote(isEnabled: advancedEnabled, reasons: advancedReasons)
+        entries.append(HomeModeEntry(mode: advancedMode, title: Copy.Modes.advanced, detail: Copy.Modes.advancedDetail,
+                                     symbol: symbol(for: advancedMode), isEnabled: advancedEnabled, note: advancedNote))
+        return entries
+    }
+
+    /// The build 4 form keeps working: `unavailableReasons` empty, so every disabled row reads
+    /// `Copy.HomeUI.comingLater`.
+    static func modeEntries(availableModes: Set<ScanMode>) -> [HomeModeEntry] {
+        modeEntries(availableModes: availableModes, unavailableReasons: [:])
+    }
+
+    /// The note under a picker row: nil when enabled; else the first reason that is not blank
+    /// (trimmed); else `Copy.HomeUI.comingLater`.
+    static func modeNote(isEnabled: Bool, reasons: [String?]) -> String? {
+        guard !isEnabled else { return nil }
+        for case let reason? in reasons {
+            let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        return Copy.HomeUI.comingLater
+    }
+
+    /// VoiceOver value of a picker row: its `note` (the reason a disabled mode cannot start),
+    /// empty for an enabled row.
+    static func modeAccessibilityValue(_ entry: HomeModeEntry) -> String {
+        entry.note ?? ""
+    }
+
+    /// One-line description of a mode in the picker (UX_COPY section 2).
+    static func modeDetail(for mode: ScanMode) -> String {
+        switch mode {
+        case .room: return Copy.Modes.roomDetail
+        case .house: return Copy.Modes.houseDetail
+        case .object: return Copy.Modes.objectDetail
+        case .quickMeasure: return Copy.Modes.quickMeasureDetail
+        case .advancedSpace, .advancedObject: return Copy.Modes.advancedDetail
+        }
     }
 }
 

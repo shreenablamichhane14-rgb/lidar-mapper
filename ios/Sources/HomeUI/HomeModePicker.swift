@@ -2,15 +2,19 @@ import SwiftUI
 
 /// The sheet shown after New Scan: "What do you want to scan?" with Room, House / Building,
 /// Object, Quick Measure and Advanced Scan (UX_COPY section 2). Modes outside `availableModes`
-/// stay visible but disabled, with `Copy.HomeUI.comingLater` under their description (build 4
-/// enables Room only). Tapping an enabled row calls `onPick`; the sheet never starts a scan
-/// itself. Cancel calls `onCancel`.
+/// stay visible but disabled, with their note under the description: the reason AppShell passed
+/// in `unavailableReasons` (for example "Object scanning isn't available"), else
+/// `Copy.HomeUI.comingLater`. Build 5 enables House, Object and Quick Measure on capable devices;
+/// the sheet never decides availability itself. Tapping an enabled row calls `onPick`; the sheet
+/// never starts a scan itself. Cancel calls `onCancel`.
 ///
 /// Dynamic Type: system text styles; rows grow with the text. VoiceOver: each row reads its
-/// title, then "Coming in a later version" when disabled, with the description as the hint.
+/// title, then its note when disabled, with the description as the hint.
 struct ModePickerSheet: View {
-    /// Modes this version can start.
+    /// Modes this device and version can start (AppShell decides).
     private let availableModes: Set<ScanMode>
+    /// Why a disabled mode cannot start, shown under its row (text from `Copy`, set by AppShell).
+    private let unavailableReasons: [ScanMode: String]
     /// Called with the chosen mode.
     private let onPick: (ScanMode) -> Void
     /// Called when the user taps Cancel.
@@ -19,11 +23,19 @@ struct ModePickerSheet: View {
     /// Icon column width, following the title text size.
     @ScaledMetric(relativeTo: .title2) private var iconWidth: CGFloat = 36
 
-    /// Creates the picker.
-    init(availableModes: Set<ScanMode>, onPick: @escaping (ScanMode) -> Void, onCancel: @escaping () -> Void) {
+    /// Creates the picker. `unavailableReasons` defaults to none, so the build 4 call form still
+    /// works and every disabled row reads `Copy.HomeUI.comingLater`.
+    init(availableModes: Set<ScanMode>, unavailableReasons: [ScanMode: String] = [:],
+         onPick: @escaping (ScanMode) -> Void, onCancel: @escaping () -> Void) {
         self.availableModes = availableModes
+        self.unavailableReasons = unavailableReasons
         self.onPick = onPick
         self.onCancel = onCancel
+    }
+
+    /// The five rows for the current modes and reasons.
+    private var entries: [HomeModeEntry] {
+        HomePresentation.modeEntries(availableModes: availableModes, unavailableReasons: unavailableReasons)
     }
 
     /// The title header, the five mode rows and a Cancel button in the navigation bar.
@@ -31,7 +43,7 @@ struct ModePickerSheet: View {
         NavigationStack {
             List {
                 Section {
-                    ForEach(HomePresentation.modeEntries(availableModes: availableModes)) { entry in
+                    ForEach(entries) { entry in
                         Button {
                             pick(entry)
                         } label: {
@@ -39,7 +51,7 @@ struct ModePickerSheet: View {
                         }
                         .disabled(!entry.isEnabled)
                         .accessibilityLabel(Text(entry.title))
-                        .accessibilityValue(Text(entry.isEnabled ? "" : Copy.HomeUI.comingLater))
+                        .accessibilityValue(Text(HomePresentation.modeAccessibilityValue(entry)))
                         .accessibilityHint(Text(entry.detail))
                     }
                 } header: {
@@ -63,15 +75,27 @@ struct ModePickerSheet: View {
             }
         }
         .onAppear {
-            let enabled = HomePresentation.modeEntries(availableModes: availableModes)
-                .filter { $0.isEnabled }
-                .map { $0.mode.rawValue }
-                .joined(separator: ", ")
-            LogStore.shared.write("home: scan type picker shown, enabled: \(enabled.isEmpty ? "none" : enabled)", category: "home")
+            logShown()
         }
     }
 
-    /// One mode row: icon, title, description and, when disabled, the "later version" note.
+    /// Logs the enabled modes and, for the disabled ones, whether a reason was shown (TEST_PLAN
+    /// MODE-02). Mode names only, never user data.
+    private func logShown() {
+        let current = entries
+        let enabled = current.filter { $0.isEnabled }.map { $0.mode.rawValue }.joined(separator: ", ")
+        let disabled = current.filter { !$0.isEnabled }.map { entry -> String in
+            let hasReason = entry.note != nil && entry.note != Copy.HomeUI.comingLater
+            return entry.mode.rawValue + (hasReason ? " (reason)" : " (later)")
+        }.joined(separator: ", ")
+        let enabledText = enabled.isEmpty ? "none" : enabled
+        let disabledText = disabled.isEmpty ? "none" : disabled
+        LogStore.shared.write("home: scan type picker shown, enabled: \(enabledText); disabled: \(disabledText)",
+                              category: "home")
+    }
+
+    /// One mode row: icon, title, description and, when disabled, its note (the reason, or
+    /// "Coming in a later version").
     private func row(_ entry: HomeModeEntry) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 14) {
             Image(systemName: entry.symbol)
@@ -86,8 +110,8 @@ struct ModePickerSheet: View {
                 Text(entry.detail)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                if !entry.isEnabled {
-                    Text(Copy.HomeUI.comingLater)
+                if let note = entry.note {
+                    Text(note)
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
