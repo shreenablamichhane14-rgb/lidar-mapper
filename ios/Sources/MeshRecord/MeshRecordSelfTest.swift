@@ -143,11 +143,13 @@ enum MeshRecordSelfTest {
         t.check("finish.secondCallCompletes", waitFinish(store))
 
         let before = store.index
-        store.evict()
+        (store as ScanRecorder).releaseMemory()
         t.check("evict.emptiesChunks", store.currentChunks().isEmpty && store.residentBytes == 0)
         t.check("evict.keepsIndex", store.index.count == before.count && store.index.values.allSatisfy { $0.isEvicted },
                 "\(store.index.count) of \(before.count)")
         t.check("evict.keepsStats", store.stats.meshAnchors == 3)
+        store.evict()
+        t.check("evict.twiceHarmless", store.currentChunks().isEmpty && store.index.count == before.count)
     }
 
     // MARK: - Edge cases

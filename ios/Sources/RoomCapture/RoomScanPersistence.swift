@@ -272,7 +272,8 @@ extension RoomScanEngine {
     }
 
     /// Step 5: `finishRecording(completion:)` on the hub queue for each recorder, awaited in turn
-    /// (with a timeout per recorder); returns the recorders' final counters.
+    /// (with a timeout per recorder), then `releaseMemory()` (D17: MeshStore evicts the geometry now
+    /// on disk before the Done quality check loads it again); returns the final counters.
     func finishRecorders() async -> RecorderStats {
         let hub = self.hub
         for recorder in recorders {
@@ -287,7 +288,10 @@ extension RoomScanEngine {
                 RoomScanLog.write("recorder \(name) did not finish within \(Int(RoomScanPersistence.recorderFinishTimeout)) s")
             }
         }
-        return await onHubQueue { self.recorders.reduce(RecorderStats()) { $0 + $1.stats } }
+        return await onHubQueue {
+            for recorder in self.recorders { recorder.releaseMemory() }
+            return self.recorders.reduce(RecorderStats()) { $0 + $1.stats }
+        }
     }
 
     /// Step 6: roomlog.json, the last events.jsonl lines and, for the first room of the session,
