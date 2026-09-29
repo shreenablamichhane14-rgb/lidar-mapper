@@ -6,13 +6,13 @@ import simd
 // CoverageSelfTestFixtures.swift. Expected numbers come from the numpy prototype of the same
 // scenario at a 16 px frustum margin, with tolerances wide enough for float32 differences.
 //
-// CHECK COUNT (160 in total; guidance and measurement live in CoverageSelfTestGuidance.swift):
+// CHECK COUNT (166 in total; guidance and measurement live in CoverageSelfTestGuidance.swift):
 //   observation quality and state rules  18
 //   single-face grid behavior            25
 //   box room face states and voxels      26
 //   expected surfaces and missing areas  34
 //   scan quality                         10
-//   guidance engine                      32
+//   guidance engine (6 for CR-9 extras)  38
 //   measurement confidence               15
 // Runtime: about 143k face tests and 280k voxel lookups (0.2 m mesh, 33 observations); well
 // under 2 s on an A15 even in a Debug build.

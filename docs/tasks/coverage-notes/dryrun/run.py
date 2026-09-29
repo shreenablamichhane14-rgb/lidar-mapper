@@ -312,6 +312,34 @@ def check_guidance(c):
     rs = G.Engine()
     for i in range(4): rs.update(G.inp(i*0.25, tracking='excessiveMotion'))
     c.check("guidance.reset", rs.current == 'moveSlower')
+    check_guidance_extras(c)
+
+def check_guidance_extras(c):
+    G = guid
+    left = G.Trace(8, lambda t: G.inp(t, extra={'objectCaptureLeft'}))
+    c.check("guidance.extra.shownAfterHold", left.msg(0.5) is None and left.msg(0.75) == 'objectCaptureLeft'
+            and left.haptics() == 0)
+    def rec(t):
+        kw = {'extra': {'objectCaptureLeft'}}
+        if t < 1.0: kw['tracking'] = 'excessiveMotion'
+        return G.inp(t, **kw)
+    r = G.Trace(32, rec)
+    print("extra recover:", [(i*0.25, o) for i, o in enumerate(r.out) if i == 0 or o != r.out[i-1]])
+    e = G.Engine()
+    limited = e.conditions(G.inp(0, tracking='excessiveMotion', extra={'objectCaptureLeft'}))
+    early = [r.msg(i*0.25) for i in range(27)]
+    c.check("guidance.extra.limitedTracking", 'objectCaptureLeft' not in limited and r.msg(0.75) == 'moveSlower'
+            and 'objectCaptureLeft' not in early and r.msg(6.75) == 'objectCaptureLeft')
+    t1 = {'trackingLost', 'moveSlower', 'deviceHot'}
+    ig = G.Trace(8, lambda t: G.inp(t, extra=t1))
+    c.check("guidance.extra.tier1Ignored", len(e.conditions(G.inp(0, extra=t1))) == 0 and ig.changes() == 0)
+    pr = G.Trace(4, lambda t: G.inp(t, center=4.0, extra={'objectCaptureLeft', 'objectNeedsDetail'}))
+    od = G.Trace(4, lambda t: G.inp(t, extra={'objectCaptureBack', 'objectCaptureLeft'}))
+    c.check("guidance.extra.priority", pr.msg(0.75) == 'moveCloser' and od.msg(0.75) == 'objectCaptureLeft')
+    done = G.Trace(121, lambda t: G.inp(t, extra={'objectLooksComplete'}))
+    c.check("guidance.extra.tier3OncePerRun", done.msg(0.75) == 'objectLooksComplete' and done.appearances(30) == 1,
+            str(done.appearances(30)))
+    c.check("guidance.extra.defaultEmpty", len(G.inp(0)['extra']) == 0 and len(e.conditions(G.inp(0))) == 0)
 
 def corner_check():
     # isNearCorner port for the two synthetic areas a, b
