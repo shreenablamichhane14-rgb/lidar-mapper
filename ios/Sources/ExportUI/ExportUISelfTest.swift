@@ -2,7 +2,8 @@ import Foundation
 import simd
 
 /// Plain-Swift checks for the ExportUI module (no XCTest), run from Settings > Diagnostics off
-/// the main thread. Deterministic (fixed ids and dates), no ARKit, RoomPlan session, camera or
+/// the main thread. Build 5 checks (House, Object, Quick Measure, multi-floor plans, progress
+/// and cancel) are in `ExportUISelfTest+B5.swift` and `ExportUISelfTest+B5Files.swift`. Deterministic (fixed ids and dates), no ARKit, RoomPlan session, camera or
 /// network; temporary files only under `FileManager.default.temporaryDirectory`, removed
 /// afterwards.
 enum ExportUISelfTest {
@@ -16,6 +17,7 @@ enum ExportUISelfTest {
         planChecks(&log)
         summaryChecks(&log)
         fileChecks(&log)
+        b5Checks(&log)
         return log.failures
     }
 
