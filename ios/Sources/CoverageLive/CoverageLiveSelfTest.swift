@@ -58,7 +58,8 @@ enum CoverageLiveSelfTest {
         let offset = SIMD3<Float>(1, 2, 3)
         let moved = square(anchor: 2, transform: translation(offset), degenerate: true)
         let movedFaces = CoverageLiveFaces.faces(of: moved)
-        let shifted = movedFaces.count == 3 && near(movedFaces[0].centroid, SIMD3<Float>(2.0 / 3.0, 1.0 / 3.0, 0) + offset)
+        let movedCentroid: SIMD3<Float> = SIMD3<Float>(2.0 / 3.0, 1.0 / 3.0, 0) + offset
+        let shifted = movedFaces.count == 3 && near(movedFaces[0].centroid, movedCentroid)
         t.check("faces.translation", shifted, "\(movedFaces.first?.centroid ?? .zero)")
         let bounds = CoverageLiveFaces.worldBounds(moved.worldPositions)
         t.check("faces.worldBounds", near(bounds.min, SIMD3<Float>(1, 2, 3)) && near(bounds.max, SIMD3<Float>(2, 3, 3)),

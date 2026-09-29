@@ -28,7 +28,7 @@ struct CoverageLiveInputs {
     var version = 0
     /// True when the inputs were set while no recording ran: the next `beginRecording` keeps
     /// them (MissingAreas sets its watched points before its pass starts). Inputs of a finished
-    /// recording are cleared by the next `beginRecording`.
+    /// recording are cleared by the first input staged after it, or else by the next `beginRecording`.
     var setWhileIdle = false
 
     /// Clears the room, boundary and watched sets.

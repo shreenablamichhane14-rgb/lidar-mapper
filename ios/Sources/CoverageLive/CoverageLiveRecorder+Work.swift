@@ -353,10 +353,11 @@ extension CoverageLiveRecorder {
                                           hasExpectedRoom: s.boundary != nil, usesShellFallback: s.usesShellFallback,
                                           effectiveHz: 0, lastPassMilliseconds: s.lastPassMilliseconds)
         var minimap = s.minimap
-        if var map = minimap, let camera = s.lastCamera {
-            let position = SIMD3<Float>(camera.columns.3.x, camera.columns.3.y, camera.columns.3.z)
-            map.camera = Vec2(PlanAxes.toPlan(position))
-            map.heading = CoverageLiveMinimap.heading(cameraToWorld: camera)
+        if var map = minimap, let pose = s.lastCamera {
+            let position = SIMD3<Float>(pose.columns.3.x, pose.columns.3.y, pose.columns.3.z)
+            let plan: SIMD2<Float> = PlanAxes.toPlan(position)
+            map.camera = Vec2(plan)
+            map.heading = CoverageLiveMinimap.heading(cameraToWorld: pose)
             minimap = map
         }
         let order = s.order

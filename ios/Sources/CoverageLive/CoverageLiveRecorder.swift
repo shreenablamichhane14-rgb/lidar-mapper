@@ -170,6 +170,7 @@ final class CoverageLiveRecorder: ScanRecorder {
     /// to clear. Samples inside `exclusions` (window, door and opening boxes) are never expected.
     func setExpectedBoundary(_ boundary: CoverageRoomBoundary?, exclusions: [OrientedBox]) {
         locked { () -> Void in
+            startStagingIfIdle()
             if let boundary {
                 inputs.expected = .boundary(boundary, exclusions)
             } else {
@@ -185,6 +186,7 @@ final class CoverageLiveRecorder: ScanRecorder {
     /// after every pass. An empty dictionary clears them.
     func setWatchedAreas(_ areas: [Int: [SIMD3<Float>]]) {
         locked { () -> Void in
+            startStagingIfIdle()
             inputs.watched = areas
             inputs.version += 1
             if !recording { inputs.setWhileIdle = true }
@@ -237,15 +239,24 @@ final class CoverageLiveRecorder: ScanRecorder {
     /// formed here, outside any actor: a closure formed inside a `@MainActor` method is main-actor
     /// isolated and must not be handed to a hub-queue hook (RoomCapture's `installHubClosures` rule).
     var liveRoomHook: (RoomInput) -> Void {
-        return { [weak self] (room: RoomInput) -> Void in self?.setExpectedRoom(room) }
+        return { [weak self] (room: RoomInput) -> Void in
+            guard let self else { return }
+            self.setExpectedRoom(room)
+        }
     }
     /// See `liveRoomHook`.
     var guidanceHook: (inout GuidanceInput) -> Void {
-        return { [weak self] (input: inout GuidanceInput) -> Void in self?.augment(&input) }
+        return { [weak self] (input: inout GuidanceInput) -> Void in
+            guard let self else { return }
+            self.augment(&input)
+        }
     }
     /// See `liveRoomHook`.
     var snapshotHook: (inout LiveScanSnapshot) -> Void {
-        return { [weak self] (snapshot: inout LiveScanSnapshot) -> Void in self?.augment(&snapshot) }
+        return { [weak self] (snapshot: inout LiveScanSnapshot) -> Void in
+            guard let self else { return }
+            self.augment(&snapshot)
+        }
     }
 
     // MARK: Readers (any thread)
@@ -323,6 +334,14 @@ final class CoverageLiveRecorder: ScanRecorder {
     /// Observations the last seed integrated.
     func seededObservationCount() -> Int {
         publishedValue(\.seeded)
+    }
+
+    /// Before the first input staged while no recording runs: drops the inputs a finished recording
+    /// left behind, so only values staged since then reach the next `beginRecording`. Call with the
+    /// lock held.
+    func startStagingIfIdle() {
+        guard !recording, !inputs.setWhileIdle else { return }
+        inputs.clear()
     }
 
     /// Runs `body` while holding `lock`.

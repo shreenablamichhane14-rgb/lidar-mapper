@@ -129,7 +129,7 @@ extension CoverageLiveSelfTest {
         let missing = recorder.currentMissingAreas()
         t.check("complete.fraction", summary.coverageFraction >= 0.9, "\(summary.coverageFraction)")
         t.check("complete.noMissing", missing.isEmpty && summary.missingCount == 0, "\(missing.count) missing")
-        t.check("complete.rule", CoverageLiveMissing.isComplete(observedFraction: summary.coverageFraction,
+        t.check("complete.recorderRule", CoverageLiveMissing.isComplete(observedFraction: summary.coverageFraction,
                                                                 missingCount: missing.count))
         var snapshot = LiveScanSnapshot()
         recorder.augment(&snapshot)
