@@ -96,7 +96,8 @@ extension LargeObjectSelfTest {
         let idOK: Bool = pass.passID == fixedID(3)
         let destinationOK: Bool = pass.destination == package.rawObjectURL(fixedID(3))
         let roomOK: Bool = pass.roomID == nil
-        check(&f, "target.meshTarget", kindOK && modeOK && idOK && destinationOK && roomOK, "\(pass.kind) \(pass.mode) \(pass.destination.lastPathComponent)")
+        check(&f, "target.meshTarget", kindOK && modeOK && idOK && destinationOK && roomOK,
+              "\(pass.kind) \(pass.mode) \(pass.destination.lastPathComponent)")
     }
 
     /// `load(from:)` returns nil without the file (a pass the engine stopped) and the log with it.
@@ -130,8 +131,8 @@ extension LargeObjectSelfTest {
         input.nearbyMissing = [MissingArea(centroid: SIMD3<Float>(0, 1, 0), normal: SIMD3<Float>(0, 0, 1), area: 0.5,
                                            surface: .wall, suggestedViewpoint: SIMD3<Float>(0, 1.5, 1))]
         LargeObjectTracker.apply(decision: .objectCaptureLeft, to: &input)
-        let expected: Set<GuidanceKind> = [GuidanceKind.objectCaptureLeft]
-        let conditionsOK: Bool = input.extraConditions == expected
+        let leftOnly: Set<GuidanceKind> = [GuidanceKind.objectCaptureLeft]
+        let conditionsOK: Bool = input.extraConditions == leftOnly
         let coverageCleared: Bool = input.viewCoverage == nil
         check(&f, "apply.decision", conditionsOK && coverageCleared && input.nearbyMissing.isEmpty, "\(input.extraConditions)")
         LargeObjectTracker.apply(decision: nil, to: &input)
@@ -178,11 +179,11 @@ extension LargeObjectSelfTest {
         let metric = UnitPreferences(system: .metric, fraction: .eighth, showBoth: false)
         let long = OrientedBox(center: SIMD3<Float>(0, 0.5, 0), axes: matrix_identity_float3x3,
                                halfExtents: SIMD3<Float>(0.25, 0.5, 1.0))
-        let expected = Copy.LargeObject.boxSize(width: LengthFormat.display(2.0, prefs: metric),
-                                                depth: LengthFormat.display(0.5, prefs: metric),
-                                                height: LengthFormat.display(1.0, prefs: metric))
+        let expectedSize = Copy.LargeObject.boxSize(width: LengthFormat.display(2.0, prefs: metric),
+                                                    depth: LengthFormat.display(0.5, prefs: metric),
+                                                    height: LengthFormat.display(1.0, prefs: metric))
         let sizeText = LargeObjectModel.sizeText(long, prefs: metric)
-        check(&f, "size.text", sizeText == expected, sizeText)
+        check(&f, "size.text", sizeText == expectedSize, sizeText)
         check(&f, "copy.progress", Copy.LargeObject.sidesProgress(3, of: 9) == "3 of 9 sides captured",
               Copy.LargeObject.sidesProgress(3, of: 9))
         let texts = [Copy.LargeObject.tapToSelect, Copy.LargeObject.locating, Copy.LargeObject.noObjectFound,
