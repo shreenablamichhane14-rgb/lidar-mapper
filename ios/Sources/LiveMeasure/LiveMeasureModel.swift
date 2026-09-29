@@ -9,6 +9,11 @@ import simd
 // detection on, the only mode where it is, D14), the probe recorder, the 15 Hz reticle loop
 // on main (raycasts and projections run on main only), the points and segments, guidance and
 // the idle timer token. Saving lives in LiveMeasureModel+Save.swift.
+//
+// Members beyond MODULES 3.36 (additive): `pendingScreen`, `hasFoundSurfaces`, `alertMessage`,
+// `isAlertShown` (alert binding), `viewDismantled(_:)`, `removeSegments(at:)`, `dismissAlert()`,
+// `accessibilityText(label:value:)`, `isLowConfidence(_:)`, `performSave()` (+Save) and the
+// probe's `onSessionFailed`.
 
 /// The Quick Measure model. Main actor.
 @MainActor final class LiveMeasureModel: ObservableObject {
