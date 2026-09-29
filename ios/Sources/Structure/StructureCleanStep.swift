@@ -108,9 +108,11 @@ final class HouseCleanModelStep: ProcessingStep {
 
         var userFloor: [UUID: Int] = [:]
         for record in records where userFloor[record.id] == nil { userFloor[record.id] = record.floorIndex }
-        let floorInputs = rooms.map { room in
-            FloorAssignmentInput(roomID: room.recordID, userFloor: userFloor[room.recordID] ?? room.floorIndex,
-                                 elevation: placement.anchor.contains(room.recordID) ? room.floor.elevation : nil)
+        var floorInputs: [FloorAssignmentInput] = []
+        for room in rooms {
+            let elevation: Float? = placement.anchor.contains(room.recordID) ? room.floor.elevation : nil
+            let chosen: Int = userFloor[room.recordID] ?? room.floorIndex
+            floorInputs.append(FloorAssignmentInput(roomID: room.recordID, userFloor: chosen, elevation: elevation))
         }
         let floors = StructureFloors.assign(floorInputs)
         for i in rooms.indices {
@@ -173,7 +175,9 @@ final class HouseCleanModelStep: ProcessingStep {
             effective = StructureStore.effectiveAlignments(measured: plan.records, log: edits)
             usedFallback = true
         }
-        let fromStructure = methods.values.contains { $0 == .structureMerge || $0 == .groupMedian }
+        let fromStructure = methods.values.contains { method -> Bool in
+            method == AlignmentMethod.structureMerge || method == AlignmentMethod.groupMedian
+        }
         for id in StructureStore.userAlignments(edits).keys { methods[id] = .user }
         return Placement(effective: effective, methods: methods, anchor: anchor, fromStructure: fromStructure,
                          usedFallback: usedFallback)
