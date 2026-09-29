@@ -12,6 +12,12 @@ import Combine
 /// refuses with `MapperError.outOfMemory(step:)` when nothing fits; the marker is written, the
 /// step runs, and on success the stamp is recorded (the runner is the only writer of the
 /// index and the marker). While a job runs the runner holds an `IdleTimerGuard` token.
+///
+/// App lifecycle: a step keeps running when the app leaves the foreground (iOS suspends the
+/// process and the step continues on return), but the runner records that in the running
+/// step's marker (`PipelineForeground`), so an app that iOS or the user ends while out of the
+/// foreground is not counted as a death by the crash-loop guard. A reduced run is stamped with
+/// `PipelineStepExecutor.stampHash`, so it is never fresh and the next job redoes it.
 @MainActor final class ProcessingRunner: ObservableObject {
     /// The app's runner.
     static let shared = ProcessingRunner()
@@ -53,9 +59,16 @@ import Combine
     private var progressToken: UUID?
     /// The runner's idle-timer hold while a job runs.
     private var idleToken: UUID?
+    /// The step between its memory gate and the end of its attempt, for foreground changes
+    /// (read by ProcessingRunner+Lifecycle.swift).
+    private(set) var activeAttempt: ActiveAttempt?
+    /// App lifecycle subscriptions (internal for ProcessingRunner+Lifecycle.swift).
+    var lifecycleObservers: Set<AnyCancellable> = []
 
-    /// Creates a runner. The app uses `shared`.
-    init() {}
+    /// Creates a runner and observes the app lifecycle. The app uses `shared`.
+    init() {
+        observeLifecycle()
+    }
 
     // MARK: - Public API
 
@@ -266,6 +279,8 @@ import Combine
         await waitForHeat(budget: plan.budget, projectID: projectID, name: name, flag: flag)
         if flag.isSet { return .interrupted }
 
+        activeAttempt = ActiveAttempt(package: package, stepID: stepID, subject: subject)
+        defer { activeAttempt = nil }
         let gateResult = await Task.detached(priority: .userInitiated) {
             PipelineStepExecutor.gate(box: box, stepID: stepID, subject: subject, package: package, plan: plan, flag: flag)
         }.value
@@ -292,7 +307,7 @@ import Combine
                                    memory: launch.passedMemory, flag: flag)
         switch result {
         case .success(let elapsed, let memoryAfter):
-            let hash = launch.inputHash
+            let hash = PipelineStepExecutor.stampHash(launch.inputHash, variant: launch.variant)
             let now = Date()
             let written = await Task.detached(priority: .userInitiated) {
                 PipelineStepExecutor.recordSuccess(stepID: stepID, subject: subject, inputHash: hash, package: package,
@@ -361,7 +376,7 @@ import Combine
         apply(.progress(fraction), to: projectID)
     }
 
-    // MARK: - State and log
+    // MARK: - State
 
     /// Applies an event to a project's state and publishes it.
     private func apply(_ event: ProcessingEvent, to projectID: UUID) {
@@ -373,33 +388,5 @@ import Combine
         var next = state
         next.isQueued = queue.hasWaiting(projectID)
         if states[projectID] != next { states[projectID] = next }
-    }
-
-    /// Writes a line to the log (category "pipeline").
-    private func log(_ message: String) {
-        LogStore.shared.write(message, category: "pipeline")
-    }
-
-    /// First 8 characters of an id for the log.
-    private func short(_ id: UUID) -> String {
-        String(id.uuidString.prefix(8))
-    }
-
-    /// Seconds with one decimal for the log.
-    private func secondsText(_ value: Double) -> String {
-        guard value.isFinite, value >= 0, value < 1_000_000 else { return "? s" }
-        return String(Double(Int(value * 10)) / 10) + " s"
-    }
-
-    /// Outcome text for the log.
-    private func describe(_ outcome: ProcessingOutcome) -> String {
-        switch outcome {
-        case .completed(let skipped):
-            return skipped.isEmpty ? "completed" : "completed without " + skipped.map { $0.rawValue }.joined(separator: ", ")
-        case .failed(let step, let error):
-            return "failed at \(step.rawValue) (\(error.copyKey))"
-        case .cancelled:
-            return "cancelled"
-        }
     }
 }

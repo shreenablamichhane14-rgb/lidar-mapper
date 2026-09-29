@@ -192,10 +192,21 @@ enum PipelineSelfTest {
         do {
             let data = try ProjectStore.encoder.encode(twice)
             let decoded = try ProjectStore.decoder.decode(PipelineAttempt.self, from: data)
-            r.check("attempt.jsonRoundTrip", decoded == twice)
+            r.check("attempt.jsonRoundTrip", decoded == twice && !decoded.endedOutsideForeground)
+            var away = twice
+            away.backgroundedAt = fixedDate
+            let awayDecoded = try ProjectStore.decoder.decode(PipelineAttempt.self, from: try ProjectStore.encoder.encode(away))
+            r.check("attempt.backgroundedRoundTrip", awayDecoded == away && awayDecoded.endedOutsideForeground)
         } catch {
             r.check("attempt.jsonRoundTrip", false, "\(error)")
         }
+        let foreground = PipelineForeground()
+        let left = foreground.leave(at: fixedDate)
+        let leftAgain = foreground.leave(at: fixedDate.addingTimeInterval(5))
+        let keepsFirst: Bool = foreground.leftAt == fixedDate
+        r.check("foreground.leaveOnce", left && !leftAgain && keepsFirst)
+        let entered = foreground.enter()
+        r.check("foreground.enter", entered && foreground.leftAt == nil && !foreground.enter())
     }
 
     // MARK: - Queue
