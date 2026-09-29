@@ -85,6 +85,7 @@ struct DiagnosticsScreen: View {
         SelfTestSuite(name: "Scan UI", run: ScanUISelfTest.run),
         SelfTestSuite(name: "Results", run: ResultsSelfTest.run),
         SelfTestSuite(name: "App shell", run: AppShellSelfTest.run),
+        SelfTestSuite(name: "Object model", run: ObjectModelSelfTest.run),
     ]
 
     /// The shared self-test runner (the launch run and this screen show the same results).
