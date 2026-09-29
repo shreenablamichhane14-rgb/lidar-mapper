@@ -41,6 +41,8 @@ enum LargeObjectAfterAlert: Equatable {
     @Published var showsCancelConfirmation = false
     /// The alert on screen (start failures, a failed save, a notice after the save).
     @Published var alert: ScanAlert?
+    /// True while `alert` is presented (the screen's alert binding; an addition to the 3.39 API).
+    @Published var isAlertPresented = false
 
     /// The object being captured.
     let target: LargeObjectTarget
@@ -103,7 +105,7 @@ enum LargeObjectAfterAlert: Equatable {
         tracker = objectTracker
         scan = MeshScanModel(engine: engine)
         boxEntity = LargeObjectBoxEntity()
-        unitPreferences = UnitPreferences.load(from: .standard)
+        unitPreferences = UnitPreferences.load(from: UserDefaults.standard)
         scan.onFinished = { [weak self] result in
             self?.passFinished(result)
         }
@@ -316,11 +318,13 @@ enum LargeObjectAfterAlert: Equatable {
     func showAlert(_ newAlert: ScanAlert, then next: LargeObjectAfterAlert?) {
         afterAlert = next
         alert = newAlert
+        isAlertPresented = true
     }
 
     /// A button of the alert: resume, finish, Settings or OK, then what the alert was waiting for.
     func alertAction(_ action: ScanAlertAction) {
         alert = nil
+        isAlertPresented = false
         switch action {
         case .ok:
             break
@@ -336,7 +340,7 @@ enum LargeObjectAfterAlert: Equatable {
         runAfterAlert()
     }
 
-    /// The alert went away without a button (the binding was cleared): same as OK.
+    /// The alert went away without a button: same as OK (nothing when a button already handled it).
     func alertDismissed() {
         guard alert != nil else { return }
         alertAction(.ok)
