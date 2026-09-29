@@ -26,7 +26,8 @@ extension ProcessingRunner {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 MainActor.assumeIsolated {
-                    self?.appLeftForeground()
+                    guard let runner = self else { return }
+                    runner.appLeftForeground()
                 }
             }
             .store(in: &lifecycleObservers)
@@ -34,7 +35,8 @@ extension ProcessingRunner {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 MainActor.assumeIsolated {
-                    self?.appReturnedToForeground()
+                    guard let runner = self else { return }
+                    runner.appReturnedToForeground()
                 }
             }
             .store(in: &lifecycleObservers)

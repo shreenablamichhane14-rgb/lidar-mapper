@@ -191,6 +191,8 @@ enum AppShellSelfTest {
         let resumed = ProjectStatus.allCases.filter { ProcessingPlans.shouldResume(status: $0) }
         check(&failures, "resume.statuses", Set(resumed) == [.needsProcessing, .processing], "\(resumed.map { $0.rawValue })")
         check(&failures, "outcome.completed", ProcessingPlans.statusAfter(.completed(skippedOptional: [])) == .ready, "ready")
+        check(&failures, "outcome.thumbnailOnlyReady",
+              ProcessingPlans.statusAfter(.completed(skippedOptional: [.thumbnail, .quality])) == .ready, "ready")
         let skipped = ProcessingOutcome.completed(skippedOptional: [.textureLow])
         check(&failures, "outcome.skippedOptionalKeepsRetry", ProcessingPlans.statusAfter(skipped) == .needsAttention
               && ProcessingPlans.marksRoomsProcessed(skipped), "a failed optional step must survive a relaunch")

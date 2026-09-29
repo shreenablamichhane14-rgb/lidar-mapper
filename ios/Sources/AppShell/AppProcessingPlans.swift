@@ -104,14 +104,20 @@ enum ProcessingPlans {
         status == .needsProcessing || status == .processing
     }
 
+    /// Optional steps whose output a result view or export needs (Raw Scan and its exports,
+    /// Realistic and its exports). Quality and the thumbnail are not listed: without them the
+    /// result is complete, so their failure does not ask the user to retry.
+    static let attentionSteps: Set<PipelineStepID> = [.consolidateMesh, .textureLow, .textureHigh]
+
     /// Pure: the status a finished job leaves (nil keeps the current one). A job that completed
-    /// without the output of an optional step (texture, raw mesh, quality, thumbnail) leaves
-    /// `.needsAttention`, so the failure outlives the runner's in-memory state: after a relaunch
-    /// Results still offers Retry, which reruns only the steps without a fresh stamp. `.cancelled`
-    /// keeps `.processing`, so the next launch or Retry resumes the project.
+    /// without the output of an `attentionSteps` step leaves `.needsAttention`, so the failure
+    /// outlives the runner's in-memory state: after a relaunch Results still offers Retry, which
+    /// reruns only the steps without a fresh stamp. `.cancelled` keeps `.processing`, so the next
+    /// launch or Retry resumes the project.
     static func statusAfter(_ outcome: ProcessingOutcome) -> ProjectStatus? {
         switch outcome {
-        case .completed(let skipped): return skipped.isEmpty ? .ready : .needsAttention
+        case .completed(let skipped):
+            return skipped.contains(where: { attentionSteps.contains($0) }) ? .needsAttention : .ready
         case .failed: return .needsAttention
         case .cancelled: return nil
         }
@@ -127,7 +133,7 @@ enum ProcessingPlans {
     // MARK: - Enqueue (main actor)
 
     /// Enqueues a project (atFront when the user just finished it). On `.completed` sets rooms
-    /// .processed and project .ready (.needsAttention when an optional step produced nothing);
+    /// .processed and project .ready (.needsAttention when an `attentionSteps` step failed);
     /// on `.failed` sets .needsAttention; on `.cancelled` leaves `.processing` (never `.ready`),
     /// so the next launch or Retry resumes it.
     ///
@@ -197,7 +203,7 @@ enum ProcessingPlans {
     }
 
     /// Maps a job's outcome to the project: rooms `.processed` on completion, the project
-    /// `.ready` (or `.needsAttention` when optional steps produced nothing) on completion,
+    /// `.ready` (or `.needsAttention` when an `attentionSteps` step failed) on completion,
     /// `.needsAttention` on failure, unchanged on cancel.
     @MainActor static func jobFinished(projectID: UUID, outcome: ProcessingOutcome) {
         switch outcome {
