@@ -35,15 +35,39 @@ enum EditOperation: Codable, Equatable, Sendable {
     case setRoomAlignment(RoomAlignmentRecord)
     /// Crop a large object's mesh to a box (D4).
     case cropObject(object: ElementID, box: OrientedBoxRecord)
+    /// Move a door, window or opening along its wall (CR-1): near edge `offset` meters from the
+    /// wall's start (`CleanWall.start`, which is `PlanWall.a`), clamped by each model to
+    /// [0, length - width].
+    case moveOpening(opening: ElementID, offset: Float)
+    /// Resize a door, window or opening (CR-1): new width keeping its center, then clamped to the
+    /// wall; sill and head heights above the floor (the clean model uses them; the plan has no
+    /// heights).
+    case resizeOpening(opening: ElementID, width: Float, sillHeight: Float, headHeight: Float)
+    /// Join `rooms` into `into` (CR-1): their outlines become `mergedOutlines` of `into`, their
+    /// walls, openings and objects move to `into`, and they are removed. `into` is not listed in
+    /// `rooms`.
+    case mergeRooms(rooms: [ElementID], into: ElementID)
+    /// Split `room` along the infinite line through the first and last point of `line` (CR-1;
+    /// plan meters; build 5 writes exactly two points): the part left of first -> last stays
+    /// `room`, the part on the right becomes the new room `newRoom`.
+    case splitRoom(room: ElementID, line: [Vec2], newRoom: ElementID)
+    /// Several operations applied as one, in order, all or nothing (CR-1): one user action, one
+    /// undo step. A recursive case through an array, so it needs no `indirect`; the synthesized
+    /// coder writes it as `{"batch":{"operations":[...]}}`.
+    case batch(operations: [EditOperation])
 
     /// Elements this operation needs; when one is missing after re-derivation the
-    /// operation is orphaned. Additions return the new element.
+    /// operation is orphaned. Additions return the new element. moveOpening and
+    /// resizeOpening: `[opening]`; mergeRooms: `[into]` followed by `rooms` without duplicates;
+    /// splitRoom: `[room, newRoom]` (`newRoom` is the new element, as for additions); batch: the
+    /// targets of its operations in order without duplicates.
     var targets: [ElementID] {
         switch self {
         case .renameRoom(let id, _), .relabelObject(let id, _), .recategorizeObject(let id, _),
              .setHidden(let id, _), .deleteElement(let id), .moveObject(let id, _),
              .moveWallEndpoint(let id, _, _), .setDoorSwing(let id, _), .setWallThickness(let id, _),
-             .setScaleCorrection(let id, _), .cropObject(let id, _):
+             .setScaleCorrection(let id, _), .cropObject(let id, _),
+             .moveOpening(let id, _), .resizeOpening(let id, _, _, _):
             return [id]
         case .addWall(let wall, _):
             return [wall.id]
@@ -55,7 +79,31 @@ enum EditOperation: Codable, Equatable, Sendable {
             return [dimension.id]
         case .setRoomAlignment(let record):
             return [ElementID(uuid: record.roomID)]
+        case .mergeRooms(let rooms, let into):
+            return EditOperation.uniqued([into] + rooms)
+        case .splitRoom(let room, _, let newRoom):
+            return [room, newRoom]
+        case .batch(let operations):
+            return EditOperation.uniqued(operations.flatMap { $0.targets })
         }
+    }
+
+    /// `[self]` for every case but `.batch`, which gives its operations flattened recursively
+    /// (a batch nested in a batch contributes its own operations in place).
+    var flattened: [EditOperation] {
+        guard case .batch(let operations) = self else { return [self] }
+        return operations.flatMap { $0.flattened }
+    }
+
+    /// `ids` in order with later duplicates removed (`ElementID` equality uses `uuid` only).
+    private static func uniqued(_ ids: [ElementID]) -> [ElementID] {
+        var seen = Set<ElementID>()
+        var result: [ElementID] = []
+        result.reserveCapacity(ids.count)
+        for id in ids where seen.insert(id).inserted {
+            result.append(id)
+        }
+        return result
     }
 }
 
@@ -123,6 +171,31 @@ struct EditLog: Codable, Equatable, Sendable {
     mutating func redo() -> Bool {
         guard canRedo else { return false }
         cursor = safeCursor + 1
+        revision += 1
+        return true
+    }
+}
+
+extension EditLog {
+    /// The active operations with every batch flattened, in order. Readers that look for one
+    /// kind of operation (scale corrections, room alignments, crops, recategorizations) use
+    /// this, never `active`, because a batch can hold any operation.
+    var flattenedActive: [EditOperation] {
+        active.flatMap { $0.flattened }
+    }
+
+    /// Keeps the active operations (top level) for which `keep` is true, in order, and drops
+    /// the rest and the redo tail; `cursor` becomes the kept count and `revision` increases by
+    /// 1 (Reset to Scan). Returns false and changes nothing when every active operation is
+    /// kept and there is no redo tail.
+    @discardableResult
+    mutating func reset(keeping keep: (EditOperation) -> Bool) -> Bool {
+        let current = Array(active)
+        let kept = current.filter(keep)
+        let hasRedoTail = safeCursor < operations.count
+        guard kept.count != current.count || hasRedoTail else { return false }
+        operations = kept
+        cursor = kept.count
         revision += 1
         return true
     }

@@ -345,6 +345,8 @@ enum CoreSelfTest {
         fake.discard()
         check("fakeEngine.discard", fake.state == .idle)
 
+        // Build 5 pre-5a changes (CR-1, CR-7, CR-8), CoreSelfTest+Build5.swift
+        failures += build5Checks()
         return failures
     }
 }
