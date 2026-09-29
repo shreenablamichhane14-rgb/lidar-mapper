@@ -218,11 +218,13 @@ extension HouseFlowModel {
         setRelocalization(elapsed: 0, startFresh: false)
         let room = UUID()
         pendingRoomID = room
+        // Unmount first: RoomPlan's view must never be created for this engine before the session
+        // is decided (the relocalization view shows its hub instead).
+        isCaptureViewMounted = false
         guard let engine = makeRoomEngine(roomID: room) else {
             captureStartFailed(MapperError.ioFailed("engine"))
             return
         }
-        isCaptureViewMounted = false
         let hub = engine.hub
         guard let source = HouseRelocalization.sourceMap(manifest: manifest, package: package, preferRoom: preferRoom) else {
             showNoMap(hub: hub)
@@ -231,7 +233,8 @@ extension HouseFlowModel {
         log("relocalizing against room \(source.room) of session \(source.session)")
         relocalizationLoad = Task { [weak self] in
             let map = await HouseRelocalization.loadWorldMap(from: source.url)
-            guard let self, self.phase == .relocalizing, !self.isCaptureViewMounted, self.roomEngine?.hub === hub else { return }
+            guard !Task.isCancelled, let self, self.phase == .relocalizing, !self.isCaptureViewMounted,
+                  self.roomEngine?.hub === hub else { return }
             guard let map else {
                 self.showNoMap(hub: hub)
                 return

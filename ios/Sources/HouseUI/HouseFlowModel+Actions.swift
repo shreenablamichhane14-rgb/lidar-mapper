@@ -68,6 +68,15 @@ extension HouseFlowModel {
         }
     }
 
+    /// Cancel before any capture of this visit (permission, tips): the room list when the house
+    /// already has rooms, else the flow ends (a new house has no project yet).
+    func cancelBeforeCapture() {
+        let rooms = hasActiveRooms()
+        log("cancelled before the capture")
+        apply(.cancelConfirmed(hasRooms: rooms))
+        if rooms { enterRoomList() } else { endFlow() }
+    }
+
     /// Discard Scan in the Cancel confirmation: `engine.discard()` (only this room's InProgress
     /// data), then the room list, or the end of the flow when the house has no room.
     func confirmCancel() {
