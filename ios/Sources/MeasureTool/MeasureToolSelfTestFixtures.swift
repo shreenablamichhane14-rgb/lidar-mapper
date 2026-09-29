@@ -77,8 +77,8 @@ enum MeasureToolSelfTestFixtures {
                                      wallArea: 45, length: 5, width: 4, volume: 60, volumeProvenance: .measured)
 
     /// The room with its openings, the sofa and the merged part.
-    static func room(elevation: Float = 0, id roomElement: ElementID = roomID, record: UUID = recordID,
-                     merged: Bool = true) -> CleanRoom {
+    static func room(elevation: Float = 0, id roomElement: ElementID = MeasureToolSelfTestFixtures.roomID,
+                     record: UUID = MeasureToolSelfTestFixtures.recordID, merged: Bool = true) -> CleanRoom {
         let outline = corners.map { PlanAxes.toPlan(Vec3($0)) }
         let floor = CleanFloor(outline: outline, elevation: elevation, occludedArea: 0, provenance: .measured,
                                mergedOutlines: merged ? [mergedPart] : nil)

@@ -15,6 +15,9 @@ struct MeasureToolOverlay: View {
 
     /// Name of the overlay's coordinate space (drag locations are read in it).
     static let space = "mapper.measuretool.overlay"
+    /// The overlay's coordinate space as a typed value, so exactly one `DragGesture` initializer
+    /// (the iOS 17 `some CoordinateSpaceProtocol` one) and `coordinateSpace(_:)` match it.
+    static var overlaySpace: NamedCoordinateSpace { .named(space) }
 
     /// An overlay for `model` (and its viewer).
     init(model: MeasureToolModel) {
@@ -40,7 +43,7 @@ struct MeasureToolOverlay: View {
                 MeasureToolHandleView(item: item, model: model)
             }
         }
-        .coordinateSpace(.named(MeasureToolOverlay.space))
+        .coordinateSpace(MeasureToolOverlay.overlaySpace)
     }
 }
 
@@ -117,7 +120,7 @@ struct MeasureToolHandleView: View {
     /// Drag in the overlay's coordinate space, with `minimumDistance: 0` so a touch that does not
     /// move still reaches `onEnded`.
     private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .named(MeasureToolOverlay.space))
+        DragGesture(minimumDistance: 0, coordinateSpace: MeasureToolOverlay.overlaySpace)
             .onChanged { value in
                 let dx = value.translation.width
                 let dy = value.translation.height

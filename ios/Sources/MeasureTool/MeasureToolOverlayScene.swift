@@ -7,48 +7,66 @@ import simd
 struct MeasureToolOverlayScene {
     /// A straight line on screen.
     struct StrokeItem {
+        /// End points on screen.
         var from: CGPoint
         var to: CGPoint
         /// Thin dashed line (the horizontal part of a height).
         var dashed: Bool
+        /// Part of the draft (cyan) rather than a saved measurement (yellow).
         var isDraft: Bool
     }
 
     /// A closed area on screen.
     struct FillItem {
+        /// Corners on screen, in order.
         var points: [CGPoint]
+        /// Part of the draft.
         var isDraft: Bool
     }
 
     /// The small arc of an angle at its corner.
     struct ArcItem {
+        /// The corner on screen.
         var center: CGPoint
+        /// Start and end angles, radians on screen.
         var start: Double
         var end: Double
+        /// Part of the draft.
         var isDraft: Bool
     }
 
     /// One on-model label.
     struct LabelItem: Identifiable {
+        /// The record id, or "draft".
         var id: String
+        /// Label center on screen.
         var anchor: CGPoint
+        /// Value line and accuracy line (the low-confidence text replaces the accuracy).
         var value: String
         var accuracy: String?
+        /// The measurement's low-confidence flag.
         var isLowConfidence: Bool
+        /// VoiceOver text.
         var accessibility: String
+        /// Part of the draft.
         var isDraft: Bool
     }
 
     /// One draggable point.
     struct HandleItem: Identifiable {
+        /// The point it moves.
         var handle: MeasureToolHandle
+        /// Position on screen.
         var point: CGPoint
         /// VoiceOver name ("Distance 2, Point 1").
         var label: String
+        /// Part of the draft.
         var isDraft: Bool
+        /// Identity for `ForEach`: the handle.
         var id: MeasureToolHandle { handle }
     }
 
+    /// What to draw, in draw order: fills, strokes, arcs; then labels and handles as views.
     var strokes: [StrokeItem] = []
     var fills: [FillItem] = []
     var arcs: [ArcItem] = []
@@ -171,15 +189,21 @@ struct MeasureToolOverlayScene {
 
     /// The arc at corner `b` between the arms to `a` and `c`; returns the label anchor on the bisector.
     private mutating func addAngleArc(_ a: CGPoint, _ b: CGPoint, _ c: CGPoint, isDraft: Bool) -> CGPoint {
-        let angleA = atan2(Double(a.y - b.y), Double(a.x - b.x))
-        let angleC = atan2(Double(c.y - b.y), Double(c.x - b.x))
-        var delta = angleC - angleA
+        let ay: Double = Double(a.y - b.y)
+        let ax: Double = Double(a.x - b.x)
+        let cy: Double = Double(c.y - b.y)
+        let cx: Double = Double(c.x - b.x)
+        let angleA: Double = atan2(ay, ax)
+        let angleC: Double = atan2(cy, cx)
+        var delta: Double = angleC - angleA
         while delta > Double.pi { delta -= 2 * Double.pi }
         while delta < -Double.pi { delta += 2 * Double.pi }
         arcs.append(ArcItem(center: b, start: angleA, end: angleA + delta, isDraft: isDraft))
-        let bisector = angleA + delta / 2
-        let offset = Double(MeasureToolOverlayScene.angleLabelOffset)
-        return CGPoint(x: Double(b.x) + cos(bisector) * offset, y: Double(b.y) + sin(bisector) * offset)
+        let bisector: Double = angleA + delta / 2
+        let offset: Double = Double(MeasureToolOverlayScene.angleLabelOffset)
+        let x: Double = Double(b.x) + cos(bisector) * offset
+        let y: Double = Double(b.y) + sin(bisector) * offset
+        return CGPoint(x: x, y: y)
     }
 
     /// Midpoint of two screen points.

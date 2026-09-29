@@ -41,6 +41,13 @@ import simd
     /// Low confidence of the draft's live value (areas from their sides, E3).
     @Published var draftIsLowConfidence: Bool
 
+    /// Binding target of the save error alert (`$model.showsSaveError`): true while `errorText`
+    /// is set; setting it to false clears `errorText`.
+    var showsSaveError: Bool {
+        get { errorText != nil }
+        set { if !newValue { errorText = nil } }
+    }
+
     /// The project measured.
     let projectID: UUID
     /// The viewer whose content is measured (hit tests and projections).

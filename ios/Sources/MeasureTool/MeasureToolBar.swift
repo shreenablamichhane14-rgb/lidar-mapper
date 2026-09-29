@@ -44,7 +44,7 @@ struct MeasureToolBar: View {
         } message: {
             Text(Copy.MeasureTool.deleteAllBody)
         }
-        .alert(Copy.Errors.saveFailed.title, isPresented: errorShown) {
+        .alert(Copy.Errors.saveFailed.title, isPresented: $model.showsSaveError) {
             Button(Copy.Errors.ok, role: .cancel) { model.errorText = nil }
         } message: {
             Text(model.errorText ?? Copy.Errors.saveFailed.body)
@@ -141,17 +141,10 @@ struct MeasureToolBar: View {
                 .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium, .large])
-        .alert(Copy.Errors.saveFailed.title, isPresented: errorShown) {
+        .alert(Copy.Errors.saveFailed.title, isPresented: $model.showsSaveError) {
             Button(Copy.Errors.ok, role: .cancel) { model.errorText = nil }
         } message: {
             Text(model.errorText ?? Copy.Errors.saveFailed.body)
         }
-    }
-
-    /// True while a save error waits to be shown.
-    private var errorShown: Binding<Bool> {
-        Binding(get: { model.errorText != nil }, set: { shown in
-            if !shown { model.errorText = nil }
-        })
     }
 }

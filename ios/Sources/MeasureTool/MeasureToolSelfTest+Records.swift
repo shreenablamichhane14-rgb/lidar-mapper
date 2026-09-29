@@ -91,8 +91,12 @@ extension MeasureToolSelfTest {
             let height = walls[1]
             let lengthSigma: Double = length.result.sigma ?? 0
             let heightSigma: Double = height.result.sigma ?? 0
-            lengthOK = length.kind == MeasurementKind.wallLength && near(Float(length.result.value), 4) && lengthSigma >= floorSigma
-            heightOK = height.kind == MeasurementKind.height && near(Float(height.result.value), 2.5) && heightSigma >= floorSigma
+            let lengthValueOK: Bool = near(Float(length.result.value), 4)
+            let heightValueOK: Bool = near(Float(height.result.value), 2.5)
+            let lengthKindOK: Bool = length.kind == MeasurementKind.wallLength
+            let heightKindOK: Bool = height.kind == MeasurementKind.height
+            lengthOK = lengthKindOK && lengthValueOK && lengthSigma >= floorSigma
+            heightOK = heightKindOK && heightValueOK && heightSigma >= floorSigma
         }
         let edgeSnaps: [SnapKind] = [.edge, .edge]
         let tagsOK: Bool = walls.allSatisfy { record -> Bool in
@@ -104,8 +108,10 @@ extension MeasureToolSelfTest {
         let curved = F.curvedWall()
         let curvedRecords = MeasureToolSnaps.wallRecords(curved, context: context, now: F.date(0))
         let arcLength = curvedRecords.first.map { Float($0.result.value) } ?? 0
-        log.check("wallRecords.curvedUsesArc", arcLength > curved.length + 0.1 && near(arcLength, Float.pi, 1e-3),
-                  "arc \(arcLength), chord \(curved.length)")
+        let chord: Float = curved.length
+        let longerThanChord: Bool = arcLength > chord + 0.1
+        let arcOK: Bool = near(arcLength, Float.pi, 1e-3)
+        log.check("wallRecords.curvedUsesArc", longerThanChord && arcOK, "arc \(arcLength), chord \(chord)")
 
         var draft = distanceDraft()
         draft.value = MeasureToolSnaps.value(draft, context: context)
