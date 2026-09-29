@@ -156,7 +156,7 @@ enum HouseAlertFollowUp: Equatable, Sendable {
     /// (events of a replaced engine are ignored), its Take Photo recorder and mesh store.
     var engine: ScanEngine?, engineSerial = 0, photoRecorder: PhotoRecorder?, meshStore: MeshStore?
     /// The project's package and capture settings; true when this visit created the project.
-    var package: ProjectPackage?, projectSettings = ScanSettings.room, createdProject = false
+    var projectPackage: ProjectPackage?, projectSettings = ScanSettings.room, createdProject = false
     /// The current ARKit session and the frame link recorded for it (nil until decided).
     var sessionID: UUID?, sessionLink: FrameLink?
     /// The room being captured, the room the engine saved, and the room a Rescan replaces.
@@ -243,7 +243,7 @@ enum HouseAlertFollowUp: Equatable, Sendable {
     /// Stores the project of this visit.
     func setProject(_ id: UUID, package newPackage: ProjectPackage) {
         projectID = id
-        package = newPackage
+        projectPackage = newPackage
     }
 
     /// Replaces the engine (the old one's events are dropped from now on).

@@ -94,7 +94,7 @@ extension HouseFlowModel {
     func beginQualityCheck(_ record: RoomRecord) {
         let now = Date()
         checkingRoomID = record.id
-        guard let package else {
+        guard let package = projectPackage else {
             qualityCheckFinished(.failed("no package"), roomID: record.id)
             return
         }
@@ -198,7 +198,7 @@ extension HouseFlowModel {
             namingLabelLoaded(label, room: room)
             return
         }
-        guard let package, let record = finishedRecord, record.id == room else { return }
+        guard let package = projectPackage, let record = finishedRecord, record.id == room else { return }
         Task.detached(priority: .userInitiated) { [weak self] in
             let label = HouseFlowModel.sectionLabel(package: package, record: record)
             await self?.namingLabelLoaded(label, room: room)
@@ -252,7 +252,7 @@ extension HouseFlowModel {
 
     /// Reloads the rows off main from the manifest, the Structure report and the edit log.
     func refreshRows() {
-        guard let package else { return }
+        guard let package = projectPackage else { return }
         rowsRequest += 1
         let token = rowsRequest
         Task.detached(priority: .userInitiated) { [weak self] in

@@ -200,6 +200,11 @@ struct HouseRelocalizationChrome: View {
     /// The house flow.
     @ObservedObject var model: HouseFlowModel
 
+    /// Creates the chrome for `model`.
+    init(model: HouseFlowModel) {
+        self.model = model
+    }
+
     /// Cards at the top, buttons at the bottom.
     var body: some View {
         VStack(spacing: 12) {
@@ -291,6 +296,11 @@ struct HouseNamingSheet: View {
     @State private var text = ""
     /// The room whose name `text` was loaded for.
     @State private var loadedFor: UUID?
+
+    /// Creates the prompt for `model`.
+    init(model: HouseFlowModel) {
+        self.model = model
+    }
 
     /// Title, field, suggestions, and Skip and Save at the bottom.
     var body: some View {

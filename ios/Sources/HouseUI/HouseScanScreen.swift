@@ -193,6 +193,11 @@ struct HouseQualitySheetHost: View {
     /// The Discard confirmation is showing.
     @State private var confirmsDiscard = false
 
+    /// Creates the host for `model`.
+    init(model: HouseFlowModel) {
+        self.model = model
+    }
+
     /// The sheet, its confirmation and its presentation.
     var body: some View {
         let flow = model

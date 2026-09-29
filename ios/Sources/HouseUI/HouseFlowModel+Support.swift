@@ -47,7 +47,7 @@ extension HouseFlowModel {
 
     /// The project's manifest, or nil when it cannot be read (small JSON, main is fine).
     func readManifest() -> ProjectManifest? {
-        guard let package else { return nil }
+        guard let package = projectPackage else { return nil }
         return try? ProjectStore.readManifest(package)
     }
 
@@ -69,7 +69,7 @@ extension HouseFlowModel {
     /// Writes the demo room off main (`DemoProjectFactory.makeDemoRoom`), reads its clean room
     /// back with `CleanModelStore.loadBase` and places it with `HouseDemo.placed`.
     func beginDemoRoom(_ id: UUID) {
-        guard let package, let session = sessionID else {
+        guard let package = projectPackage, let session = sessionID else {
             demoRoomFinished(.failed("no package"), roomID: id)
             return
         }
@@ -142,7 +142,7 @@ extension HouseFlowModel {
 
     /// Rewrites the demo house (active rooms only) off main; writes run one after another.
     func writeDemoHouse() {
-        guard let package, let manifest = readManifest() else { return }
+        guard let package = projectPackage, let manifest = readManifest() else { return }
         let activeIDs = Set(StructureEligibility.activeRooms(manifest).map { $0.id })
         let rooms = demoRooms.filter { activeIDs.contains($0.recordID) }
         guard !rooms.isEmpty else { return }

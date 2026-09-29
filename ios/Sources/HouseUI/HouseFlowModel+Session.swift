@@ -17,7 +17,7 @@ extension HouseFlowModel {
     /// `RoomScanEngine(target:recorders:)` with `RoomScanTarget(mode: .house)`. Nothing runs yet.
     @discardableResult
     func makeRoomEngine(roomID: UUID) -> RoomScanEngine? {
-        guard let project = projectID, let package, let session = sessionID else { return nil }
+        guard let project = projectID, let package = projectPackage, let session = sessionID else { return nil }
         let meshes = MeshStore()
         let photos = PhotoRecorder()
         photos.onPhotoSaved = { [weak self] _ in
@@ -206,7 +206,7 @@ extension HouseFlowModel {
     /// runs plainly and Start Fresh Here is offered at once (`noMapAvailable`).
     func beginRelocalization(preferRoom: UUID?) {
         stopRelocalizationPoll()
-        guard let package, let manifest = readManifest() else {
+        guard let package = projectPackage, let manifest = readManifest() else {
             captureStartFailed(MapperError.corruptProject("manifest"))
             return
         }
