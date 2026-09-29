@@ -101,14 +101,16 @@ struct AppShareLogLink: View {
 /// `ViewerDiagnostics.uvCheckerContent()` in a `ViewerContainer`, with what it should look like.
 struct AppUVCheckerView: View {
     /// The viewer of the check.
-    @StateObject private var viewer = ViewerModel()
+    @StateObject private var viewer: ViewerModel
     /// True when the pattern could not be made.
     @State private var failed = false
     /// Closes the sheet.
     @Environment(\.dismiss) private var dismiss
 
     /// Creates the check.
-    init() {}
+    init() {
+        _viewer = StateObject(wrappedValue: ViewerModel())
+    }
 
     /// The viewer, the hint and Done.
     var body: some View {

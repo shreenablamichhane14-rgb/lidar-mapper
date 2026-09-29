@@ -53,9 +53,10 @@ enum ProcessingPlans {
             steps.append(ScheduledStep(ConsolidateMeshStep(roomID: room.id, folders: folders), subject: room.id,
                                        isOptional: true))
         }
-        let clean = ScheduledStep(CleanModelStep(meshProvider: { package, room in
-            try? MeshModelStore.loadMeasured(package, room: room)
-        }), isOptional: false, dependsOn: buildKeys)
+        let cleanStep = CleanModelStep(meshProvider: { stepPackage, roomID in
+            try? MeshModelStore.loadMeasured(stepPackage, room: roomID)
+        })
+        let clean = ScheduledStep(cleanStep, isOptional: false, dependsOn: buildKeys)
         steps.append(clean)
         let plan = ScheduledStep(FloorPlanStep(floors: manifest.floors), isOptional: false, dependsOn: [clean.key])
         steps.append(plan)

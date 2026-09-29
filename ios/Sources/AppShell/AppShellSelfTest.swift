@@ -145,7 +145,10 @@ enum AppShellSelfTest {
         let qualities = two.filter { $0.stepID == .quality }.map { $0.subject }
         let textures = two.filter { $0.stepID == .textureLow }.map { $0.subject }
         let perRoom: [UUID?] = [roomNeedsBuild, roomNoData]
-        check(&failures, "plan.twoRooms", consolidated == perRoom && qualities == perRoom && textures == perRoom,
+        let consolidatedOK: Bool = consolidated == perRoom
+        let qualitiesOK: Bool = qualities == perRoom
+        let texturesOK: Bool = textures == perRoom
+        check(&failures, "plan.twoRooms", consolidatedOK && qualitiesOK && texturesOK,
               two.map { $0.key.logName }.joined(separator: " "))
         check(&failures, "plan.twoRooms.buildRoom", two.filter { $0.stepID == .buildRoom }.map { $0.subject } == [roomNeedsBuild],
               "only the room with capturedroomdata.json is rebuilt")
@@ -192,8 +195,8 @@ enum AppShellSelfTest {
         check(&failures, "outcome.failed", ProcessingPlans.statusAfter(.failed(step: .cleanModel, error: error)) == .needsAttention,
               "needsAttention")
         check(&failures, "outcome.cancelledKeepsStatus", ProcessingPlans.statusAfter(.cancelled) == nil, "cancel never sets ready")
-        check(&failures, "kind.rooms", ProcessingPlans.isRoomKind(.room) && ProcessingPlans.isRoomKind(.house)
-              && !ProcessingPlans.isRoomKind(.object) && !ProcessingPlans.isRoomKind(.quickMeasure), "room kinds")
+        let roomKinds: [ScanMode] = ScanMode.allCases.filter { ProcessingPlans.isRoomKind($0) }
+        check(&failures, "kind.rooms", Set(roomKinds) == [.room, .house, .advancedSpace], "\(roomKinds.map { $0.rawValue })")
         check(&failures, "selfTests.launchRunDue", AppSelfTestRunner.launchRunDue(recorded: nil, current: "0.4 (1)")
               && !AppSelfTestRunner.launchRunDue(recorded: "0.4 (1)", current: "0.4 (1)"), "once per build")
     }
@@ -240,8 +243,10 @@ enum AppShellSelfTest {
             let sealedFolder = RawScanFolder(url: package.rawRoomURL(session: session, room: sealedRoom))
             let record = RecoveryService.roomRecord(roomID: sealedRoom, sessionID: session, folder: sealedFolder,
                                                     fallbackDate: Date(timeIntervalSince1970: 0))
-            let recordOK = record.status == .captured && record.capturedAt == sep28 && record.keyframeCount == 0
-                && record.frameLink == .projectFrame(sessionID: session) && record.sessionID == session
+            let statusOK: Bool = record.status == .captured && record.keyframeCount == 0
+            let timeOK: Bool = record.capturedAt == sep28
+            let frameOK: Bool = record.frameLink == .projectFrame(sessionID: session) && record.sessionID == session
+            let recordOK = statusOK && timeOK && frameOK
             check(&failures, "recovery.roomRecord", recordOK, "\(record.status.rawValue) \(record.capturedAt)")
 
             let empty = RawScanFolder(url: package.rawRoomURL(session: session, room: unsealedRoom))

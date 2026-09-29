@@ -11,18 +11,24 @@ import SwiftUI
 /// self-tests once per new build (paused while a scan cover is up).
 struct AppRootView: View {
     /// Navigation state.
-    @StateObject private var router = AppRouter()
-    /// The project list (Store).
-    @ObservedObject private var library = ProjectLibrary.shared
-    /// Processing state (Pipeline).
-    @ObservedObject private var runner = ProcessingRunner.shared
+    @StateObject private var router: AppRouter
+    /// The project list (Store). Not observed here: HomeScreen observes it, so a list change or
+    /// a 10 Hz progress update never re-renders the root and the pushed result screen.
+    private let library: ProjectLibrary
+    /// Processing state (Pipeline), observed by HomeScreen only.
+    private let runner: ProcessingRunner
 
     /// Creates the root.
-    init() {}
+    init() {
+        _router = StateObject(wrappedValue: AppRouter())
+        library = ProjectLibrary.shared
+        runner = ProcessingRunner.shared
+    }
 
     /// Home in its stack, with the covers, sheets and alerts of the app.
     var body: some View {
-        NavigationStack(path: $router.path) {
+        let appRouter = router
+        return NavigationStack(path: $router.path) {
             home
                 .navigationDestination(for: AppRoute.self) { route in
                     destination(route)
@@ -33,10 +39,10 @@ struct AppRootView: View {
             ExportSheet(projectID: request.projectID, viewState: request.viewState)
         }
         .fullScreenCover(item: $router.scanRequest, onDismiss: {
-            router.scanCoverDismissed()
+            appRouter.scanCoverDismissed()
         }) { request in
             AppScanCoordinator(request: request) { projectID in
-                router.scanFlowEnded(projectID)
+                appRouter.scanFlowEnded(projectID)
             }
         }
         .sheet(isPresented: $router.showsRecoverySheet) {

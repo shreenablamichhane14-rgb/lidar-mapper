@@ -81,7 +81,7 @@ struct DiagnosticsScreen: View {
     ]
 
     /// The shared self-test runner (the launch run and this screen show the same results).
-    @ObservedObject private var tests = AppSelfTestRunner.shared
+    @ObservedObject private var tests: AppSelfTestRunner
     /// Diagnostics > Demo Mode (ScanUI's key).
     @AppStorage(SettingsKey.demoMode) private var demoMode = false
     /// Diagnostics > Record Scan Snapshots (ScanUI's key).
@@ -92,7 +92,9 @@ struct DiagnosticsScreen: View {
     @State private var showsUVCheck = false
 
     /// Creates the screen.
-    init() {}
+    init() {
+        _tests = ObservedObject(wrappedValue: AppSelfTestRunner.shared)
+    }
 
     /// The diagnostics list.
     var body: some View {
