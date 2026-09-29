@@ -5,8 +5,10 @@ import simd
 // only when its target is missing; operations meant for other models (plan annotations and
 // dimensions, room alignment, object crop) return true unchanged. Geometric edits refresh the
 // room's occlusion and unscaled metrics; `applyingEdits(_:)` recomputes every room at the end
-// and re-applies the last active scale correction of each room, so a later geometric edit
-// never drops a scale correction.
+// and re-applies the last active scale correction of each room (read from
+// `EditLog.flattenedActive`, so corrections inside batches count), so a later geometric edit
+// never drops a scale correction. The CR-1 operations (move and resize openings, merge and
+// split rooms, batches) live in CleanModel+RoomEdits.swift.
 
 extension CleanModel: EditApplicable {
     /// Applies one operation (see the file comment for the rules).
@@ -61,20 +63,28 @@ extension CleanModel: EditApplicable {
             return true
         case .setRoomAlignment, .cropObject, .addAnnotation, .addDimension:
             return true
-        case .moveOpening, .resizeOpening, .mergeRooms, .splitRoom, .batch:
-            // CR-1 stubs (pre-5a Core commit): no behavior until the RoomModel revision (3.37b).
-            return true
+        case .moveOpening(let opening, let offset):
+            return moveOpening(opening, offset: offset)
+        case .resizeOpening(let opening, let width, let sillHeight, let headHeight):
+            return resizeOpening(opening, width: width, sillHeight: sillHeight, headHeight: headHeight)
+        case .mergeRooms(let merged, let into):
+            return mergeRooms(merged, into: into)
+        case .splitRoom(let room, let line, let newRoom):
+            return splitRoom(room, line: line, newRoom: newRoom)
+        case .batch(let operations):
+            return applyBatch(operations)
         }
     }
 
     /// Replays the active operations of `log`, then recomputes occlusion and metrics of every
-    /// room and applies each room's last active scale correction. Returns the edited model and
-    /// the operations whose target was missing.
+    /// room and applies each room's last active scale correction. Scale corrections are read
+    /// from `log.flattenedActive` (never `active`: a batch can hold one). Returns the edited
+    /// model and the operations whose target was missing (a failed batch is one orphan).
     func applyingEdits(_ log: EditLog) -> (model: CleanModel, orphaned: [EditOperation]) {
         let (edited, orphaned) = log.applied(to: self)
         var model = edited
         var factors: [ElementID: Float] = [:]
-        for op in log.active {
+        for op in log.flattenedActive {
             if case .setScaleCorrection(let room, let factor) = op, factor.isFinite, factor > 0 {
                 factors[room] = factor
             }
@@ -124,8 +134,9 @@ extension CleanModel: EditApplicable {
 
     // MARK: - Operations
 
-    /// Recomputes a room's occlusion and unscaled metrics after a change.
-    private mutating func refresh(_ r: Int) {
+    /// Recomputes a room's occlusion and unscaled metrics after a change (also used by the CR-1
+    /// operations in CleanModel+RoomEdits.swift).
+    mutating func refresh(_ r: Int) {
         RoomMetricsCalculator.applyOcclusion(&rooms[r], distance: CleanBuildOptions().occlusionDistance)
         rooms[r].metrics = RoomMetricsCalculator.metrics(for: rooms[r])
     }
@@ -167,14 +178,21 @@ extension CleanModel: EditApplicable {
     }
 
     /// Moves one end of a wall to a plan point at the room's floor elevation. Outline vertices
-    /// at the old end (within 1 mm) move with it so area and perimeter follow; the normal keeps
-    /// its side; hosted openings are clamped to the new length.
+    /// and merged-outline vertices at the old end (within 1 mm) move with it so area and
+    /// perimeter follow; hosted openings are clamped to the new length. A wall that satisfied
+    /// the orientation invariant (normal = left perpendicular) keeps it; an older wall with a
+    /// right-side normal keeps its normal's side.
     private mutating func moveWallEndpoint(_ id: ElementID, atStart: Bool, to point: SIMD2<Float>) -> Bool {
         guard let at = wallLocation(id) else { return false }
         guard point.x.isFinite, point.y.isFinite else { return true }
         var wall = rooms[at.room].walls[at.index]
         let elevation = rooms[at.room].floor.elevation
-        let old = PlanAxes.toPlan(atStart ? wall.start.simd : wall.end.simd)
+        let oldStart = PlanAxes.toPlan(wall.start.simd)
+        let oldEnd = PlanAxes.toPlan(wall.end.simd)
+        let old = atStart ? oldStart : oldEnd
+        let oldDirection = Segment2D(a: oldStart, b: oldEnd).direction
+        let oldLeft = SIMD2<Float>(-oldDirection.y, oldDirection.x)
+        let wasLeftNormal = simd_dot(oldLeft, PlanAxes.toPlan(wall.normal.simd)) >= 0
         let moved = Vec3(PlanAxes.toWorld(point, y: elevation))
         if atStart { wall.start = moved } else { wall.end = moved }
         let a = PlanAxes.toPlan(wall.start.simd)
@@ -182,13 +200,14 @@ extension CleanModel: EditApplicable {
         let direction = Segment2D(a: a, b: b).direction
         if direction != .zero {
             var planNormal = SIMD2<Float>(-direction.y, direction.x)
-            if simd_dot(planNormal, PlanAxes.toPlan(wall.normal.simd)) < 0 { planNormal = -planNormal }
+            if !wasLeftNormal && simd_dot(planNormal, PlanAxes.toPlan(wall.normal.simd)) < 0 { planNormal = -planNormal }
             wall.normal = Vec3(PlanAxes.toWorld(planNormal, y: 0))
         }
         rooms[at.room].walls[at.index] = wall
         for v in rooms[at.room].floor.outline.indices where simd_distance(rooms[at.room].floor.outline[v].simd, old) <= 0.001 {
             rooms[at.room].floor.outline[v] = Vec2(point)
         }
+        moveMergedOutlineVertices(room: at.room, from: old, to: point)
         let length = simd_distance(a, b)
         for o in rooms[at.room].openings.indices where rooms[at.room].openings[o].wallID == id {
             let width = Swift.min(rooms[at.room].openings[o].width, length)
@@ -200,9 +219,13 @@ extension CleanModel: EditApplicable {
         return true
     }
 
-    /// Adds a user-drawn wall to the room on `level` whose outline contains its midpoint (else
-    /// the room whose outline centroid is nearest). Height is the room's ceiling height. An
-    /// existing id returns true unchanged; no room on the level returns false.
+    /// Adds a user-drawn wall to the room on `level` whose outline (or a merged outline)
+    /// contains its midpoint (else the room whose outline centroid is nearest). Height is the
+    /// room's ceiling height. Start and end are the plan's `a` and `b` (so `atStart` and opening
+    /// offsets mean the same end in both models) and the normal is the left perpendicular of
+    /// a -> b (the CR-1 orientation invariant); a wall drawn with the room on its right is kept
+    /// as drawn and logged. An existing id returns true unchanged; no room on the level returns
+    /// false.
     private mutating func addWall(_ planWall: PlanWall, level: Int) -> Bool {
         if wallLocation(planWall.id) != nil { return true }
         let candidates = rooms.indices.filter { rooms[$0].floorIndex == level }
@@ -214,7 +237,7 @@ extension CleanModel: EditApplicable {
         var bestDistance = Float.greatestFiniteMagnitude
         for r in candidates {
             let outline = Polygon2D(points: rooms[r].floor.outline.map { $0.simd })
-            if outline.contains(point: middle) {
+            if RoomMetricsCalculator.floorContains(rooms[r], point: middle) {
                 host = r
                 break
             }
@@ -225,11 +248,13 @@ extension CleanModel: EditApplicable {
             }
         }
         let room = rooms[host]
-        let outline = Polygon2D(points: room.floor.outline.map { $0.simd })
         let direction = Segment2D(a: a, b: b).direction
-        var planNormal = SIMD2<Float>(-direction.y, direction.x)
-        if !outline.contains(point: middle + planNormal * 0.1) && outline.contains(point: middle - planNormal * 0.1) {
-            planNormal = -planNormal
+        let planNormal = SIMD2<Float>(-direction.y, direction.x)
+        let leftInside = RoomMetricsCalculator.floorContains(room, point: middle + planNormal * 0.1)
+        let rightInside = RoomMetricsCalculator.floorContains(room, point: middle - planNormal * 0.1)
+        if !leftInside && rightInside {
+            LogStore.shared.write("addWall \(planWall.id.uuid): room on the right of a -> b; kept as drawn (normal left)",
+                                  category: RoomOutline.logCategory)
         }
         let wall = CleanWall(id: planWall.id,
                              start: Vec3(PlanAxes.toWorld(a, y: room.floor.elevation)),

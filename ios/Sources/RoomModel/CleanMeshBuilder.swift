@@ -37,9 +37,11 @@ enum CleanMeshBuilder {
     /// Movable objects this close to a wall are considered when finding a span's blocker, meters.
     static let blockerSearchDistance: Float = 0.5
 
-    /// Also emits `.occluded` parts (provenance `.inferred`, `element` = the wall or the object):
-    /// for every `CleanWall.occludedSpans` range a wall-plane quad of the span's length and
-    /// height min(wall height, top of the blocking movable object + 0.1 m), and for every movable
+    /// Floor and ceiling parts (one of each per room, element = the room) triangulate
+    /// `floor.outline` and every `floor.mergedOutlines` ring (build 5, 3.37b). Also emits
+    /// `.occluded` parts (provenance `.inferred`, `element` = the wall or the object): for every
+    /// `CleanWall.occludedSpans` range a wall-plane quad of the span's length and height
+    /// min(wall height, top of the blocking movable object + 0.1 m), and for every movable
     /// `DetectedObject` its footprint quad from `orientedBox`, 5 mm above the floor. Viewers show
     /// them only while Hide Furniture is on (SPEC FURNITURE REMOVAL: blocked regions are marked,
     /// never shown as measured).
@@ -136,13 +138,13 @@ enum CleanMeshBuilder {
                 }
             }
         }
-        let outline = room.floor.outline.map { $0.simd }
-        if let floorMesh = horizontalMesh(outline, y: room.floor.elevation, facingUp: true) {
+        let floorParts = RoomMetricsCalculator.floorParts(of: room)
+        if let floorMesh = horizontalMesh(parts: floorParts, y: room.floor.elevation, facingUp: true) {
             parts.append(CleanMeshPart(element: room.id, kind: .floor, mesh: floorMesh, isMovable: false, isHidden: false,
                                        provenance: room.floor.provenance))
         }
         if includeCeiling, room.ceiling.height > 0,
-           let ceilingMesh = horizontalMesh(outline, y: room.floor.elevation + room.ceiling.height, facingUp: false) {
+           let ceilingMesh = horizontalMesh(parts: floorParts, y: room.floor.elevation + room.ceiling.height, facingUp: false) {
             parts.append(CleanMeshPart(element: room.id, kind: .ceiling, mesh: ceilingMesh, isMovable: false, isHidden: false,
                                        provenance: room.ceiling.provenance))
         }
@@ -202,6 +204,21 @@ enum CleanMeshBuilder {
             t += 3
         }
         return TriangleMesh(positions: positions, indices: ordered)
+    }
+
+    /// The outline and every merged outline of a room (`RoomMetricsCalculator.floorParts`)
+    /// triangulated into one horizontal mesh at height `y`; the parts stay separate (the gap
+    /// between merged outlines is never filled). A part that cannot be triangulated is left
+    /// out; nil when no part can be.
+    static func horizontalMesh(parts rings: [[SIMD2<Float>]], y: Float, facingUp: Bool) -> TriangleMesh? {
+        var combined = TriangleMesh()
+        for ring in rings {
+            guard let piece = horizontalMesh(ring, y: y, facingUp: facingUp) else { continue }
+            let base = UInt32(combined.positions.count)
+            combined.positions.append(contentsOf: piece.positions)
+            combined.indices.append(contentsOf: piece.indices.map { $0 + base })
+        }
+        return combined.triangleCount > 0 ? combined : nil
     }
 
     /// Closed box with outward-facing triangles (12 triangles, 8 corners).

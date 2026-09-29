@@ -13,12 +13,21 @@ enum RoomMetricsCalculator {
     /// Ceiling faces lower than this above the floor are ignored, meters.
     static let minimumCeilingClearance: Float = 1.0
 
-    /// Area and perimeter from the outline (shoelace), length and width from the minimum-area
-    /// rectangle, wall area minus hosted openings (curved walls by arc length), volume with the
+    /// Floor area and perimeter are sums (shoelace) over `floor.outline` and every
+    /// `floor.mergedOutlines` part (build 5, 3.37b); length and width come from the minimum-area
+    /// rectangle of the points of all parts; wall area is the walls minus hosted openings
+    /// (curved walls by arc length); volume is the total area times the ceiling height, with the
     /// ceiling's provenance. No scale correction is applied here.
     static func metrics(for room: CleanRoom) -> RoomMetrics {
-        let points = room.floor.outline.map { $0.simd }
-        let outline = Polygon2D(points: points)
+        let parts = floorParts(of: room)
+        let points = parts.flatMap { $0 }
+        var area: Float = 0
+        var perimeter: Float = 0
+        for part in parts {
+            let polygon = Polygon2D(points: part)
+            area += polygon.area
+            perimeter += polygon.perimeter
+        }
         var length: Float = 0
         var width: Float = 0
         if points.count >= 3, let rectangle = Rectangle2D.minimumArea(enclosing: points) {
@@ -39,12 +48,24 @@ enum RoomMetricsCalculator {
             }
             wallArea += Swift.max(0, gross - cut)
         }
-        let area = points.count >= 3 ? outline.area : 0
-        let perimeter = points.count >= 3 ? outline.perimeter : 0
         let height = room.ceiling.height
         return RoomMetrics(floorArea: area, perimeter: perimeter, ceilingHeight: height,
                            ceilingProvenance: room.ceiling.provenance, wallArea: wallArea, length: length, width: width,
                            volume: area * height, volumeProvenance: room.ceiling.provenance)
+    }
+
+    /// The floor parts of a room in plan meters: `floor.outline` followed by every
+    /// `floor.mergedOutlines` ring (CR-1 merges and splits), keeping only rings with at least 3
+    /// points. Empty when the room has no usable outline.
+    static func floorParts(of room: CleanRoom) -> [[SIMD2<Float>]] {
+        var rings: [[Vec2]] = [room.floor.outline]
+        if let merged = room.floor.mergedOutlines { rings.append(contentsOf: merged) }
+        return rings.filter { $0.count >= 3 }.map { ring in ring.map { $0.simd } }
+    }
+
+    /// True when a plan point lies inside any floor part of the room.
+    static func floorContains(_ room: CleanRoom, point: SIMD2<Float>) -> Bool {
+        floorParts(of: room).contains { Polygon2D(points: $0).contains(point: point) }
     }
 
     /// Metrics for a uniform scale correction (D21): lengths times `factor`, areas times its
@@ -122,22 +143,24 @@ enum RoomMetricsCalculator {
 
     /// Movable objects within `distance` of a wall add occluded spans; their footprints add occluded floor area.
     /// Straight walls only (curved walls get no spans in build 4); spans are merged and sorted.
-    /// The footprints of movable objects whose center lies inside the outline add up to the
-    /// occluded floor area, capped at the floor area. Replaces any previous values.
+    /// The footprints of movable objects whose center lies inside a floor part (the outline or
+    /// a merged outline) add up to the occluded floor area, capped at the total floor area.
+    /// Replaces any previous values.
     static func applyOcclusion(_ room: inout CleanRoom, distance: Float) {
         for i in room.walls.indices { room.walls[i].occludedSpans = [] }
         room.floor.occludedArea = 0
         let movers = room.objects.filter { $0.isMovable }
         guard !movers.isEmpty else { return }
-        let outline = Polygon2D(points: room.floor.outline.map { $0.simd })
+        let parts = floorParts(of: room).map { Polygon2D(points: $0) }
+        let totalArea = parts.reduce(Float(0)) { $0 + $1.area }
         var hidden: Float = 0
         for object in movers {
             let center = PlanAxes.toPlan(object.transform.translation)
-            if outline.points.count < 3 || outline.contains(point: center) {
+            if parts.isEmpty || parts.contains(where: { $0.contains(point: center) }) {
                 hidden += Polygon2D(points: footprint(of: object)).area
             }
         }
-        room.floor.occludedArea = outline.points.count >= 3 ? Swift.min(hidden, outline.area) : hidden
+        room.floor.occludedArea = parts.isEmpty ? hidden : Swift.min(hidden, totalArea)
         for w in room.walls.indices where room.walls[w].arc == nil {
             var spans: [ClosedRange<Float>] = []
             for object in movers {
