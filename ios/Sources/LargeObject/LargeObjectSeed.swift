@@ -57,10 +57,12 @@ enum LargeObjectSeed {
     /// Samples (face centroids with area > 0 and their class) of the anchors whose bounds come within
     /// `searchRadius` of the seed.
     static func samples(from anchors: [CoverageAnchorFaces], near seed: SIMD3<Float>) -> [LargeObjectSample] {
+        let near = anchors.filter { anchor in
+            horizontalDistance(from: seed, toBoundsMin: anchor.boundsMin, max: anchor.boundsMax) <= searchRadius
+        }
         var out: [LargeObjectSample] = []
-        for anchor in anchors where horizontalDistance(from: seed, toBoundsMin: anchor.boundsMin,
-                                                       max: anchor.boundsMax) <= searchRadius {
-            out.reserveCapacity(out.count + anchor.faces.count)
+        out.reserveCapacity(near.reduce(0) { $0 + $1.faces.count })
+        for anchor in near {
             for face in anchor.faces where face.area > 0 && face.area.isFinite && isFinite(face.centroid) {
                 out.append(LargeObjectSample(position: face.centroid, surface: face.surface))
             }
