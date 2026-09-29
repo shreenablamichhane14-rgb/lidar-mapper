@@ -18,6 +18,7 @@ enum RoomModelSelfTest {
         meshChecks(&c)
         triangulatorChecks(&c)
         storeChecks(&c)
+        b5Checks(&c)
         return c.failures
     }
 
