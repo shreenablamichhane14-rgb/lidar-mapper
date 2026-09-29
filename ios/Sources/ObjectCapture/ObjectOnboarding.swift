@@ -98,6 +98,19 @@ enum ObjectOnboarding {
         }
     }
 
+    /// The instruction over the camera for a capture stage: `aimHint` (or `notFoundHint` after a
+    /// failed Continue) when ready, `boxHint` while detecting, the lap instruction while
+    /// capturing, nothing otherwise.
+    static func overlayInstruction(stage: ObjectCaptureStage, onboarding: ObjectOnboardingState,
+                                   detectionFailed: Bool) -> String? {
+        switch stage {
+        case .ready: return detectionFailed ? Copy.ObjectCapture.notFoundHint : Copy.ObjectCapture.aimHint
+        case .detecting: return Copy.ObjectCapture.boxHint
+        case .capturing: return instruction(for: onboarding)
+        case .initializing, .finishing, .completed, .failed: return nil
+        }
+    }
+
     /// False once `.objectNotFlippable` was seen during the scan (RESEARCH 3.3 gotcha 15); the
     /// review then leads with the no-flip choice and shows `Copy.ObjectCapture.flipWarning`.
     static func flipRecommended(sawNotFlippable: Bool) -> Bool {

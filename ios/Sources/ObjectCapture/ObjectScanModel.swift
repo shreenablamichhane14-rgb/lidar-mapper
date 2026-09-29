@@ -433,7 +433,7 @@ import SwiftUI
         finalizing = false
         let detail = StoreFiles.describe(error)
         ObjectCaptureSignals.log("object \(target.objectID): sealing failed (\(detail))")
-        phase = .failed(.other(detail), imageCount: currentImageCount())
+        phase = .failed(.other(ObjectCaptureSignals.sealFailurePrefix + detail), imageCount: currentImageCount())
     }
 
     /// The cancel did not end the session in time: discard anyway (logged).

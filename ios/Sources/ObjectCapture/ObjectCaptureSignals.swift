@@ -320,6 +320,28 @@ enum ObjectCaptureSignals {
         feedback.contains(.overCapturing)
     }
 
+    /// Prefix of the `.other` payload when sealing (not the session) failed.
+    static let sealFailurePrefix = "seal: "
+
+    /// Text and choices of the failure panel. With at least `ObjectScanFolders.minimumImages`
+    /// photos the panel offers Use These Photos (a failed seal reads as a save failure, anything
+    /// else as `Copy.ObjectCapture.failed`); with fewer it explains and only discards. Missing
+    /// storage always names the size the session asked for.
+    static func failureCopy(_ failure: ObjectScanFailure, imageCount: Int) -> (title: String, body: String, canUsePhotos: Bool) {
+        let canUse = imageCount >= ObjectScanFolders.minimumImages
+        if case .insufficientStorage(let required) = failure {
+            let size = ByteCountFormatter.string(fromByteCount: Swift.max(0, required), countStyle: .file)
+            return (title: Copy.Errors.storageFullTitle, body: Copy.Errors.storageFullBody(size), canUsePhotos: canUse)
+        }
+        guard canUse else {
+            return (title: Copy.Errors.generic.title, body: Copy.Errors.generic.body, canUsePhotos: false)
+        }
+        if case .other(let detail) = failure, detail.hasPrefix(sealFailurePrefix) {
+            return (title: Copy.Errors.saveFailed.title, body: Copy.Errors.saveFailed.body, canUsePhotos: true)
+        }
+        return (title: Copy.ObjectCapture.failed.title, body: Copy.ObjectCapture.failed.body, canUsePhotos: true)
+    }
+
     /// The `MapperError` `ObjectScanModel.start()` throws for a blocking preflight issue
     /// (`deviceWarm` never blocks and maps to nil).
     static func startError(for issue: ObjectPreflightIssue) -> MapperError? {
