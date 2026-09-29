@@ -228,6 +228,18 @@ enum PipelineSelfTest {
         r.check("queue.newerJobKept", queue.waitingProjectIDs == [projectA, projectC, projectB])
         r.check("queue.removeWaiting", queue.removeWaiting(projectID: projectC) == "C" && !queue.hasWaiting(projectC))
         r.check("queue.suspendedKeepsWaiting", queue.startNext() == nil && !queue.isEmpty)
+
+        // A job interrupted by a capture goes back behind the job the capture's Finish enqueued.
+        var order = PipelineJobQueue<String>()
+        order.enqueue("A", projectID: projectA, atFront: false)
+        order.enqueue("C", projectID: projectC, atFront: false)
+        _ = order.startNext()
+        order.suspend()
+        order.enqueue("B", projectID: projectB, atFront: true)
+        let requeued = order.finishRunning(requeue: true) == nil
+        r.check("queue.interruptedBehindFinished", requeued && order.waitingProjectIDs == [projectB, projectA, projectC],
+                "\(order.waitingProjectIDs)")
+        r.check("queue.pinsCleared", order.frontPinned.isEmpty)
     }
 
     // MARK: - Flag and ledger
