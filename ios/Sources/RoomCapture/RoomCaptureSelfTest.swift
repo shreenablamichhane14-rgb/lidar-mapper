@@ -4,9 +4,10 @@ import RoomPlan
 
 /// Plain-Swift checks of RoomCapture's pure parts (docs/MODULES.md 3.21): error mapping, counts,
 /// instruction seconds, the Room mode guidance input, the snapshot, the state machine, the
-/// finish order, system stops, detections and the world map rule. Deterministic, no ARKit or
-/// RoomPlan session, no camera, no files, well under 2 s. `run()` returns one line per failing
-/// check ("name: detail"); empty means all passed.
+/// finish order, system stops, detections, the world map rule and (build 5, 3.30c) whether
+/// `makeCaptureView` runs the hub. Deterministic, no ARKit or RoomPlan session, no camera, no
+/// files, well under 2 s. `run()` returns one line per failing check ("name: detail"); empty
+/// means all passed.
 enum RoomCaptureSelfTest {
     /// Runs every check.
     static func run() -> [String] {
@@ -21,6 +22,7 @@ enum RoomCaptureSelfTest {
         checkSystemStops(&failures)
         checkRoomOutcome(&failures)
         checkSmallHelpers(&failures)
+        checkHubRun(&failures)
         return failures
     }
 
@@ -348,5 +350,14 @@ enum RoomCaptureSelfTest {
         check(&failures, "copy.nonEmpty", !Copy.RoomCapture.sceneTooLarge.title.isEmpty
               && !Copy.RoomCapture.roomPlanFailed.body.isEmpty && !Copy.RoomCapture.tooHotFinished.title.isEmpty
               && !Copy.RoomCapture.lowMemory.body.isEmpty, "an empty string")
+    }
+
+    /// Build 5 (3.30c): `makeCaptureView` runs a hub that is not running and keeps a running
+    /// (relocalized) session as it is.
+    private static func checkHubRun(_ failures: inout [String]) {
+        check(&failures, "shouldRunHub.notRunning", RoomScanStats.shouldRunHub(isRunning: false),
+              "a stopped hub would not be run")
+        check(&failures, "shouldRunHub.running", !RoomScanStats.shouldRunHub(isRunning: true),
+              "a running (relocalized) session would be run again")
     }
 }

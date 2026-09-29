@@ -206,7 +206,9 @@ final class RoomScanEngine: NSObject, ScanEngine {
 
     // MARK: - View
 
-    /// Main. Creates the view once (later calls return the same instance): hub.install(), hub.run(),
+    /// Main. Creates the view once (later calls return the same instance): hub.install(), then
+    /// hub.run() only when the hub is not running yet (`RoomScanStats.shouldRunHub`, 3.30c: a
+    /// session HouseUI relocalized with a world map keeps running with its delegate re-asserted),
     /// RoomCaptureView(frame: .zero, arSession: hub.session), captureSession.delegate = controller,
     /// delegate = controller, and stores `view.captureSession` in a private `RoomCaptureSession`
     /// property. The ScanEngine methods below are nonisolated, so they use that stored session and
@@ -220,7 +222,12 @@ final class RoomScanEngine: NSObject, ScanEngine {
             return RoomCaptureView(frame: .zero)
         }
         hub.install()
-        hub.run()
+        if RoomScanStats.shouldRunHub(isRunning: hub.isRunning) {
+            hub.run()
+            RoomScanLog.write("makeCaptureView: session not running, hub run")
+        } else {
+            RoomScanLog.write("makeCaptureView: session already running (relocalized), not run again")
+        }
         let view = RoomCaptureView(frame: .zero, arSession: hub.session)
         if let session = view.captureSession {
             session.delegate = controller

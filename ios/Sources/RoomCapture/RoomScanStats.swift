@@ -342,6 +342,16 @@ enum RoomScanStats {
     }
 }
 
+/// Build 5 (docs/MODULES.md 3.30c): whether `makeCaptureView` runs the hub.
+extension RoomScanStats {
+    /// Pure: `makeCaptureView` runs the hub only when it is not running yet. A hub that HouseUI
+    /// already ran with a world map (relocalization, 3.30b) keeps that session, so the plain
+    /// configuration never replaces the relocalized one.
+    static func shouldRunHub(isRunning: Bool) -> Bool {
+        !isRunning
+    }
+}
+
 /// Log lines of the RoomCapture module (category "roomcapture"); `once` writes a key only the
 /// first time in an app run (thread-safe), for per-callback facts such as callback threads.
 enum RoomScanLog {
