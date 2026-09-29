@@ -3,8 +3,9 @@ import Foundation
 /// What an exported file shows (the export sheet groups formats by it, docs/ARCHITECTURE.md 9).
 enum ExportRepresentation: String, CaseIterable, Identifiable, Sendable {
     /// The textured room (TextureJob), clean architectural model (RoomModel), the scan as captured
-    /// (MeshModel), the 2D plan (FloorPlan) and the room data (JSON).
-    case realistic, clean, raw, floorPlan, data
+    /// (MeshModel), the 2D plan (FloorPlan), the room data (JSON) and, in build 5, a scanned
+    /// object's model (`.object`, Object projects only).
+    case realistic, clean, raw, floorPlan, data, object
 
     /// Stable identifier (the raw value).
     var id: String { rawValue }
@@ -43,6 +44,26 @@ struct ExportInputs: Equatable, Sendable {
     var hasEdits = false
     /// Measured triangles of the largest room's consolidated mesh (`mesh_stats.json`), 0 when unknown.
     var meshTriangles = 0
+
+    // Build 5 (docs/MODULES.md 3.43d).
+
+    /// What the project scans (the manifest's kind); picks the catalog layout.
+    var kind: ScanMode = .room
+    /// Plan levels with rooms or walls.
+    var levelCount = 1
+    /// House: a merged structure (merge.json outcome `merged`, structure.json present) and no active edit.
+    var structureExportable = false
+    /// House: every active room has `TextureStore.exists`.
+    var allRoomsTextured = false
+    /// Object: model.usdz (small and medium) or the object mesh (large) exists.
+    var hasObjectModel = false
+    /// Object: dims.json of the first object exists.
+    var hasObjectDimensions = false
+    /// Saved measurements (measurements.json, or Quick Measure's raw file).
+    var measurementCount = 0
+    /// House: measured triangles of each active room with a consolidated mesh (manifest order),
+    /// for the simplified note of the whole-house budget.
+    var roomTriangles: [Int] = []
 
     /// Nothing available.
     init() {}
@@ -103,15 +124,39 @@ enum ExportCatalog {
         (.data, [.json])
     ]
 
-    /// realistic: usdz, obj (zip), glb; clean: usdz, obj, glb; raw: usdz, obj, ply, stl, glb;
-    /// floorPlan: pdf, svg, dxf, png; data: json. Unavailable ones carry a reason: Copy.Export.noColor
-    /// when no keyframes were captured, Copy.ExportUI.colorNotReady when keyframes exist, no
-    /// texture exists yet and the project is still processing, Copy.ExportUI.colorMissing when
-    /// processing ended without a texture (Results offers Retry), Copy.Export.noFloorPlan,
-    /// Copy.ExportUI.noWalls (no clean model) and Copy.ExportUI.noRawScan (no consolidated mesh).
+    /// Object projects: the object's model, then its dimensions.
+    static let objectLayout: [(representation: ExportRepresentation, formats: [ExportFileFormat])] = [
+        (.object, [.usdz]),
+        (.data, [.json])
+    ]
+
+    /// Quick Measure projects: the measurements only.
+    static let quickMeasureLayout: [(representation: ExportRepresentation, formats: [ExportFileFormat])] = [
+        (.data, [.json])
+    ]
+
+    /// The formats a project kind offers: Room, Advanced Space and House use `layout`, Object
+    /// and Advanced Object `objectLayout`, Quick Measure `quickMeasureLayout`.
+    static func layout(for kind: ScanMode) -> [(representation: ExportRepresentation, formats: [ExportFileFormat])] {
+        switch kind {
+        case .room, .advancedSpace, .house: return layout
+        case .object, .advancedObject: return objectLayout
+        case .quickMeasure: return quickMeasureLayout
+        }
+    }
+
+    /// By `inputs.kind`. Room and advancedSpace: as build 4 (realistic: usdz, obj (zip), glb;
+    /// clean: usdz, obj, glb; raw: usdz, obj, ply, stl, glb; floorPlan: pdf, svg, dxf, png; data:
+    /// json; reasons Copy.Export.noColor when no keyframes were captured, Copy.ExportUI.colorNotReady
+    /// while processing, Copy.ExportUI.colorMissing after processing ended without a texture,
+    /// Copy.Export.noFloorPlan, Copy.ExportUI.noWalls and Copy.ExportUI.noRawScan). House: the same
+    /// formats, realistic only when `allRoomsTextured`. Object and advancedObject: object usdz
+    /// (Copy.ExportUI.objectNotReady until `hasObjectModel`), data json (same reason until
+    /// `hasObjectDimensions`). Quick Measure: data json only (Copy.Empty.noMeasurements.title with
+    /// no measurement).
     static func options(for inputs: ExportInputs) -> [ExportOption] {
         var result: [ExportOption] = []
-        for entry in layout {
+        for entry in layout(for: inputs.kind) {
             let reason = unavailableReason(entry.representation, inputs: inputs)
             for format in entry.formats {
                 result.append(ExportOption(representation: entry.representation, format: format,
@@ -125,19 +170,37 @@ enum ExportCatalog {
     static func unavailableReason(_ representation: ExportRepresentation, inputs: ExportInputs) -> String? {
         switch representation {
         case .realistic:
-            if inputs.hasTexture { return nil }
+            let textured = inputs.kind == .house ? inputs.allRoomsTextured : inputs.hasTexture
+            if textured { return nil }
             guard inputs.hasKeyframes else { return Copy.Export.noColor }
             return inputs.isProcessing ? Copy.ExportUI.colorNotReady : Copy.ExportUI.colorMissing
-        case .clean, .data:
+        case .clean:
             return inputs.hasClean ? nil : Copy.ExportUI.noWalls
+        case .data:
+            return dataUnavailableReason(inputs)
         case .raw:
             return inputs.hasMesh ? nil : Copy.ExportUI.noRawScan
         case .floorPlan:
             return inputs.hasPlan ? nil : Copy.Export.noFloorPlan
+        case .object:
+            return inputs.hasObjectModel ? nil : Copy.ExportUI.objectNotReady
         }
     }
 
-    /// Section title of a representation on the sheet.
+    /// The data JSON's reason by kind: the clean model for rooms and houses, the dimensions for
+    /// objects, at least one measurement for Quick Measure.
+    private static func dataUnavailableReason(_ inputs: ExportInputs) -> String? {
+        switch inputs.kind {
+        case .room, .advancedSpace, .house:
+            return inputs.hasClean ? nil : Copy.ExportUI.noWalls
+        case .object, .advancedObject:
+            return inputs.hasObjectDimensions ? nil : Copy.ExportUI.objectNotReady
+        case .quickMeasure:
+            return inputs.measurementCount > 0 ? nil : Copy.Empty.noMeasurements.title
+        }
+    }
+
+    /// Section title of a representation on the sheet; `Copy.Modes.object` for `.object`.
     static func sectionTitle(_ representation: ExportRepresentation) -> String {
         switch representation {
         case .realistic: return Copy.ExportUI.realisticSection
@@ -145,7 +208,16 @@ enum ExportCatalog {
         case .raw: return Copy.ExportUI.rawSection
         case .floorPlan: return Copy.ExportUI.planSection
         case .data: return Copy.ExportUI.dataSection
+        case .object: return Copy.Modes.object
         }
+    }
+
+    /// The (label, detail) of an option: the object USDZ explains itself with
+    /// Copy.ExportUI.objectDetail, everything else uses `label(for:)` of its format.
+    static func label(for option: ExportOption) -> (label: String, detail: String) {
+        let base = label(for: option.format)
+        guard option.representation == .object else { return base }
+        return (base.label, Copy.ExportUI.objectDetail)
     }
 
     /// Explicit switch over ExportFileFormat to its (label, detail), never an index into
@@ -173,10 +245,23 @@ enum ExportCatalog {
         Copy.Export.formats.first(where: { $0.label == key }) ?? (label: key, detail: "")
     }
 
-    /// True when a raw text-format export (OBJ, USDZ) uses the simplified view mesh, so the sheet
-    /// shows Copy.ExportUI.simplifiedNote.
+    /// True when a raw export uses a simplified view mesh, so the sheet shows
+    /// Copy.ExportUI.simplifiedNote: for rooms, a text format (OBJ, USDZ) above
+    /// `textTriangleLimit`; for a House, any room above its share of the whole-house budget
+    /// (`ExportHouse.perRoomLimit` of `rawBudget(for:)`), in every raw format.
     static func isSimplified(_ option: ExportOption, inputs: ExportInputs) -> Bool {
-        option.representation == .raw && isTextFormat(option.format) && inputs.meshTriangles > textTriangleLimit
+        guard option.representation == .raw else { return false }
+        if inputs.kind == .house {
+            let limit = ExportHouse.perRoomLimit(total: rawBudget(for: option.format), rooms: inputs.roomTriangles.count)
+            return inputs.roomTriangles.contains { $0 > limit }
+        }
+        return isTextFormat(option.format) && inputs.meshTriangles > textTriangleLimit
+    }
+
+    /// Whole-house triangle budget of a raw format: `textTriangleLimit` for OBJ and USDZ,
+    /// `ExportHouse.maxBinaryTriangles` for PLY, STL and GLB.
+    static func rawBudget(for format: ExportFileFormat) -> Int {
+        isTextFormat(format) ? textTriangleLimit : ExportHouse.maxBinaryTriangles
     }
 
     /// OBJ and USDZ, whose writers build large text in memory.
@@ -190,8 +275,17 @@ enum ExportCatalog {
     /// Always starts with a letter (Copy.ExportUI.fileNamePrefix is put in front otherwise,
     /// RESEARCH 3.7 gotcha 7); DXF gets "_mm" before the extension (D23).
     static func fileName(project: String, option: ExportOption, date: Date) -> String {
+        fileName(project: project, option: option, date: date, level: nil)
+    }
+
+    /// As `fileName(project:option:date:)`; `level` (1-based) adds `Copy.ExportUI.levelSuffix(level)`
+    /// before the extension of plan files of a multi-level plan; DXF keeps "_mm" last.
+    static func fileName(project: String, option: ExportOption, date: Date, level: Int?) -> String {
         var parts = [sanitized(project, maxLength: 60), sanitized(representationName(option.representation), maxLength: 40),
                      dayStamp(date)]
+        if let level {
+            parts.append(sanitized(Copy.ExportUI.levelSuffix(level), maxLength: 20))
+        }
         parts = parts.filter { !$0.isEmpty }
         if option.format == .dxf { parts.append("mm") }
         var stem = parts.joined(separator: "_")
@@ -222,6 +316,7 @@ enum ExportCatalog {
         case .raw: return Copy.Viewer.raw
         case .floorPlan: return Copy.Viewer.floorPlan
         case .data: return Copy.ExportUI.dataSection
+        case .object: return Copy.Modes.object
         }
     }
 
@@ -267,48 +362,5 @@ enum ExportCatalog {
         formatter.timeZone = TimeZone.current
         formatter.dateFormat = format
         return formatter
-    }
-
-    // MARK: - Inputs
-
-    /// What a project has on disk: texture, keyframes, clean model with rooms, plan with content,
-    /// consolidated mesh, final CapturedRoom, active edits and the largest measured triangle count.
-    /// Reads small files only (decodes clean.json and plan.json). Any thread; call it off main.
-    static func inputs(package: ProjectPackage, manifest: ProjectManifest) -> ExportInputs {
-        let fm = FileManager.default
-        var result = ExportInputs()
-        result.isProcessing = manifest.status == .processing || manifest.status == .needsProcessing
-        for room in manifest.rooms {
-            if TextureStore.exists(package, room: room.id) { result.hasTexture = true }
-            if room.keyframeCount > 0 { result.hasKeyframes = true }
-            if fm.fileExists(atPath: MeshModelStore.measuredURL(package, room: room.id).path) {
-                result.hasMesh = true
-                let triangles = MeshModelStore.loadStats(package, room: room.id)?.triangleCount ?? 0
-                result.meshTriangles = Swift.max(result.meshTriangles, triangles)
-            }
-            if CapturedRoomStore.hasFinalRoom(package, room: room) { result.hasCapturedRoom = true }
-        }
-        if fm.fileExists(atPath: package.cleanModelURL.path) {
-            result.hasClean = ((try? CleanModelStore.loadBase(package))?.rooms.isEmpty == false)
-        }
-        if fm.fileExists(atPath: package.planModelURL.path), let plan = try? PlanModelStore.loadBase(package) {
-            result.hasPlan = plan.levels.contains { !$0.rooms.isEmpty || !$0.walls.isEmpty }
-        }
-        result.hasEdits = !EditStore.load(package).active.isEmpty
-        return result
-    }
-
-    /// `inputs(package:manifest:)` of a project id, nil when the project cannot be read. Any
-    /// thread; call it off main.
-    static func loadInputs(projectID: UUID) -> ExportInputs? {
-        do {
-            let package = try ProjectStore.package(for: projectID)
-            let manifest = try ProjectStore.readManifest(package)
-            return inputs(package: package, manifest: manifest)
-        } catch {
-            LogStore.shared.write("export: project \(projectID.uuidString) unreadable (\(ExportRunner.logDescription(error)))",
-                                  category: ExportRunner.logCategory)
-            return nil
-        }
     }
 }

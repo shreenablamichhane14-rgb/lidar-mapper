@@ -59,3 +59,21 @@ extension Copy {
         static let fileNamePrefix = "Mapper"
     }
 }
+
+/// Build 5 export strings (docs/MODULES.md 3.43d): object exports, multi-floor plan files.
+extension Copy.ExportUI {
+    /// Reason shown for an object's model and data until reconstruction and measuring finish.
+    static let objectNotReady = "Not available yet: the model is still being built"
+
+    /// Explanation of the object USDZ on the sheet.
+    static let objectDetail = "The scanned object as a 3D model for iPhone, iPad and Mac."
+
+    /// File name part of one floor of a multi-floor plan ("Floor2"), before the extension.
+    static func levelSuffix(_ n: Int) -> String { "Floor\(n)" }
+
+    /// Title of one floor's drawing in a multi-floor plan: the project name, then the floor
+    /// ("Maple Street, Floor 2").
+    static func levelPlanName(_ project: String, level: String) -> String {
+        project.isEmpty ? level : "\(project), \(level)"
+    }
+}
