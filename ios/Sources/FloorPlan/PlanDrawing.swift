@@ -10,12 +10,12 @@ struct PlanToggles: Codable, Equatable, Sendable {
     /// Everything on except the grid.
     static let standard = PlanToggles()
 
-    /// Layers removed by the toggles that are off.
+    /// Layers removed by the toggles that are off. Room names also hide the room boundaries.
     var hiddenLayers: Set<String> {
         var hidden = Set<String>()
         if !furniture { hidden.insert(PlanLayers.furniture) }
         if !measurements { hidden.insert(PlanLayers.dimensions) }
-        if !roomNames { hidden.insert(PlanLayers.roomNames) }
+        if !roomNames { hidden.formUnion([PlanLayers.roomNames, PlanLayers.roomBoundaries]) }
         if !doorsWindows { hidden.formUnion([PlanLayers.doors, PlanLayers.doorSwingEstimated, PlanLayers.windows]) }
         if !fixtures { hidden.insert(PlanLayers.fixtures) }
         if !grid { hidden.insert(PlanLayers.grid) }
@@ -58,10 +58,13 @@ enum PlanLayers {
     static let wallsEstimated = "A-WALL-EST"
     /// Scale bar below the plan (`toggles.scale`).
     static let scaleBar = "A-ANNO-SCAL"
+    /// Room edges not covered by a wall, drawn dashed; hidden with the room names (3.37c).
+    static let roomBoundaries = "A-AREA-BNDY"
 
     /// Layer names in drawing order (first is drawn first, underneath).
     static let drawingOrder: [String] = [grid, furniture, fixtures, walls, wallsEstimated, occluded, doors,
-                                         doorSwingEstimated, windows, roomNames, dimensions, notes, scaleBar]
+                                         doorSwingEstimated, windows, roomNames, roomBoundaries, dimensions,
+                                         notes, scaleBar]
 
     /// Every layer with its color, in drawing order.
     static func all() -> [Plan2D.Layer] {
@@ -80,7 +83,7 @@ enum PlanLayers {
         case doors: return SIMD3<Float>(0.05, 0.30, 0.60)
         case doorSwingEstimated: return SIMD3<Float>(0.40, 0.55, 0.75)
         case windows: return SIMD3<Float>(0.00, 0.52, 0.72)
-        case roomNames: return SIMD3<Float>(0.15, 0.15, 0.15)
+        case roomNames, roomBoundaries: return SIMD3<Float>(0.15, 0.15, 0.15)
         case dimensions: return SIMD3<Float>(0.62, 0.12, 0.12)
         case notes: return SIMD3<Float>(0.30, 0.25, 0.45)
         case scaleBar: return SIMD3<Float>(0.10, 0.10, 0.10)
@@ -154,6 +157,10 @@ enum PlanDrawing {
     static let roomTitleHeight: Float = 0.22, roomAreaHeight: Float = 0.16
     /// Annotation text height, meters.
     static let noteTextHeight: Float = 0.15
+    /// An outline edge counts as covered when its midpoint lies within this distance of a wall
+    /// segment of the level (or of its body, the wall offset to its right by its thickness),
+    /// meters.
+    static let boundaryWallSlack: Float = 0.08
 
     /// Labels are formatted here with Units; hidden fixtures are skipped; occluded wall spans go to
     /// `PlanLayers.occluded` as dashed segments; door = gap + leaf line + quarter arc from the hinge;
@@ -170,6 +177,10 @@ enum PlanDrawing {
     /// The grid and the scale bar are placed from the bounds of all content before toggles are
     /// applied, so they do not move when other layers are switched. Hits of elements on hidden
     /// layers are left out.
+    ///
+    /// Rooms (3.37c): one `.room` hit per part (outline and each merged outline, same element),
+    /// the tag drawn once at `labelAt`; part edges that no wall covers (`boundaryWallSlack`)
+    /// are drawn dashed on `PlanLayers.roomBoundaries`.
     static func make(level: PlanLevel, toggles: PlanToggles, prefs: UnitPreferences,
                      roomTitles: [ElementID: String], name: String) -> PlanDrawingResult {
         var sketch = PlanSketch()
@@ -180,12 +191,15 @@ enum PlanDrawing {
             let title = roomTitles[room.id] ?? RoomTitles.title(name: room.name, sectionLabel: nil, index: index)
             let area = AreaFormat.primary(Double(room.area), prefs: prefs)
             drawRoomTag(Copy.FloorPlan.roomTag(name: title, area: area), at: room.labelAt.simd, outline: outline, into: &sketch)
-            hits.append((hit: PlanHit(element: room.id, kind: .room, segment: nil, polygon: outline), layer: nil))
+            for part in PlanBuilder.parts(of: room) {
+                hits.append((hit: PlanHit(element: room.id, kind: .room, segment: nil, polygon: part), layer: nil))
+            }
         }
 
         for wallHit in PlanWallDrawing.draw(level: level, into: &sketch) {
             hits.append((hit: wallHit.hit, layer: wallHit.layer))
         }
+        drawRoomBoundaries(level: level, into: &sketch)
 
         for fixture in level.fixtures where !fixture.isHidden {
             let layer = fixture.isMovable ? PlanLayers.furniture : PlanLayers.fixtures

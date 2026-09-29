@@ -48,7 +48,7 @@ extension FloorPlanSelfTest {
         let toggles: [(name: String, path: WritableKeyPath<PlanToggles, Bool>, layers: [String])] = [
             ("furniture", \.furniture, [PlanLayers.furniture]),
             ("measurements", \.measurements, [PlanLayers.dimensions]),
-            ("roomNames", \.roomNames, [PlanLayers.roomNames]),
+            ("roomNames", \.roomNames, [PlanLayers.roomNames, PlanLayers.roomBoundaries]),
             ("doorsWindows", \.doorsWindows, [PlanLayers.doors, PlanLayers.doorSwingEstimated, PlanLayers.windows]),
             ("fixtures", \.fixtures, [PlanLayers.fixtures]),
             ("grid", \.grid, [PlanLayers.grid]),

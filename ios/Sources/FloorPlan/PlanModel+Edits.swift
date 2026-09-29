@@ -3,7 +3,8 @@ import simd
 
 /// Edit replay on the plan (D3). Operations reference elements by `ElementID`; an operation
 /// whose target is missing returns false and leaves the plan unchanged (orphaned), and an
-/// operation meant for another model returns true unchanged.
+/// operation meant for another model returns true unchanged. The CR-1 operations (move and
+/// resize openings, merge and split rooms, batches) live in `PlanModel+RoomEdits.swift`.
 extension PlanModel: EditApplicable {
     /// Room outline vertices closer than this to a moved wall end move with it, meters.
     static let outlineFollowTolerance: Float = 0.02
@@ -12,7 +13,9 @@ extension PlanModel: EditApplicable {
     /// moveWallEndpoint, addWall, addOpening, setDoorSwing, setWallThickness, addAnnotation,
     /// addDimension, recategorizeObject (fixture category) and moveObject (fixture center and
     /// yaw from the transform). After a wall end moves, the wall's generated dimension follows
-    /// its endpoints and room outline corners at the old end move too (area recomputed).
+    /// its endpoints and room outline corners (merged outlines included) at the old end move
+    /// too (area recomputed). CR-1 (3.37c): moveOpening, resizeOpening, mergeRooms, splitRoom
+    /// and batch (all or nothing).
     mutating func apply(_ op: EditOperation) -> Bool {
         switch op {
         case .renameRoom(let room, let name):
@@ -63,14 +66,21 @@ extension PlanModel: EditApplicable {
             return true
         case .relabelObject, .setScaleCorrection, .setRoomAlignment, .cropObject:
             return true
-        case .moveOpening, .resizeOpening, .mergeRooms, .splitRoom, .batch:
-            // CR-1 stubs (pre-5a Core commit): no behavior until the FloorPlan revision (3.37c).
-            return true
+        case .moveOpening(let opening, let offset):
+            return moveOpening(opening, offset: offset)
+        case .resizeOpening(let opening, let width, _, _):
+            return resizeOpening(opening, width: width)
+        case .mergeRooms(let rooms, let into):
+            return mergeRooms(rooms, into: into)
+        case .splitRoom(let room, let line, let newRoom):
+            return splitRoom(room, line: line, newRoom: newRoom)
+        case .batch(let operations):
+            return applyBatch(operations)
         }
     }
 
     /// Index of the level with floor index `id`.
-    private func levelIndex(_ id: Int) -> Int? {
+    func levelIndex(_ id: Int) -> Int? {
         levels.firstIndex { $0.id == id }
     }
 
@@ -90,7 +100,7 @@ extension PlanModel: EditApplicable {
     }
 
     /// Applies `change` to the room with this id; false when there is none.
-    private mutating func updateRoom(_ id: ElementID, _ change: (inout PlanRoom) -> Void) -> Bool {
+    mutating func updateRoom(_ id: ElementID, _ change: (inout PlanRoom) -> Void) -> Bool {
         for li in levels.indices {
             if let ri = levels[li].rooms.firstIndex(where: { $0.id == id }) {
                 change(&levels[li].rooms[ri])
@@ -112,7 +122,7 @@ extension PlanModel: EditApplicable {
     }
 
     /// Applies `change` to the wall with this id; false when there is none.
-    private mutating func updateWall(_ id: ElementID, _ change: (inout PlanWall) -> Void) -> Bool {
+    mutating func updateWall(_ id: ElementID, _ change: (inout PlanWall) -> Void) -> Bool {
         for li in levels.indices {
             if let wi = levels[li].walls.firstIndex(where: { $0.id == id }) {
                 change(&levels[li].walls[wi])
@@ -123,7 +133,7 @@ extension PlanModel: EditApplicable {
     }
 
     /// Applies `change` to the opening with this id; false when there is none.
-    private mutating func updateOpening(_ id: ElementID, _ change: (inout PlanOpening) -> Void) -> Bool {
+    mutating func updateOpening(_ id: ElementID, _ change: (inout PlanOpening) -> Void) -> Bool {
         for li in levels.indices {
             if let oi = levels[li].openings.firstIndex(where: { $0.id == id }) {
                 change(&levels[li].openings[oi])
@@ -164,7 +174,8 @@ extension PlanModel: EditApplicable {
     }
 
     /// Moves one end of a wall. The wall's generated dimension follows its endpoints, and room
-    /// outline corners at the old end move with it (the room area is recomputed).
+    /// outline and merged-outline corners at the old end move with it (the room area becomes
+    /// `PlanBuilder.totalArea`, the label point follows the outline).
     private mutating func moveWallEndpoint(_ id: ElementID, atStart: Bool, to point: Vec2) -> Bool {
         guard point.x.isFinite, point.y.isFinite else { return contains(id) }
         for li in levels.indices {
@@ -195,9 +206,19 @@ extension PlanModel: EditApplicable {
                     level.rooms[ri].outline[pi] = point
                     moved = true
                 }
+                if var merged = level.rooms[ri].mergedOutlines {
+                    for part in merged.indices {
+                        for pi in merged[part].indices
+                        where simd_distance(merged[part][pi].simd, old.simd) <= PlanModel.outlineFollowTolerance {
+                            merged[part][pi] = point
+                            moved = true
+                        }
+                    }
+                    level.rooms[ri].mergedOutlines = merged
+                }
                 if moved {
                     let outline = level.rooms[ri].outline.map { $0.simd }
-                    level.rooms[ri].area = Polygon2D(points: outline).area
+                    level.rooms[ri].area = PlanBuilder.totalArea(level.rooms[ri])
                     level.rooms[ri].labelAt = Vec2(PlanBuilder.interiorPoint(of: outline))
                 }
             }
