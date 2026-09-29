@@ -62,6 +62,7 @@ enum GeometrySelfTest {
     static func run() -> [String] {
         let r = Recorder()
         polygonCases(r)
+        clipCases(r)
         segmentCases(r)
         eigenAndPlaneCases(r)
         boxCases(r)
@@ -325,6 +326,46 @@ enum GeometrySelfTest {
         r.check("bvh.nearestMatchesBruteForce", nearMismatches == 0, "\(nearMismatches) of 100 points differ")
         r.check("bvh.nearestOutOfRangeNil", cubeTree.nearestPoint(to: SIMD3<Float>(5, 5, 5), maxDistance: 1) == nil, "")
         r.near("bvh.nearestCube", cubeTree.nearestPoint(to: SIMD3<Float>(0.5, 3, 0.5), maxDistance: 10)?.distance, 2, 1e-6)
+    }
+
+    /// CR-1: `Polygon2D.clipped(leftOf:_:)` against one half-plane.
+    private static func clipCases(_ r: Recorder) {
+        let rectangle = Polygon2D(points: [SIMD2<Float>(0, 0), SIMD2<Float>(4, 0), SIMD2<Float>(4, 5), SIMD2<Float>(0, 5)])
+        let lineStart = SIMD2<Float>(0, 2)
+        let lineEnd = SIMD2<Float>(1, 2)
+        let above = rectangle.clipped(leftOf: lineStart, lineEnd)
+        let below = rectangle.clipped(leftOf: lineEnd, lineStart)
+        r.near("clip.rectangleLeft", above.area, 12, 1e-4)
+        r.near("clip.rectangleRight", below.area, 8, 1e-4)
+        let aboveLowest: Float = above.points.map { $0.y }.min() ?? -1
+        let belowHighest: Float = below.points.map { $0.y }.max() ?? -1
+        let aboveOnLine: Bool = abs(aboveLowest - Float(2)) < Float(1e-5)
+        let belowOnLine: Bool = abs(belowHighest - Float(2)) < Float(1e-5)
+        r.check("clip.rectangleSides", aboveOnLine && belowOnLine, "\(aboveLowest) \(belowHighest)")
+        r.check("clip.keepsWinding", !above.isClockwise && !below.isClockwise)
+
+        let missStart = SIMD2<Float>(0, 7)
+        let missEnd = SIMD2<Float>(1, 7)
+        let whole = rectangle.clipped(leftOf: missEnd, missStart)
+        let nothing = rectangle.clipped(leftOf: missStart, missEnd)
+        r.check("clip.missWhole", whole == rectangle, "\(whole.points.count) points")
+        r.check("clip.missEmpty", nothing.points.isEmpty, "\(nothing.points.count) points")
+        let onEdge = rectangle.clipped(leftOf: SIMD2<Float>(4, 0), SIMD2<Float>(0, 0))
+        r.check("clip.edgeOnLineEmpty", onEdge.points.isEmpty, "\(onEdge.points.count) points")
+
+        // An L whose two arms the line cuts: the far side is two pieces in one ring.
+        let ell = Polygon2D(points: [SIMD2<Float>(0, 0), SIMD2<Float>(4, 0), SIMD2<Float>(4, 1),
+                                     SIMD2<Float>(1, 1), SIMD2<Float>(1, 4), SIMD2<Float>(0, 4)])
+        let cutStart = SIMD2<Float>(2.5, 0)
+        let cutEnd = SIMD2<Float>(0, 2.5)
+        let corner = ell.clipped(leftOf: cutStart, cutEnd)
+        let arms = ell.clipped(leftOf: cutEnd, cutStart)
+        r.near("clip.ellCorner", corner.area, 3, 1e-4)
+        r.near("clip.ellArms", arms.area, 4, 1e-4)
+        r.near("clip.ellTotal", corner.area + arms.area, ell.area, 1e-4)
+
+        let point = SIMD2<Float>(1, 1)
+        r.check("clip.degenerateLineEmpty", rectangle.clipped(leftOf: point, point).points.isEmpty)
     }
 
     private static func snapCases(_ r: Recorder) {

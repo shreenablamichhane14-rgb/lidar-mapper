@@ -194,6 +194,44 @@ extension StoreSelfTest {
         }
     }
 
+    /// CR-1: EditStore.reset keeps the chosen operations in order, drops the redo tail, raises
+    /// the revision, and writes nothing when nothing changes.
+    static func editResetChecks(_ t: Checks, base: URL) {
+        do {
+            let (package, _) = try makePackage(in: base, created: 0)
+            let fresh = try EditStore.reset(package) { _ in false }
+            t.check("editReset.emptyNotWritten", fresh == EditLog() && !StoreFiles.exists(package.editLogURL))
+
+            let den = ElementID(uuid: fixedID(61))
+            let rename = EditOperation.renameRoom(room: den, name: "Den")
+            let move = EditOperation.moveOpening(opening: ElementID(uuid: fixedID(62)), offset: 0.5)
+            let hide = EditOperation.setHidden(element: ElementID(uuid: fixedID(63)), hidden: true)
+            let merge = EditOperation.batch(operations: [.mergeRooms(rooms: [ElementID(uuid: fixedID(64))], into: den), rename])
+            for op in [rename, move, hide, merge] {
+                try EditStore.append(op, to: package)
+            }
+            let undone = try EditStore.undo(package)
+            let kept = try EditStore.reset(package) { op in
+                if case .renameRoom = op { return true }
+                if case .setHidden = op { return true }
+                return false
+            }
+            t.check("editReset.keepsChosen", kept.operations == [rename, hide] && kept.cursor == 2 && !kept.canRedo,
+                    "\(kept.operations.count) operations, cursor \(kept.cursor)")
+            t.check("editReset.raisesRevision", undone.revision == 5 && kept.revision == 6, "\(kept.revision)")
+            t.check("editReset.written", EditStore.load(package) == kept)
+
+            let encodedLog = try ProjectStore.encoder.encode(kept)
+            let marked = Data(" ".utf8) + encodedLog
+            try marked.write(to: package.editLogURL)
+            let same = try EditStore.reset(package) { _ in true }
+            let bytes = try? Data(contentsOf: package.editLogURL)
+            t.check("editReset.unchangedNotWritten", same == kept && bytes == marked)
+        } catch {
+            t.fail("editReset", error)
+        }
+    }
+
     /// StorageUsage over known file sizes.
     static func usageChecks(_ t: Checks, base: URL) {
         do {

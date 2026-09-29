@@ -61,6 +61,9 @@ extension CleanModel: EditApplicable {
             return true
         case .setRoomAlignment, .cropObject, .addAnnotation, .addDimension:
             return true
+        case .moveOpening, .resizeOpening, .mergeRooms, .splitRoom, .batch:
+            // CR-1 stubs (pre-5a Core commit): no behavior until the RoomModel revision (3.37b).
+            return true
         }
     }
 

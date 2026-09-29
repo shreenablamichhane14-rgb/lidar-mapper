@@ -230,4 +230,47 @@ struct Polygon2D: Equatable {
         }
         return Polygon2D(points: result)
     }
+
+    /// The part of the ring on the left of the directed line through `a` and `b` (points on
+    /// the line count as inside): Sutherland-Hodgman against one half-plane (CR-1, used by
+    /// RoomModel and FloorPlan to split rooms with the same arithmetic). The ring keeps its
+    /// winding. For a concave ring cut into several pieces the result is one ring whose pieces
+    /// are joined along the line by zero-width edges; its area is still the area of the
+    /// pieces. Empty when nothing is on the left, when `a == b`, or when the ring has fewer
+    /// than 3 points.
+    func clipped(leftOf a: SIMD2<Float>, _ b: SIMD2<Float>) -> Polygon2D {
+        let direction = b - a
+        guard points.count >= 3, direction != .zero else { return Polygon2D(points: []) }
+        /// Twice the signed area of (a, b, p): positive on the left of a -> b, zero on the line.
+        func side(_ p: SIMD2<Float>) -> Float {
+            direction.x * (p.y - a.y) - direction.y * (p.x - a.x)
+        }
+        let sides = points.map(side)
+        guard sides.contains(where: { $0 > 0 }) else { return Polygon2D(points: []) }
+        if sides.allSatisfy({ $0 >= 0 }) { return self }
+        var result: [SIMD2<Float>] = []
+        result.reserveCapacity(points.count + 2)
+        var previous = points[points.count - 1]
+        var previousSide = sides[points.count - 1]
+        for (i, current) in points.enumerated() {
+            let currentSide = sides[i]
+            let entering: Bool = previousSide < 0 && currentSide > 0
+            let leaving: Bool = previousSide > 0 && currentSide < 0
+            let crosses: Bool = entering || leaving
+            if crosses {
+                let t: Float = previousSide / (previousSide - currentSide)
+                let crossing: SIMD2<Float> = previous + (current - previous) * t
+                if result.last != crossing { result.append(crossing) }
+            }
+            if currentSide >= 0 && result.last != current {
+                result.append(current)
+            }
+            previous = current
+            previousSide = currentSide
+        }
+        if result.count >= 2, let first = result.first, result.last == first {
+            result.removeLast()
+        }
+        return result.count >= 3 ? Polygon2D(points: result) : Polygon2D(points: [])
+    }
 }

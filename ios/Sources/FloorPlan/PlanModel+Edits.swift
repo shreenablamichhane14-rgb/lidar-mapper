@@ -63,6 +63,9 @@ extension PlanModel: EditApplicable {
             return true
         case .relabelObject, .setScaleCorrection, .setRoomAlignment, .cropObject:
             return true
+        case .moveOpening, .resizeOpening, .mergeRooms, .splitRoom, .batch:
+            // CR-1 stubs (pre-5a Core commit): no behavior until the FloorPlan revision (3.37c).
+            return true
         }
     }
 

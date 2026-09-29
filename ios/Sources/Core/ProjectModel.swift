@@ -99,6 +99,12 @@ struct RoomRecord: Codable, Equatable, Identifiable, Sendable {
     var capturedAt: Date
     /// Coordinate frame of this room's capture (D9).
     var frameLink: FrameLink
+    /// The room that replaced this capture after a Rescan (HouseUI, build 5, CR-7); nil while
+    /// this capture is current. A superseded room keeps its sealed raw folder and its record;
+    /// house models, processing plans, the room list, Results and exports leave it out. Build 6
+    /// Free up space may offer to remove it (D6). Build 4 manifests have no such key and decode
+    /// with nil (the synthesized coder uses `decodeIfPresent` for optionals).
+    var supersededBy: UUID? = nil
 }
 
 /// State of a room or object. Raw values are persisted.

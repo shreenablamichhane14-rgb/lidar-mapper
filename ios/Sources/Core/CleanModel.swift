@@ -47,6 +47,14 @@ struct CleanRoom: Codable, Equatable, Identifiable, Sendable {
 }
 
 /// One wall: a vertical rectangle from `start` to `end` at floor level, `height` tall.
+///
+/// Orientation invariant from build 5 (RoomModel 3.37b, documented by CR-1): the room is on the
+/// left of `start` -> `end` in plan coordinates (`PlanAxes`) and `normal` is that left
+/// perpendicular, for loop and stray walls alike. FloorPlan copies start -> end to `PlanWall.a`
+/// -> `b` unchanged, so `EditOperation.moveWallEndpoint(atStart:)`, `offsetAlongWall` /
+/// `PlanOpening.offset` and `DoorSwing.hingeAtStart` mean the same end in both models. Clean
+/// models built before that revision may hold stray walls whose normal is the right
+/// perpendicular; they are rebuilt when their project is next processed.
 struct CleanWall: Codable, Equatable, Identifiable, Sendable {
     /// Element identifier.
     var id: ElementID
@@ -56,7 +64,8 @@ struct CleanWall: Codable, Equatable, Identifiable, Sendable {
     var end: Vec3
     /// Height, meters.
     var height: Float
-    /// Horizontal unit normal pointing into the room.
+    /// Horizontal unit normal pointing into the room: the left perpendicular of `start` -> `end`
+    /// in plan coordinates (see the orientation invariant above).
     var normal: Vec3
     /// Thickness, meters.
     var thickness: Float
@@ -78,14 +87,20 @@ struct CleanWall: Codable, Equatable, Identifiable, Sendable {
 }
 
 /// Arc of a curved wall (RoomPlan `Surface.Curve`, angles in radians).
+///
+/// Convention (build 4 RoomModel, written down by CR-1): `center` is a world point at the
+/// wall's base height; `startAngle < endAngle`, both measured counter-clockwise from plan +x
+/// (`PlanAxes`) around the center's plan point; the wall covers the angles from `startAngle` to
+/// `endAngle`, and its `start` and `end` lie on the arc in either order, so reversing a wall
+/// (swapping start and end) leaves its arc unchanged.
 struct WallArc: Codable, Equatable, Sendable {
-    /// Arc center, world meters.
+    /// Arc center, world meters, at the wall's base height.
     var center: Vec3
     /// Radius, meters.
     var radius: Float
-    /// Start angle, radians.
+    /// Start angle, radians counter-clockwise from plan +x; less than `endAngle`.
     var startAngle: Float
-    /// End angle, radians.
+    /// End angle, radians counter-clockwise from plan +x; greater than `startAngle`.
     var endAngle: Float
 }
 
@@ -138,6 +153,11 @@ struct CleanFloor: Codable, Equatable, Sendable {
     var occludedArea: Float
     /// Where the elevation came from (D13).
     var provenance: Provenance
+    /// Outlines of rooms merged into this one (CR-1 `mergeRooms`) or pieces of a split, plan
+    /// meters, counter-clockwise. Nil for every room RoomModel builds, so build 4 JSON is
+    /// unchanged (the synthesized coder skips a nil optional and decodes a missing key as nil).
+    /// Never made non-optional: old projects must decode.
+    var mergedOutlines: [[Vec2]]? = nil
 }
 
 /// Ceiling of a room.

@@ -57,6 +57,17 @@ enum EditStore {
         }
     }
 
+    /// `EditLog.reset(keeping:)` under the edits lock (Reset to Scan, CR-1): keeps the active
+    /// operations for which `keep` is true and drops the rest and the redo tail. Written like
+    /// `append` and not written when nothing changed; posts `.mapperEditsDidChange` after a
+    /// write. Throws without writing when an existing log cannot be read.
+    @discardableResult
+    static func reset(_ package: ProjectPackage, keeping keep: (EditOperation) -> Bool) throws -> EditLog {
+        try change(package) { log in
+            log.reset(keeping: keep)
+        }
+    }
+
     /// Saved measurements; empty when absent or unreadable (logged).
     static func loadMeasurements(_ package: ProjectPackage) -> [MeasurementRecord] {
         locked { () -> [MeasurementRecord] in

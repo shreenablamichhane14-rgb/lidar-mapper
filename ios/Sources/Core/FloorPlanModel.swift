@@ -49,17 +49,22 @@ struct PlanRoom: Codable, Equatable, Identifiable, Sendable {
     var outline: [Vec2]
     /// Where the name and area label is drawn.
     var labelAt: Vec2
-    /// Floor area, square meters.
+    /// Floor area, square meters: the total of `outline` and every merged outline.
     var area: Float
+    /// Outlines of rooms merged into this one (CR-1 `mergeRooms`) or pieces of a split, plan
+    /// meters, counter-clockwise, as `CleanFloor.mergedOutlines`. Nil for every room the plan
+    /// builder makes from an unedited model, so build 4 JSON is unchanged and decodes with nil.
+    var mergedOutlines: [[Vec2]]? = nil
 }
 
 /// A wall centerline on the plan.
 struct PlanWall: Codable, Equatable, Identifiable, Sendable {
     /// Same identifier as the `CleanWall` (or a new one for user-drawn walls).
     var id: ElementID
-    /// Start point, plan meters.
+    /// Start point, plan meters (the clean wall's `start`, see the `CleanWall` orientation
+    /// invariant).
     var a: Vec2
-    /// End point, plan meters.
+    /// End point, plan meters (the clean wall's `end`).
     var b: Vec2
     /// Thickness, meters.
     var thickness: Float

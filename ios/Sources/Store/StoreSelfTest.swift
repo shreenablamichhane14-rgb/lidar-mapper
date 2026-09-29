@@ -24,6 +24,7 @@ enum StoreSelfTest {
         discardRoomChecks(checks, base: base)
         manifestChecks(checks, base: base)
         editChecks(checks, base: base)
+        editResetChecks(checks, base: base)
         usageChecks(checks, base: base)
         return checks.failures
     }

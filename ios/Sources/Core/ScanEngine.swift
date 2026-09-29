@@ -47,6 +47,13 @@ struct MinimapSnapshot: Codable, Equatable, Sendable {
     var cells: [UInt8]
     /// Wall polylines detected so far, plan meters.
     var walls: [[Vec2]]
+    /// Camera position on the plan when the map was made, plan meters; nil when unknown (CR-8,
+    /// the minimap's "you are here" marker). Older recordings have no such key and decode
+    /// with nil.
+    var camera: Vec2? = nil
+    /// Camera heading on the plan, radians counter-clockwise from plan +x; nil when unknown
+    /// (CR-8). Older recordings have no such key and decode with nil.
+    var heading: Float? = nil
 
     /// Cell state at column x, row y; `.empty` outside the grid or for unknown codes.
     func cell(x: Int, y: Int) -> MinimapCell {
