@@ -107,12 +107,13 @@ enum PlanEditorPresentation {
 
     /// The snap line for a snapped point, nil when nothing snapped.
     static func snapText(_ kind: PlanSnapKind?) -> String? {
+        guard let kind else { return nil }
         switch kind {
-        case .endpoint?: return Copy.PlanEditor.snappedEnd
-        case .wall?: return Copy.PlanEditor.snappedWall
-        case .angle?: return Copy.PlanEditor.snappedAngle
-        case .grid?: return Copy.PlanEditor.snappedGrid
-        case .none?, nil: return nil
+        case .endpoint: return Copy.PlanEditor.snappedEnd
+        case .wall: return Copy.PlanEditor.snappedWall
+        case .angle: return Copy.PlanEditor.snappedAngle
+        case .grid: return Copy.PlanEditor.snappedGrid
+        case .none: return nil
         }
     }
 

@@ -87,7 +87,7 @@ enum PlanEditorSnapping {
     /// through plan (0, 0). `.none` (p unchanged) when `enabled` is false.
     static func snap(_ p: SIMD2<Float>, anchor: SIMD2<Float>?, targets: PlanSnapTargets, radius: Float,
                      grid: Float, enabled: Bool) -> PlanSnapResult {
-        guard enabled, PlanEditorOps.isFinite(p) else { return PlanSnapResult(point: p, kind: .none) }
+        guard enabled, PlanEditorOps.isFinite(p) else { return PlanSnapResult(point: p, kind: PlanSnapKind.none) }
         let limit: Float = radius.isFinite ? max(0, radius) : 0
         if let end = nearest(targets.endpoints, to: p), simd_distance(end, p) <= limit {
             return PlanSnapResult(point: end, kind: .endpoint)
@@ -107,7 +107,7 @@ enum PlanEditorSnapping {
         if let anchor, let turned = angleSnap(p, anchor: anchor, axis: axis, grid: grid) {
             return PlanSnapResult(point: turned, kind: .angle)
         }
-        guard grid.isFinite, grid > 0 else { return PlanSnapResult(point: p, kind: .none) }
+        guard grid.isFinite, grid > 0 else { return PlanSnapResult(point: p, kind: PlanSnapKind.none) }
         let normal = SIMD2<Float>(-axis.y, axis.x)
         let along = (simd_dot(p, axis) / grid).rounded() * grid
         let across = (simd_dot(p, normal) / grid).rounded() * grid

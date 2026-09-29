@@ -75,8 +75,8 @@ extension PlanEditorModel {
             }
             finishAdd(.splitRoom(room, a: first, b: Vec2(snapped), newRoom: ElementID()), select: room)
         case .mergeRooms(let into):
-            let rooms = (drawing?.hits ?? []).filter { $0.kind == .room }
-            guard let hit = PlanDrawing.hitTest(rooms, at: point, tolerance: tolerance), hit.element != into else { return }
+            let roomHits = (drawing?.hits ?? []).filter { $0.kind == .room }
+            guard let hit = PlanDrawing.hitTest(roomHits, at: point, tolerance: tolerance), hit.element != into else { return }
             var rooms = mergeSelection
             if let index = rooms.firstIndex(of: hit.element) {
                 rooms.remove(at: index)
@@ -179,7 +179,9 @@ extension PlanEditorModel {
 
     /// For the selection, or the add commands when nothing is selected.
     var commands: [PlanEditorCommand] {
-        guard let item = selectedItem else { return [.addWall, .addMeasurement, .addText, .addSymbol, .addNote] }
+        guard let item = selectedItem else {
+            return [.addWall, .addDoor, .addWindow, .addOpening, .addMeasurement, .addText, .addSymbol, .addNote]
+        }
         switch item {
         case .wall(let wall):
             if wall.arc != nil { return [.wallThickness, .deleteWall] }

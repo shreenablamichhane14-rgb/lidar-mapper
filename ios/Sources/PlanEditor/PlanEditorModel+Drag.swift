@@ -143,7 +143,7 @@ extension PlanEditorModel {
                   let frame = PlanEditorOps.unitFrame(wall) else { return nil }
             let raw = simd_dot(point - start, frame.n)
             let distance = PlanEditorSnapping.snapDistance(raw, grid: grid, enabled: snappingEnabled)
-            showSnap(snappingEnabled ? .grid : .none)
+            showSnap(snappingEnabled ? PlanSnapKind.grid : PlanSnapKind.none)
             return .moveWall(id, by: distance)
         case .opening(let id, let grabOffset):
             guard let opening = level.openings.first(where: { $0.id == id }),
@@ -151,7 +151,7 @@ extension PlanEditorModel {
                   let frame = PlanEditorOps.unitFrame(wall) else { return nil }
             let raw = simd_dot(point - wall.a.simd, frame.u) - grabOffset
             let offset = PlanEditorSnapping.snapDistance(raw, grid: grid, enabled: snappingEnabled)
-            showSnap(snappingEnabled ? .grid : .none)
+            showSnap(snappingEnabled ? PlanSnapKind.grid : PlanSnapKind.none)
             return .moveOpening(id, offset: offset)
         case .fixture(let id, let grabOffset):
             guard let fixture = level.fixtures.first(where: { $0.id == id }) else { return nil }

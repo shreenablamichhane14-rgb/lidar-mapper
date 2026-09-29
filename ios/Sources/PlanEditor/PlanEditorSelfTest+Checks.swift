@@ -86,7 +86,7 @@ extension PlanEditorSelfTest {
         log.expect("28 grid 1 inch in the axis frame", imperial.kind == .grid && simd_distance(imperial.point, expected) < 1e-4,
                    "\(imperial)")
         let off2 = PlanEditorSnapping.snap(free, anchor: anchor, targets: targets, radius: radius, grid: grid, enabled: false)
-        log.expect("28 snapping off gives none", off2.kind == .none && off2.point == free)
+        log.expect("28 snapping off gives none", off2.kind == PlanSnapKind.none && off2.point == free)
         log.near("28 snapDistance rounds to the grid", PlanEditorSnapping.snapDistance(0.234, grid: grid, enabled: true), 0.2)
         let metricPrefs = UnitPreferences(system: .metric, fraction: .eighth, showBoth: false)
         log.near("28 metric grid step", PlanEditorSnapping.gridStep(metricPrefs), 0.1)

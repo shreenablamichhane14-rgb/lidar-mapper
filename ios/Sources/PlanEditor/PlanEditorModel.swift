@@ -367,7 +367,8 @@ struct PlanEditorLoadResult: Sendable {
         if let id = selection, let level = committedLevel, !PlanEditorModel.levelContains(level, id) {
             selection = nil
         }
-        mergeSelection = mergeSelection.filter { id in committedLevel?.rooms.contains { $0.id == id } ?? false }
+        let roomIDs = Set((committedLevel?.rooms ?? []).map { $0.id })
+        mergeSelection = mergeSelection.filter { roomIDs.contains($0) }
         redraw()
         if refit || fitBounds == nil { self.refit() }
     }
@@ -426,9 +427,8 @@ struct PlanEditorLoadResult: Sendable {
 
     /// True when any element of the level has this id.
     static func levelContains(_ level: PlanLevel, _ id: ElementID) -> Bool {
-        level.rooms.contains { $0.id == id } || level.walls.contains { $0.id == id }
-            || level.openings.contains { $0.id == id } || level.fixtures.contains { $0.id == id }
-            || level.annotations.contains { $0.id == id } || level.dimensions.contains { $0.id == id }
+        if level.rooms.contains(where: { $0.id == id }) { return true }
+        return PlanEditorOps.isDeletable(id, in: level)
     }
 
     /// Writes one line to the app log (category "planeditor").
