@@ -59,8 +59,8 @@ enum CleanModelBuilder {
             walls.append(cleanWall(segment, inLoop: inLoop, reference: reference, geometry: geometry, options: options))
         }
         if outsideLoop > 0 {
-            LogStore.shared.write("room \(recordID): \(reversedCount) of \(outsideLoop) walls outside the loop reversed (room on the left)",
-                                  category: RoomOutline.logCategory)
+            let message = "room \(recordID): \(reversedCount) of \(outsideLoop) walls outside the loop reversed (room on the left)"
+            LogStore.shared.write(message, category: RoomOutline.logCategory)
         }
 
         let ceiling = ceilingFor(segments: segments, polygon: polygon, floorY: floorLevel.elevation, mesh: mesh,

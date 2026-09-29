@@ -23,6 +23,9 @@ extension CleanModel {
         static let outlineFollowDistance: Float = 0.001
         /// Split line points closer than this coincide, meters.
         static let coincidentPoints: Float = 1e-6
+        /// Split pieces smaller than this are rounding slivers (a part touching the line) and
+        /// are dropped, square meters.
+        static let sliverArea: Float = 1e-4
     }
 
     // MARK: - Openings
@@ -77,7 +80,8 @@ extension CleanModel {
             opening.sillHeight = heights.sill
             opening.headHeight = heights.head
         } else {
-            log("resizeOpening \(id.uuid): heights \(sillHeight) to \(headHeight) invalid; kept \(opening.sillHeight) to \(opening.headHeight)")
+            log("resizeOpening \(id.uuid): heights \(sillHeight) to \(headHeight) invalid; "
+                + "kept \(opening.sillHeight) to \(opening.headHeight)")
         }
         opening.provenance = .user
         rooms[at.room].openings[at.index] = opening
@@ -125,6 +129,7 @@ extension CleanModel {
         for id in merged where roomIndex(id) == nil { return false }
         var model = self
         var seen: Set<ElementID> = [into]
+        var mergedCount = 0
         for id in merged {
             guard seen.insert(id).inserted else {
                 log("mergeRooms: \(id.uuid) listed twice or equal to the target; skipped")
@@ -139,7 +144,8 @@ extension CleanModel {
             }
             let ceilingGap = abs(room.ceiling.height - host.ceiling.height)
             if ceilingGap > RoomEditLimits.ceilingDifferenceLog {
-                log("mergeRooms: ceilings of \(id.uuid) and \(into.uuid) differ by \(ceilingGap) m; keeping \(host.ceiling.height) m")
+                log("mergeRooms: ceilings of \(id.uuid) and \(into.uuid) differ by \(ceilingGap) m; "
+                    + "keeping \(host.ceiling.height) m")
             }
             var outlines = host.floor.mergedOutlines ?? []
             if room.floor.outline.count >= 3 { outlines.append(room.floor.outline) }
@@ -149,7 +155,9 @@ extension CleanModel {
             model.rooms[target].objects.append(contentsOf: room.objects)
             if !outlines.isEmpty { model.rooms[target].floor.mergedOutlines = outlines }
             model.rooms.remove(at: source)
+            mergedCount += 1
         }
+        guard mergedCount > 0 else { return true }
         if let target = model.roomIndex(into) { model.refresh(target) }
         self = model
         return true
@@ -234,14 +242,19 @@ extension CleanModel {
         return true
     }
 
-    /// The non-empty pieces of `parts` on the left of the directed line a -> b, one per part
+    /// The pieces of `parts` on the left of the directed line a -> b, one per part
     /// (`Polygon2D.clipped(leftOf:_:)`; a concave part cut into several pieces stays one ring
-    /// joined along the line).
+    /// joined along the line). Empty results and rounding slivers under
+    /// `RoomEditLimits.sliverArea` (a part lying on the other side and touching the line) are
+    /// dropped.
     static func splitPieces(_ parts: [[SIMD2<Float>]], leftOf a: SIMD2<Float>, _ b: SIMD2<Float>) -> [[SIMD2<Float>]] {
-        parts.compactMap { part in
+        var pieces: [[SIMD2<Float>]] = []
+        for part in parts {
             let piece = Polygon2D(points: part).clipped(leftOf: a, b)
-            return piece.points.count >= 3 ? piece.points : nil
+            guard piece.points.count >= 3, piece.area >= RoomEditLimits.sliverArea else { continue }
+            pieces.append(piece.points)
         }
+        return pieces
     }
 
     /// Summed polygon area of rings, square meters.

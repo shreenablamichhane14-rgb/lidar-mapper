@@ -89,11 +89,11 @@ extension RoomModelSelfTest {
             c.check("b5.leftNormal.\(fixture.name)", allLeft, "\(room.walls.count) walls")
         }
 
-        let open = build(F.openLoop())
-        let westWall = open.walls.first { $0.id == wid(4) }
+        let openRoom = build(F.openLoop())
+        let westWall = openRoom.walls.first { $0.id == wid(4) }
         let westStart = westWall.map { PlanAxes.toPlan($0.start.simd) } ?? .zero
-        let facing = open.walls.allSatisfy { normalPointsInside($0, open.floor.outline) }
-        c.check("b5.openLoopReversedFacesRoom", near(westStart, [0, 4], 1e-3) && facing && open.walls.count == 3,
+        let facing = openRoom.walls.allSatisfy { normalPointsInside($0, openRoom.floor.outline) }
+        c.check("b5.openLoopReversedFacesRoom", near(westStart, [0, 4], 1e-3) && facing && openRoom.walls.count == 3,
                 "west wall starts at \(westStart)")
 
         let arc = WallArc(center: Vec3(x: 2, y: 0, z: -4), radius: 2, startAngle: 0, endAngle: Float.pi)
@@ -318,12 +318,13 @@ extension RoomModelSelfTest {
         c.check("b5.batchOrphanedWhole", base.applyingEdits(orphanLog).orphaned.count == 1)
 
         var drawn = base
-        let userWall = PlanWall(id: ElementID(uuid: F.uuid(520)), a: Vec2(x: 5, y: 1), b: Vec2(x: 5, y: 3), thickness: 0.1,
+        let userWall = PlanWall(id: ElementID(uuid: F.uuid(520)), a: Vec2(x: 5, y: 3), b: Vec2(x: 5, y: 1), thickness: 0.1,
                                 thicknessSource: .user, arc: nil, provenance: .user, occludedSpans: [])
         let drawnOK = drawn.apply(.addWall(wall: userWall, level: 0))
         let added = drawn.rooms.first?.walls.first { $0.id == userWall.id }
         let addedStart = added.map { PlanAxes.toPlan($0.start.simd) } ?? .zero
-        c.check("b5.addWallKeepsEndsLeftNormal", drawnOK && near(addedStart, [5, 1], 1e-5) && (added.map { hasLeftNormal($0) } ?? false))
+        let addedLeft = added.map { hasLeftNormal($0) } ?? false
+        c.check("b5.addWallKeepsEndsLeftNormal", drawnOK && near(addedStart, [5, 3], 1e-5) && addedLeft, "\(addedStart)")
 
         c.check("b5.rulesVersion", CleanModelStep.rulesVersion == "cleanModel-rules=2", CleanModelStep.rulesVersion)
     }
