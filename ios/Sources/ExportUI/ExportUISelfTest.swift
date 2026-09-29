@@ -98,6 +98,8 @@ enum ExportUISelfTest {
         log.expect("label.json", ExportCatalog.label(for: .json).label == "JSON", ExportCatalog.label(for: .json).label)
         log.expect("label.glbIsGLTF", ExportCatalog.label(for: .glb).label == "glTF")
         log.expect("label.plyDetail", ExportCatalog.label(for: .ply).detail == Copy.ExportUI.plyDetail)
+        log.expect("label.dxfMillimeters", ExportCatalog.label(for: .dxf).detail == Copy.ExportUI.dxfDetail
+                   && ExportCatalog.label(for: .dxf).label == "DXF")
 
         let dxfName = ExportCatalog.fileName(project: "Kitchen", option: option(.floorPlan, .dxf), date: F.date)
         log.expect("name.dxfMillimeters", dxfName.hasSuffix("_mm.dxf") && dxfName.hasPrefix("Kitchen_Floor_Plan_"), dxfName)

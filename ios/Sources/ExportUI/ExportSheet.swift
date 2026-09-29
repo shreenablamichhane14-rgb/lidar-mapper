@@ -189,16 +189,17 @@ struct ExportSheet: View {
             Toggle(Copy.Export.includeMeasurements, isOn: $settings.includeMeasurements)
         }
         if representation == .floorPlan {
-            unitsPicker
+            unitsPicker(title: option.format == .dxf ? Copy.ExportUI.labelUnits : Copy.Export.units)
         }
         if option.format == .pdf {
             paperPicker
         }
     }
 
-    /// Units of plan labels: the app setting, feet and inches, or metric.
-    private var unitsPicker: some View {
-        Picker(Copy.Export.units, selection: $settings.unitsOverride) {
+    /// Units of plan labels: the app setting, feet and inches, or metric. DXF calls it "Label
+    /// units", because its drawing is always in millimeters.
+    private func unitsPicker(title: String) -> some View {
+        Picker(title, selection: $settings.unitsOverride) {
             Text(Copy.ExportUI.unitsApp).tag(UnitSystem?.none)
             Text(Copy.Settings.unitsImperial).tag(UnitSystem?.some(.imperial))
             Text(Copy.Settings.unitsMetric).tag(UnitSystem?.some(.metric))

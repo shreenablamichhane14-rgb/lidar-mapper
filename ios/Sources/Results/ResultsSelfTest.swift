@@ -213,7 +213,7 @@ enum ResultsSelfTest {
         let titles = ResultTab.allCases.map { $0.title }
         check(&f, "tabs.titles", titles == [Copy.Viewer.realistic, Copy.Viewer.clean, Copy.Viewer.floorPlan, Copy.Viewer.raw], "\(titles)")
         check(&f, "tabs.hints", ResultTab.allCases.allSatisfy { !$0.accessibilityHint.isEmpty }, "empty hint")
-        check(&f, "copy.objectGuess", Copy.Results.objectGuess("Sofa") == "Mapper thinks this is a Sofa.", Copy.Results.objectGuess("Sofa"))
+        check(&f, "copy.objectGuess", Copy.Results.objectGuess("Oven") == "Mapper's guess: Oven", Copy.Results.objectGuess("Oven"))
         check(&f, "copy.missingCount", Copy.Results.missingAreasCount(3) == "Missing areas: 3", Copy.Results.missingAreasCount(3))
         check(&f, "degraded.note", ResultAvailability.degradedNote(.depthStripped) != nil
               && ResultAvailability.degradedNote(.allGood) == nil, "degraded notes")

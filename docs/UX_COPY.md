@@ -532,12 +532,14 @@ Title: **Export**. Subtitle: **Choose a file type**. Button: **Export**. In prog
 | gltf | glTF | 3D model for websites, games and Blender. |
 | pdf | PDF Floor Plan | Printable floor plan with measurements. |
 | svg | SVG | Floor plan drawing you can edit in design apps. |
-| dxf | DXF | Floor plan for AutoCAD and other CAD programs. |
+| dxf | DXF | Floor plan for AutoCAD and other CAD programs. Drawn in millimeters. (`Copy.ExportUI.dxfDetail`) |
 | json | JSON | Room sizes and measurements as data, for developers. |
 | images | Images | Pictures of the model and floor plan, saved as PNG. |
 
 Options: **Include textures**, **Include hidden objects**, **Include measurements**,
-**Units: Feet and inches / Metric**. Not available for this scan: **Not available: this scan has
+**Units: Feet and inches / Metric** (for DXF the picker is titled **Label units**, because a DXF
+drawing is always in millimeters and the choice only changes its text labels; the PDF scale and
+scale bar follow the chosen units, and the paper starts at A4 for metric). Not available for this scan: **Not available: this scan has
 no floor plan** (object scans), **Not available: color wasn't captured**.
 
 ## 15. Settings

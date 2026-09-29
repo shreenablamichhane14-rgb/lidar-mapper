@@ -149,9 +149,9 @@ enum ExportCatalog {
     }
 
     /// Explicit switch over ExportFileFormat to its (label, detail), never an index into
-    /// Copy.Export.formats: usdz, obj, stl, glb, pdf, svg, dxf, json, png ("Images") come from
+    /// Copy.Export.formats: usdz, obj, stl, glb, pdf, svg, json, png ("Images") come from
     /// Copy.Export.formats by label; ply uses Copy.ExportUI.plyDetail in build 4 (class colors,
-    /// not photo color).
+    /// not photo color); dxf uses Copy.ExportUI.dxfDetail (always drawn in millimeters, D23).
     static func label(for format: ExportFileFormat) -> (label: String, detail: String) {
         switch format {
         case .usdz: return formatEntry("USDZ")
@@ -161,7 +161,7 @@ enum ExportCatalog {
         case .glb: return formatEntry("glTF")
         case .pdf: return formatEntry("PDF Floor Plan")
         case .svg: return formatEntry("SVG")
-        case .dxf: return formatEntry("DXF")
+        case .dxf: return (formatEntry("DXF").label, Copy.ExportUI.dxfDetail)
         case .png: return formatEntry("Images")
         case .json: return formatEntry("JSON")
         }

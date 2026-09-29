@@ -620,7 +620,7 @@ Target at most 300k displayed triangles (the view mesh) in about 150 parts at 30
 | occluded span or area | `occluded` | gray hatched regions in 3D Clean while Hide Furniture is on, dashed on the plan (A-WALL-OCCL), readable without color vision |
 | never observed | `unscanned` | missing areas as translucent red squares in 3D Clean and Raw Scan (build 4); live gray coverage (build 5) |
 
-The legend (`Copy.Measure.legendTitle`) explains the labels; `Copy.Measure.disclaimer` sits under every dimension list. AI labels (RoomPlan categories, section labels) are suggestions shown with "Mapper thinks this is a..." (`Copy.Results.objectGuess` in build 4, `Copy.ObjectMenu.guessedLabel` once correction exists) and are never written into raw; corrections are edits (Change Category in build 5, the full menu in build 7).
+The legend (`Copy.Measure.legendTitle`) explains the labels; `Copy.Measure.disclaimer` sits under every dimension list. AI labels (RoomPlan categories, section labels) are suggestions shown as guesses ("Mapper's guess: Oven", `Copy.Results.objectGuess` in build 4; `Copy.ObjectMenu.guessedLabel` once correction exists, which needs the same article-free form) and are never written into raw; corrections are edits (Change Category in build 5, the full menu in build 7).
 
 ### 8.4 Snapping (logic in build 4, tools in build 5)
 
