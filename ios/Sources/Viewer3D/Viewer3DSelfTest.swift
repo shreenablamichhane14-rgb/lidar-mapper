@@ -4,12 +4,13 @@ import simd
 
 /// Plain-Swift checks for the viewer (no XCTest, no ARView, no RealityKit), run at launch like
 /// the other module self-tests. `run()` returns one line per failing case; empty means all
-/// passed. Covers the pure builders, the vertex packer, the orbit math, CPU picking and the
-/// UV checker image. Meshes are tiny, so a run takes a few milliseconds plus about 50 ms for
-/// the checker JPEG, written to and removed from a temporary subfolder.
+/// passed. Covers the pure builders, the vertex packer, the orbit math, CPU picking, the UV
+/// checker image and (build 5) the model bounds, model picking and framing cases in
+/// Viewer3DSelfTestModels.swift. Meshes are tiny, so a run takes a few milliseconds plus about
+/// 50 ms for the checker JPEG, written to and removed from a temporary subfolder.
 enum Viewer3DSelfTest {
     /// Fewer checks than this means a section stopped early without reporting.
-    private static let minimumChecks = 40
+    private static let minimumChecks = 95
 
     /// Collects failing assertions and counts every check.
     final class Recorder {
@@ -44,6 +45,7 @@ enum Viewer3DSelfTest {
         framingCases(r)
         pickingCases(r)
         checkerCases(r)
+        modelCases(r)
         if r.failures.isEmpty && r.count < minimumChecks {
             r.failures.append("selfTest: only \(r.count) cases ran")
         }

@@ -11,7 +11,8 @@ import simd
 /// view: `ViewerContainer` creates the `ARView` and attaches it, so content survives the
 /// container being rebuilt. Layer visibility persists across loads; every layer starts
 /// visible except `.cleanOccluded` (shown with Hide Furniture). On a memory warning the parts
-/// of hidden layers are released and uploaded again when their layer is shown.
+/// of hidden layers are released and uploaded again when their layer is shown. Models from
+/// `loadModel` (ViewerModelFiles.swift) follow `setVisible`, are never evicted, and go on `load`.
 @MainActor final class ViewerModel: ObservableObject {
     /// True while `load` is uploading parts.
     @Published private(set) var isLoading: Bool = false
@@ -55,6 +56,8 @@ import simd
     private var evictedLayers: Set<ViewerLayer> = []
     /// Layers being uploaded again after eviction.
     private var reuploading: Set<ViewerLayer> = []
+    /// Model files added by `loadModel`, their layer parents and pick entries.
+    let models: ViewerLoadedModels
     /// Incremented by every load and unload; older uploads stop when it changes.
     private var generation = 0
     /// Orbit camera state.
@@ -90,10 +93,13 @@ import simd
         anchor.addChild(cameraEntity)
         let made = ViewerModel.makeContentRoot(visible: ViewerLayer.defaultVisible)
         anchor.addChild(made.root)
+        let loadedModels = ViewerLoadedModels(visible: ViewerLayer.defaultVisible)
+        anchor.addChild(loadedModels.root)
         root = anchor
         camera = cameraEntity
         contentRoot = made.root
         layerRoots = made.layers
+        models = loadedModels
         applyCamera()
         NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)
             .receive(on: DispatchQueue.main)
@@ -132,8 +138,9 @@ import simd
     func updateViewSize(_ size: CGSize) {
         guard size.width > 0, size.height > 0, size != viewSize else { return }
         viewSize = size
-        if !userMovedCamera && !content.bounds.isEmpty {
-            frame(content.bounds)
+        let bounds = sceneBounds
+        if !userMovedCamera && !bounds.isEmpty {
+            frame(bounds)
         } else {
             cameraRevision &+= 1
         }
@@ -148,11 +155,13 @@ import simd
     /// leaves the scene to the newer call. Cancelling the calling task stops the upload and
     /// clears `isLoading`. The camera is framed on the new bounds unless they match the bounds
     /// already framed (switching styles of the same model keeps the view). Parts that are
-    /// empty or have out-of-range indices are skipped.
+    /// empty or have out-of-range indices are skipped. Models added by `loadModel` are
+    /// removed first (a model file still loading ends with `ViewerModelError.superseded`).
     func load(_ content: ViewerContent) async {
         generation &+= 1
         let token = generation
         let started = ProcessInfo.processInfo.systemUptime
+        models.removeAll()
         isLoading = true
         self.content = content
         pickEntries = []
@@ -190,9 +199,11 @@ import simd
         LogStore.shared.write(message, category: "viewer")
     }
 
-    /// Removes all content (for example while a memory-heavy step runs) and stops any upload.
+    /// Removes all content and models (for example while a memory-heavy step runs) and stops
+    /// any upload or model load.
     func unload() {
         generation &+= 1
+        models.removeAll()
         content = .empty
         pickEntries = []
         textures = [:]
@@ -204,8 +215,8 @@ import simd
         isLoading = false
     }
 
-    /// Shows or hides every part of `layer` (parent `isEnabled`); hidden layers are not
-    /// pickable. The choice persists across loads.
+    /// Shows or hides every part and model of `layer` (parent `isEnabled`); hidden layers are
+    /// not pickable. The choice persists across loads.
     func setVisible(_ layer: ViewerLayer, _ visible: Bool) {
         if visible {
             visibleLayers.insert(layer)
@@ -213,6 +224,7 @@ import simd
             visibleLayers.remove(layer)
         }
         layerRoots[layer]?.isEnabled = visible
+        models.setVisible(layer, visible)
         guard visible, evictedLayers.contains(layer), !reuploading.contains(layer) else { return }
         evictedLayers.remove(layer)
         reuploading.insert(layer)
@@ -230,20 +242,35 @@ import simd
 
     // MARK: - Camera
 
-    /// Frames the current content, keeping the current yaw and pitch (double tap).
+    /// Frames the current content and models, keeping the current yaw and pitch (double tap).
     func frameAll() {
         userMovedCamera = false
-        if content.bounds.isEmpty {
+        let bounds = sceneBounds
+        if bounds.isEmpty {
             orbitState.target = SIMD3<Float>(0, 0, 0)
             orbitState.distance = ViewerOrbitMath.emptyDistance
             framedBounds = nil
             applyCamera()
         } else {
-            frame(content.bounds)
+            frame(bounds)
         }
     }
 
-    /// Returns to the home view: default yaw and pitch, framed on the content (Reset View).
+    /// Union of the content bounds and the loaded models' bounds: what framing, the dolly
+    /// limit and double tap use.
+    var sceneBounds: AABB3 {
+        ViewerBoundsMath.union(content.bounds, models.bounds)
+    }
+
+    /// Frames `sceneBounds` after a model was added, unless the user moved the camera since
+    /// the last framing.
+    func frameSceneUnlessMoved() {
+        let bounds = sceneBounds
+        guard !userMovedCamera, !bounds.isEmpty else { return }
+        frame(bounds)
+    }
+
+    /// Returns to the home view: default yaw and pitch, framed on content and models (Reset View).
     func resetView() {
         orbitState.yaw = ViewerOrbitMath.defaultYaw
         orbitState.pitch = ViewerOrbitMath.defaultPitch
@@ -268,7 +295,8 @@ import simd
 
     /// Pinch by `scale` (above 1 spreads the fingers and moves closer).
     func dollyCamera(scale: CGFloat) {
-        let radius = content.bounds.isEmpty ? 1 : simd_length(content.bounds.size) * 0.5
+        let bounds = sceneBounds
+        let radius = bounds.isEmpty ? 1 : simd_length(bounds.size) * 0.5
         let farthest = Swift.max(50, radius * 10)
         orbitState.dolly(scale: Float(scale), minDistance: ViewerModel.minimumDistance, maxDistance: farthest)
         userMovedCamera = true
@@ -365,7 +393,8 @@ import simd
         LogStore.shared.write("layer \(layer.rawValue) restored: \(stats.parts) parts", category: "viewer")
     }
 
-    /// Releases the parts of hidden layers (ARCHITECTURE 12.1) and the texture cache.
+    /// Releases the parts of hidden layers (ARCHITECTURE 12.1) and the texture cache. Models
+    /// stay (Object Capture output is under 50k triangles, RESEARCH 3.3).
     private func handleMemoryWarning() {
         var released = 0
         for layer in ViewerLayer.allCases where !visibleLayers.contains(layer) && !reuploading.contains(layer) {
@@ -379,7 +408,8 @@ import simd
             evictedLayers.insert(layer)
         }
         textures = [:]
-        LogStore.shared.write("memory warning: released \(released) parts of hidden layers", category: "viewer")
+        LogStore.shared.write("memory warning: released \(released) parts of hidden layers, kept \(models.count) models",
+                              category: "viewer")
     }
 
     /// Frames `bounds` unless they match the bounds already framed.

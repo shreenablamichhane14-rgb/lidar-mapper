@@ -29,10 +29,18 @@ enum ViewerPicking {
         var result: [ViewerPickEntry] = []
         for part in parts where part.pickTag != nil && ViewerRenderMesh.isRenderable(part) {
             let mesh = TriangleMesh(positions: part.positions, indices: part.indices)
-            result.append(ViewerPickEntry(partID: part.id, pickTag: part.pickTag, layer: part.layer,
-                                          bvh: MeshBVH(mesh: mesh)))
+            result.append(entry(for: mesh, partID: part.id, pickTag: part.pickTag, layer: part.layer))
         }
         return result
+    }
+
+    /// Pure: the pick entry of a model's world-space mesh (off main).
+    ///
+    /// Builds a `MeshBVH` over `mesh` (the builder leaves out triangles with an out-of-range
+    /// index); `nearestHit` reports `partID` and `pickTag` for it while `layer` is visible.
+    /// O(n log n) in the triangle count, so call it off the main actor.
+    static func entry(for mesh: TriangleMesh, partID: String, pickTag: ViewerPickTag?, layer: ViewerLayer) -> ViewerPickEntry {
+        ViewerPickEntry(partID: partID, pickTag: pickTag, layer: layer, bvh: MeshBVH(mesh: mesh))
     }
 
     /// Nearest hit of `ray` over the entries whose layer is visible, within `maxDistance`.
@@ -60,10 +68,12 @@ enum ViewerPicking {
 /// Picking and label projection on the main actor.
 @MainActor extension ViewerModel {
     /// Nearest visible pickable triangle under a point of the attached view (points): the
-    /// view's `ray(through:)`, then `MeshBVH.raycast` over the pickable parts. Nil while the
-    /// load has not finished or when nothing is hit.
+    /// view's `ray(through:)`, then `MeshBVH.raycast` over the pickable parts and the pick
+    /// meshes of models added by `loadModel`. Nil while nothing pickable is loaded (the
+    /// content's entries arrive when `load` finishes) or when nothing is hit.
     func hitTest(_ point: CGPoint) -> ViewerHit? {
-        guard !pickEntries.isEmpty else { return nil }
+        let modelEntries = models.entries
+        guard !pickEntries.isEmpty || !modelEntries.isEmpty else { return nil }
         let pickRay: Ray?
         if let view = arView, let viewRay = view.ray(through: point) {
             pickRay = Ray(origin: viewRay.origin, direction: viewRay.direction)
@@ -72,7 +82,7 @@ enum ViewerPicking {
                                           verticalFieldOfViewDegrees: ViewerModel.fieldOfView, viewSize: viewSize)
         }
         guard let ray = pickRay else { return nil }
-        return ViewerPicking.nearestHit(ray, entries: pickEntries, visibleLayers: visibleLayers)
+        return ViewerPicking.nearestHit(ray, entries: pickEntries + modelEntries, visibleLayers: visibleLayers)
     }
 
     /// Screen point (view points) of a world point for SwiftUI label overlays; nil behind the
