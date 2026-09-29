@@ -12,6 +12,7 @@ enum CaptureCoreSelfTest {
     static func run() -> [String] {
         var failures: [String] = []
         checkConfiguration(&failures)
+        checkRelocalization(&failures)
         checkWatchdog(&failures)
         checkStorageAndMemory(&failures)
         checkThermal(&failures)
@@ -80,6 +81,43 @@ enum CaptureCoreSelfTest {
         expect(&f, "describe.texturing", lines.contains("environmentTexturing: none"), lines.joined(separator: "; "))
         expect(&f, "runOptions.none", ScanConfigurationFactory.runOptionsText([]) == "none")
         expect(&f, "runOptions.reset", ScanConfigurationFactory.runOptionsText([.resetTracking]) == "resetTracking")
+    }
+
+    // MARK: - Relocalization configuration (MODULES 3.30b)
+
+    /// `make(profile, initialWorldMap: nil)` equals `make(profile)` field by field for every mode,
+    /// has no world map, describes itself with "initialWorldMap: false", and the run event text
+    /// names the options and the world map flag. No ARWorldMap is built (ARKit makes one only
+    /// from a running session or a saved archive).
+    private static func checkRelocalization(_ f: inout [String]) {
+        for mode in ScanMode.allCases {
+            let profile = ScanProfile(mode: mode, settings: ScanSettings.defaults(for: mode))
+            let plain = ScanConfigurationFactory.make(profile)
+            let noMap = ScanConfigurationFactory.make(profile, initialWorldMap: nil)
+            expect(&f, "reloc.nilMap.\(mode.rawValue)", noMap.initialWorldMap == nil && plain.initialWorldMap == nil)
+            let sameReconstruction = noMap.sceneReconstruction == plain.sceneReconstruction
+            let sameSemantics = noMap.frameSemantics == plain.frameSemantics
+            let samePlanes = noMap.planeDetection == plain.planeDetection
+            expect(&f, "reloc.sameFields.\(mode.rawValue)", sameReconstruction && sameSemantics && samePlanes,
+                   ScanConfigurationFactory.describe(noMap).joined(separator: "; "))
+            let sameTexturing = noMap.environmentTexturing == plain.environmentTexturing
+            let sameLight = noMap.isLightEstimationEnabled == plain.isLightEstimationEnabled
+            expect(&f, "reloc.sameExtras.\(mode.rawValue)", sameTexturing && sameLight)
+        }
+        let house = ScanProfile(mode: .house, settings: .defaults(for: .house))
+        let lines = ScanConfigurationFactory.describe(ScanConfigurationFactory.make(house, initialWorldMap: nil))
+        expect(&f, "reloc.describe.noMap", lines.contains("initialWorldMap: false"), lines.joined(separator: "; "))
+        let plainLines = ScanConfigurationFactory.describe(ScanConfigurationFactory.make(house))
+        expect(&f, "reloc.describe.equal", lines == plainLines, lines.joined(separator: "; "))
+
+        let reset: ARSession.RunOptions = [.resetTracking, .removeExistingAnchors]
+        expect(&f, "reloc.runOptions", ScanConfigurationFactory.runOptionsText(reset) == "resetTracking removeExistingAnchors",
+               ScanConfigurationFactory.runOptionsText(reset))
+        let mapEvent = ScanConfigurationFactory.runEventText(options: reset, initialWorldMap: true)
+        expect(&f, "reloc.event.map",
+               mapEvent == "session run, options resetTracking removeExistingAnchors, initialWorldMap: true", mapEvent)
+        let plainEvent = ScanConfigurationFactory.runEventText(options: [], initialWorldMap: false)
+        expect(&f, "reloc.event.plain", plainEvent == "session run, options none, initialWorldMap: false", plainEvent)
     }
 
     // MARK: - Depth and mesh watchdog

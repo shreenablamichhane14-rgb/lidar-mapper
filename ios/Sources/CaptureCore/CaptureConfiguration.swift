@@ -137,3 +137,37 @@ enum ScanConfigurationFactory {
         return names.isEmpty ? "none" : names.joined(separator: " ")
     }
 }
+
+// MARK: - Relocalization (build 5, MODULES 3.30b)
+
+/// The relocalization variant of the configuration (HouseUI's Continue Scanning and Rescan,
+/// ARCHITECTURE 4.3, RESEARCH 3.2 recommended 7). Used only by
+/// `ARSessionHub.run(options:initialWorldMap:)`, never when re-applying the configuration.
+extension ScanConfigurationFactory {
+    /// `make(profile)` with `initialWorldMap` set (nil gives exactly `make(profile)`). Every
+    /// other field (reconstruction, semantics, plane detection, texturing, light estimation,
+    /// video format) is the one `make(profile)` sets.
+    static func make(_ profile: ScanProfile, initialWorldMap: ARWorldMap?) -> ARWorldTrackingConfiguration {
+        let configuration = make(profile)
+        if let initialWorldMap {
+            configuration.initialWorldMap = initialWorldMap
+        }
+        return configuration
+    }
+
+    /// Detail of the `.config` event a session run logs: "session run, options <names>,
+    /// initialWorldMap: <true or false>" (names from `runOptionsText`).
+    static func runEventText(options: ARSession.RunOptions, initialWorldMap: Bool) -> String {
+        "session run, options \(runOptionsText(options)), initialWorldMap: \(initialWorldMap)"
+    }
+
+    /// Size of a saved world map for the log: "anchors 12, extent 6.1 x 2.7 x 8.4 m". Never
+    /// retains the map.
+    static func worldMapText(_ map: ARWorldMap) -> String {
+        let extent = map.extent
+        let x = String(format: "%.1f", Double(extent.x))
+        let y = String(format: "%.1f", Double(extent.y))
+        let z = String(format: "%.1f", Double(extent.z))
+        return "anchors \(map.anchors.count), extent \(x) x \(y) x \(z) m"
+    }
+}
