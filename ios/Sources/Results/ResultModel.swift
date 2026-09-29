@@ -37,6 +37,8 @@ struct ResultPlanInputs: Equatable, Sendable {
     @Published var planToggles: PlanToggles = .standard {
         didSet { if oldValue != planToggles { scheduleDrawing() } }
     }
+    /// Per-tab availability, every dimension row of the project, the current plan drawing and
+    /// the object whose card is open.
     @Published private(set) var availability: [ResultTab: TabAvailability] = [:]
     @Published private(set) var dimensionRows: [DimensionRow] = []
     @Published private(set) var planDrawing: PlanDrawingResult?
@@ -45,6 +47,8 @@ struct ResultPlanInputs: Equatable, Sendable {
     @Published private(set) var selectedElement: ElementID?
     /// MeasureCore objectRows of selectedObject.
     @Published private(set) var objectRows: [DimensionRow] = []
+    /// Missing (unscanned) areas of every room, the legend sheet, the Quick Look file of the
+    /// simple model and the project name.
     @Published private(set) var missingAreaCount: Int = 0
     @Published var showsLegend: Bool = false
     @Published var quickLookURL: URL?

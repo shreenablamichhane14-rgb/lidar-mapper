@@ -3,6 +3,7 @@ import Foundation
 /// The four views of the result screen (SPEC ROOM SCANNING: Realistic, 3D Clean, Floor Plan,
 /// Raw Scan). Raw values are stable for logs.
 enum ResultTab: String, CaseIterable, Identifiable, Sendable {
+    /// Realistic, 3D Clean, Floor Plan and Raw Scan, in switcher order.
     case realistic, clean, floorPlan, raw
 
     /// Stable identity (the raw value).
@@ -35,9 +36,13 @@ enum ResultTab: String, CaseIterable, Identifiable, Sendable {
 /// What a tab can show right now (D20): ready, a preparing chip with an optional percent, an
 /// honest reason why it is not available, or a failure text.
 enum TabAvailability: Equatable, Sendable {
+    /// The tab's files exist; it shows its content.
     case ready
+    /// A step that makes the tab's files is queued or running; `percent` while it runs.
     case preparing(text: String, percent: Int?)
+    /// The tab cannot show anything, with the honest reason.
     case unavailable(reason: String)
+    /// A step the tab needs failed, with the failure text.
     case failed(reason: String)
 
     /// True for `.ready`.
@@ -196,8 +201,10 @@ enum ResultAvailability {
     /// Whole percent of `step` while it is the running step, else nil.
     static func percent(_ step: PipelineStepID, _ processing: ProjectProcessingState) -> Int? {
         guard processing.isRunning, processing.currentStep == step else { return nil }
-        let fraction = processing.fraction.isFinite ? Swift.min(Swift.max(processing.fraction, 0), 1) : 0
-        return Int((fraction * 100).rounded(.down))
+        let fraction: Double = processing.fraction.isFinite ? Swift.min(Swift.max(processing.fraction, 0), 1) : 0
+        // The small bias keeps 0.29 at 29 percent (0.29 * 100 is 28.999... in binary).
+        let scaled: Double = fraction * 100 + 1e-9
+        return Swift.min(100, Int(scaled.rounded(.down)))
     }
 
     /// A preparing availability for `step` with its percent when it runs.

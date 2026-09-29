@@ -123,7 +123,9 @@ enum ResultLoader {
         }
         files.isDemo = !manifest.rooms.isEmpty && demoRooms == manifest.rooms.count
         var degraded = ResultAvailability.combinedDegraded(modes)
-        if !jobActive && !files.hasClean && !files.isDemo && degraded != .roomPlanFailed && !manifest.rooms.isEmpty {
+        let logSaysRoomPlanFailed: Bool = degraded == .roomPlanFailed
+        let mayOverride: Bool = !jobActive && !files.hasClean && !files.isDemo
+        if mayOverride && !logSaysRoomPlanFailed && !manifest.rooms.isEmpty {
             let loadable = manifest.rooms.contains { (try? CapturedRoomStore.loadInput(package, room: $0)) != nil }
             if !loadable {
                 degraded = .roomPlanFailed

@@ -3,6 +3,7 @@ import simd
 
 /// The five markings the legend explains (SPEC FURNITURE REMOVAL, TEST_PLAN FURN-02).
 enum ResultLegendKind: String, CaseIterable, Identifiable {
+    /// The markings in legend order.
     case measured, estimated, inferred, occluded, unscanned
 
     /// Stable identity.

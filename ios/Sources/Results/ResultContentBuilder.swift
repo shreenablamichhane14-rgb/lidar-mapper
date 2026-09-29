@@ -48,7 +48,13 @@ enum ResultContentBuilder {
             let center: SIMD3<Float> = centroid + normal * missingOffset
             let du: SIMD3<Float> = axes.u * half
             let dv: SIMD3<Float> = axes.v * half
-            let corners: [SIMD3<Float>] = [center - du - dv, center + du - dv, center + du + dv, center - du + dv]
+            let left: SIMD3<Float> = center - du
+            let right: SIMD3<Float> = center + du
+            let c0: SIMD3<Float> = left - dv
+            let c1: SIMD3<Float> = right - dv
+            let c2: SIMD3<Float> = right + dv
+            let c3: SIMD3<Float> = left + dv
+            let corners: [SIMD3<Float>] = [c0, c1, c2, c3]
             parts.append(ViewerPart(id: "missing.\(record.id)", positions: corners,
                                     normals: [SIMD3<Float>](repeating: normal, count: 4),
                                     indices: [0, 1, 2, 0, 2, 3], material: .translucent(missingColor),
@@ -59,9 +65,12 @@ enum ResultContentBuilder {
 
     /// Two unit vectors u, v spanning the plane of `normal`, with u x v = normal.
     static func tangentAxes(_ normal: SIMD3<Float>) -> (u: SIMD3<Float>, v: SIMD3<Float>) {
-        let reference = abs(normal.y) < 0.9 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
-        let u = ViewerContentBuilder.safeNormalize(simd_cross(reference, normal), fallback: SIMD3<Float>(1, 0, 0))
-        let v = simd_cross(normal, u)
+        let up = SIMD3<Float>(0, 1, 0)
+        let side = SIMD3<Float>(1, 0, 0)
+        let mostlyVertical: Bool = abs(normal.y) >= 0.9
+        let reference: SIMD3<Float> = mostlyVertical ? side : up
+        let u: SIMD3<Float> = ViewerContentBuilder.safeNormalize(simd_cross(reference, normal), fallback: side)
+        let v: SIMD3<Float> = simd_cross(normal, u)
         return (u, v)
     }
 
@@ -162,17 +171,19 @@ enum ResultContentBuilder {
         return parts
     }
 
-    /// The faces of `mesh` without a valid page (or beyond `faceAtlas`), un-indexed, as a `.lit`
-    /// gray part; nil when there are none.
+    /// The faces of `mesh` that `pageParts()` does not draw (no valid page, beyond `faceAtlas`,
+    /// or without texture coordinates), un-indexed, as a `.lit` gray part; nil when there are
+    /// none. Faces with an out-of-range vertex index are skipped here too.
     static func untexturedPart(_ mesh: TexturedMesh, id: String) -> ViewerPart? {
         let faceCount = mesh.faceCount
         let pages = mesh.pageURLs.count
         let vertexCount = mesh.positions.count
+        let uvFaces = mesh.texcoords.count / 3
         var positions: [SIMD3<Float>] = []
         var indices: [UInt32] = []
         for f in 0..<faceCount {
-            let textured = f < mesh.faceAtlas.count && Int(mesh.faceAtlas[f]) < pages
-            if textured { continue }
+            let hasPage = f < mesh.faceAtlas.count && Int(mesh.faceAtlas[f]) < pages
+            if hasPage && f < uvFaces { continue }
             let i0 = Int(mesh.indices[3 * f]), i1 = Int(mesh.indices[3 * f + 1]), i2 = Int(mesh.indices[3 * f + 2])
             guard i0 < vertexCount, i1 < vertexCount, i2 < vertexCount else { continue }
             for source in [i0, i1, i2] {
