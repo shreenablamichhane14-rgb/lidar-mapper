@@ -22,6 +22,35 @@ extension ARSessionHub {
     /// Also starts the thermal, storage and identity-check monitors and logs the configuration.
     func run(options: ARSession.RunOptions = []) {
         let configuration = ScanConfigurationFactory.make(locked { configurationProfile })
+        runSession(configuration, options: options, label: "run")
+    }
+
+    /// Call on the main thread, before any RoomPlan object exists. Same as `run(options:)`
+    /// (monitors, identity check, logging) with the configuration from
+    /// `make(profile, initialWorldMap: map)`. HouseUI passes [.resetTracking, .removeExistingAnchors]
+    /// (allowed here because RoomPlan has not started). The map is used for this run only:
+    /// `reapplyConfiguration` keeps building `make(profile)` without it, which is safe because the
+    /// watchdog runs only after `markScanStart`, when relocalization is over. The `.config`
+    /// event names the options and "initialWorldMap: true".
+    func run(options: ARSession.RunOptions, initialWorldMap: ARWorldMap) {
+        let configuration = ScanConfigurationFactory.make(locked { configurationProfile },
+                                                          initialWorldMap: initialWorldMap)
+        CaptureCoreLog.write("relocalization run: world map \(ScanConfigurationFactory.worldMapText(initialWorldMap)), "
+                             + "options \(ScanConfigurationFactory.runOptionsText(options)), "
+                             + "hub running before \(isRunning)")
+        runSession(configuration, options: options, label: "run with world map")
+    }
+
+    /// Shared body of both `run` overloads (main thread): runs `configuration` with `options`,
+    /// marks the hub running, starts the memory warning observer, the thermal and storage
+    /// monitors and the identity check, then logs the effective configuration under `label` and
+    /// a `.config` event from `ScanConfigurationFactory.runEventText` on the hub queue.
+    private func runSession(_ configuration: ARWorldTrackingConfiguration, options: ARSession.RunOptions,
+                            label: String) {
+        if !Thread.isMainThread {
+            CaptureCoreLog.write("\(label) called off the main thread")
+        }
+        let hasWorldMap = configuration.initialWorldMap != nil
         session.run(configuration, options: options)
         locked { running = true }
         registerMemoryWarningObserver()
@@ -29,11 +58,11 @@ extension ARSessionHub {
         storage.start(on: queue) { [weak self] state in self?.handleStorageChange(state) }
         startChecks()
         let effective = session.configuration
-        let optionsText = ScanConfigurationFactory.runOptionsText(options)
+        let detail = ScanConfigurationFactory.runEventText(options: options, initialWorldMap: hasWorldMap)
         queue.async { [weak self] in
             guard let self else { return }
-            self.diagnostics.logConfiguration(effective, label: "run")
-            self.emit(.config, "session run, options \(optionsText)")
+            self.diagnostics.logConfiguration(effective, label: label)
+            self.emit(.config, detail)
             self.emit(.thermal, "thermal at run \(self.thermal.level.rawValue)")
             self.requestStatusPublish()
         }
