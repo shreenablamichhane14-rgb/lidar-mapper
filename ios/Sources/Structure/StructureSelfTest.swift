@@ -73,13 +73,13 @@ enum StructureSelfTest {
         c.check("solve.swappedEnds", swappedOK && (fixed?.rms ?? 1) < 1e-3, "\(String(describing: fixed))")
 
         c.check("solve.onePairNil", StructureAlignment.solve([pairs[0]]) == nil)
-        let cross = [
+        let crossing = [
             AlignmentSegmentPair(beforeStart: SIMD2<Float>(-1, 0), beforeEnd: SIMD2<Float>(1, 0), beforeY: 1,
                                  afterStart: SIMD2<Float>(-1, 0), afterEnd: SIMD2<Float>(1, 0), afterY: 1),
             AlignmentSegmentPair(beforeStart: SIMD2<Float>(0, -1), beforeEnd: SIMD2<Float>(0, 1), beforeY: 1,
                                  afterStart: SIMD2<Float>(0, -1), afterEnd: SIMD2<Float>(0, 1), afterY: 1)
         ]
-        c.check("solve.coincidentMidpointsNil", StructureAlignment.solve(cross) == nil)
+        c.check("solve.coincidentMidpointsNil", StructureAlignment.solve(crossing) == nil)
 
         var noisy = pairs
         let offset = SIMD2<Float>(0.1, -0.1)
@@ -111,14 +111,17 @@ enum StructureSelfTest {
         c.check("planTransform.matchesWorld", F.near(StructureAlignment.planTransform(PlanAxes.toPlan(p), by: general), planOfWorld, 1e-5))
 
         let back = StructureAlignment.compose(StructureAlignment.inverse(general), after: general, source: .measured)
-        c.check("inverse.composeIdentity", abs(back.yaw) <= 1e-5 && simd_length(back.translation.simd) <= 1e-5 && back.roomID == id,
-                "\(back)")
+        let backYaw: Float = abs(back.yaw)
+        let backShift: Float = simd_length(back.translation.simd)
+        c.check("inverse.composeIdentity", backYaw <= 1e-5 && backShift <= 1e-5 && back.roomID == id, "\(back)")
         let pivot = SIMD2<Float>(3, -2)
         let turn = StructureAlignment.rotation(by: 0.8, about: pivot, roomID: id)
-        c.check("rotation.keepsPivot", F.near(StructureAlignment.planTransform(pivot, by: turn), pivot, 1e-5) && turn.source == .user)
+        let pivotKept = F.near(StructureAlignment.planTransform(pivot, by: turn), pivot, 1e-5)
+        c.check("rotation.keepsPivot", pivotKept && turn.source == Provenance.user)
         let move = StructureAlignment.translation(by: SIMD2<Float>(1, 2), roomID: id)
-        c.check("translation.plan", F.near(StructureAlignment.planTransform(.zero, by: move), SIMD2<Float>(1, 2), 1e-6)
-                && move.translation.y == 0 && move.yaw == 0)
+        let moveOK = F.near(StructureAlignment.planTransform(SIMD2<Float>.zero, by: move), SIMD2<Float>(1, 2), 1e-6)
+        let flatOK = move.translation.y == Float(0) && move.yaw == Float(0)
+        c.check("translation.plan", moveOK && flatOK)
 
         let three = [F.solution(yaw: 0.3, translation: SIMD3<Float>(1, 0, 5)),
                      F.solution(yaw: 0.1, translation: SIMD3<Float>(3, 0.1, 4)),
@@ -156,9 +159,12 @@ enum StructureSelfTest {
         c.check("apply.wallEnds", F.near(m0.start.simd, expected(w0.start.simd), 1e-4) && F.near(m0.end.simd, expected(w0.end.simd), 1e-4))
         let n = w0.normal
         c.check("apply.normal", F.near(m0.normal.simd, SIMD3<Float>(n.z, n.y, -n.x), 1e-5), "\(m0.normal)")
-        let arcOK = F.near(m0.arc?.center.simd ?? SIMD3<Float>.zero, expected(SIMD3<Float>(2, 0, -1)), 1e-4)
-            && F.near(m0.arc?.startAngle ?? 0, 0.2 + Float.pi / 2, 1e-5) && F.near(m0.arc?.endAngle ?? 0, 1.2 + Float.pi / 2, 1e-5)
-        c.check("apply.arc", arcOK, "\(String(describing: m0.arc))")
+        let quarterTurn: Float = Float.pi / 2
+        let startWanted: Float = 0.2 + quarterTurn
+        let endWanted: Float = 1.2 + quarterTurn
+        let arcCenterOK = F.near(m0.arc?.center.simd ?? SIMD3<Float>.zero, expected(SIMD3<Float>(2, 0, -1)), 1e-4)
+        let arcAnglesOK = F.near(m0.arc?.startAngle ?? 0, startWanted, 1e-5) && F.near(m0.arc?.endAngle ?? 0, endWanted, 1e-5)
+        c.check("apply.arc", arcCenterOK && arcAnglesOK, "\(String(describing: m0.arc))")
         let outlineOK = room.floor.outline.count == moved.floor.outline.count
             && zip(room.floor.outline, moved.floor.outline).allSatisfy { before, after in
                 F.near(after.simd, SIMD2<Float>(1 - before.y, before.x - 2), 1e-4)
@@ -235,10 +241,12 @@ enum StructureSelfTest {
         let manifest = F.manifest(.house, sessions: sessions, rooms: [r1, superseded, capturing, rescan])
         c.check("active.dropsSupersededAndCapturing", StructureEligibility.activeRooms(manifest).map { $0.id } == [r1.id, rescan.id])
 
-        let keysOK = StructureEligibility.linkKey(.relocalized(sessionID: b, from: a)) == "reloc:\(b.uuidString):\(a.uuidString)"
-            && StructureEligibility.linkKey(.projectFrame(sessionID: a)) == "project:\(a.uuidString)"
-            && StructureEligibility.linkKey(.manual) == "manual" && StructureEligibility.linkKey(.unaligned) == "unaligned"
-        c.check("linkKey.stable", keysOK)
+        let relocKey: String = "reloc:" + b.uuidString + ":" + a.uuidString
+        let projectKey: String = "project:" + a.uuidString
+        let movingKeysOK = StructureEligibility.linkKey(.relocalized(sessionID: b, from: a)) == relocKey
+            && StructureEligibility.linkKey(.projectFrame(sessionID: a)) == projectKey
+        let fixedKeysOK = StructureEligibility.linkKey(.manual) == "manual" && StructureEligibility.linkKey(.unaligned) == "unaligned"
+        c.check("linkKey.stable", movingKeysOK && fixedKeysOK)
     }
 
     /// StructureFloors.group and assign.
@@ -247,17 +255,21 @@ enum StructureSelfTest {
         let e2 = F.uuid(41)
         let e3 = F.uuid(42)
         let ranks = StructureFloors.group(elevations: [e1: 0, e2: 0.05, e3: 2.8])
-        c.check("floors.groupTwoClusters", ranks[e1] == 0 && ranks[e2] == 0 && ranks[e3] == 1, "\(ranks)")
+        let expectedRanks: [UUID: Int] = [e1: 0, e2: 0, e3: 1]
+        c.check("floors.groupTwoClusters", ranks == expectedRanks, "\(ranks)")
         let allZero = StructureFloors.assign([FloorAssignmentInput(roomID: e1, userFloor: 0, elevation: 0),
                                               FloorAssignmentInput(roomID: e2, userFloor: 0, elevation: 0),
                                               FloorAssignmentInput(roomID: e3, userFloor: 0, elevation: 2.8)])
-        c.check("floors.upstairsGetsNewFloor", allZero[e1] == 0 && allZero[e2] == 0 && allZero[e3] == 1, "\(allZero)")
+        let upstairs: [UUID: Int] = [e1: 0, e2: 0, e3: 1]
+        c.check("floors.upstairsGetsNewFloor", allZero == upstairs, "\(allZero)")
         let userSet = StructureFloors.assign([FloorAssignmentInput(roomID: e1, userFloor: 0, elevation: 0),
                                               FloorAssignmentInput(roomID: e2, userFloor: 0, elevation: 0),
                                               FloorAssignmentInput(roomID: e3, userFloor: 1, elevation: 2.8)])
-        c.check("floors.keepsUserFloors", userSet == [e1: 0, e2: 0, e3: 1], "\(userSet)")
+        let kept: [UUID: Int] = [e1: 0, e2: 0, e3: 1]
+        c.check("floors.keepsUserFloors", userSet == kept, "\(userSet)")
         let missing = StructureFloors.assign([FloorAssignmentInput(roomID: e1, userFloor: 0, elevation: 0),
                                               FloorAssignmentInput(roomID: e3, userFloor: 2, elevation: nil)])
-        c.check("floors.noElevationKeepsUserFloor", missing[e3] == 2 && missing[e1] == 0, "\(missing)")
+        let unplacedFloors: [UUID: Int] = [e1: 0, e3: 2]
+        c.check("floors.noElevationKeepsUserFloor", missing == unplacedFloors, "\(missing)")
     }
 }

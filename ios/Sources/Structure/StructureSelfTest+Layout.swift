@@ -50,35 +50,41 @@ extension StructureSelfTest {
             r4.id: F.footprint(r4.id, SIMD2<Float>(3.5, 0), SIMD2<Float>(5, 2))
         ]
         let plain = StructureLayout.plan(rooms: rooms, sessions: sessions, footprints: footprints, solutions: [:])
-        let sharedOK = report(plain, r1.id)?.method == .sharedFrame && report(plain, r2.id)?.method == .sharedFrame
-            && record(plain, r1.id) == StructureAlignment.identity(roomID: r1.id, source: .measured)
-        c.check("plan.sharedFrameIdentity", sharedOK, "\(plain.reports)")
+        let methodsShared = report(plain, r1.id)?.method == AlignmentMethod.sharedFrame
+            && report(plain, r2.id)?.method == AlignmentMethod.sharedFrame
+        let identityRecord = record(plain, r1.id) == StructureAlignment.identity(roomID: r1.id, source: .measured)
+        c.check("plan.sharedFrameIdentity", methodsShared && identityRecord, "\(plain.reports)")
         let parked = record(plain, r3.id)
-        let parkedOK = parked?.source == .estimated && F.near(placed(SIMD2<Float>(0, 0), parked), SIMD2<Float>(9, 0), 1e-5)
-            && report(plain, r3.id)?.method == .parked && report(plain, r3.id)?.needsManualAlignment == true
-        c.check("plan.parkedRightOfBuilding", parkedOK, "\(String(describing: parked))")
+        let parkedPlace = parked?.source == Provenance.estimated && F.near(placed(SIMD2<Float>(0, 0), parked), SIMD2<Float>(9, 0), 1e-5)
+        let parkedReport = report(plain, r3.id)
+        let parkedFlag = parkedReport?.method == AlignmentMethod.parked && parkedReport?.needsManualAlignment == true
+        c.check("plan.parkedRightOfBuilding", parkedPlace && parkedFlag, "\(String(describing: parked))")
         c.check("plan.parkedGroupKeepsLayout",
                 F.near(placed(SIMD2<Float>(3.5, 0), record(plain, r4.id)), SIMD2<Float>(12.5, 0), 1e-5))
         c.check("plan.everyRoomPlaced", plain.unplaced.isEmpty && plain.records.count == 4 && plain.reports.count == 4)
 
         let solved = StructureLayout.plan(rooms: rooms, sessions: sessions, footprints: footprints,
                                           solutions: [r1.id: F.solution(yaw: 0.1, translation: SIMD3<Float>(0.5, 0, 0.2))])
-        c.check("plan.structureMerge", report(solved, r1.id)?.method == .structureMerge && report(solved, r1.id)?.matches == 4)
+        let solvedReport = report(solved, r1.id)
+        c.check("plan.structureMerge", solvedReport?.method == AlignmentMethod.structureMerge && solvedReport?.matches == 4)
         let median = record(solved, r2.id)
-        let medianOK = report(solved, r2.id)?.method == .groupMedian && F.near(median?.yaw ?? 9, 0.1, 1e-6)
-            && F.near(median?.translation.simd ?? SIMD3<Float>.zero, SIMD3<Float>(0.5, 0, 0.2), 1e-6)
-        c.check("plan.groupMedianForUnsolvedRoom", medianOK, "\(String(describing: median))")
+        let medianMethod = report(solved, r2.id)?.method == AlignmentMethod.groupMedian
+        let medianYaw = F.near(median?.yaw ?? 9, 0.1, 1e-6)
+        let medianShift = F.near(median?.translation.simd ?? SIMD3<Float>.zero, SIMD3<Float>(0.5, 0, 0.2), 1e-6)
+        c.check("plan.groupMedianForUnsolvedRoom", medianMethod && medianYaw && medianShift, "\(String(describing: median))")
 
         let loose = StructureLayout.plan(rooms: rooms, sessions: sessions, footprints: footprints,
                                          solutions: [r1.id: F.solution(yaw: 0.1, translation: .zero, rms: 0.2)])
-        c.check("plan.untrustedSolveIgnored", report(loose, r1.id)?.method == .sharedFrame && report(loose, r1.id)?.rms == 0.2)
+        let looseReport = report(loose, r1.id)
+        c.check("plan.untrustedSolveIgnored", looseReport?.method == AlignmentMethod.sharedFrame && looseReport?.rms == 0.2)
 
         var copies = footprints
         copies[r2.id] = F.footprint(r2.id, SIMD2<Float>(0, 0), SIMD2<Float>(4, 4))
         let stacked = StructureLayout.plan(rooms: [r1, r2], sessions: sessions, footprints: copies, solutions: [:])
-        let stackedOK = report(stacked, r2.id)?.stackedWith == r1.id && report(stacked, r2.id)?.needsManualAlignment == true
-            && report(stacked, r1.id)?.stackedWith == nil
-        c.check("plan.stackedCopyFlagged", stackedOK, "\(stacked.reports)")
+        let copyReport = report(stacked, r2.id)
+        let copyFlagged = copyReport?.stackedWith == r1.id && copyReport?.needsManualAlignment == true
+        let firstClear = report(stacked, r1.id)?.stackedWith == nil
+        c.check("plan.stackedCopyFlagged", copyFlagged && firstClear, "\(stacked.reports)")
 
         var withoutOutline = footprints
         withoutOutline[r4.id] = nil
@@ -129,11 +135,12 @@ extension StructureSelfTest {
         StructureWalls.applyThickness(pairs, exteriorThickness: exterior, to: &model)
         let thickA = model.rooms[0].walls.first { $0.id == wallA }
         let thickB = model.rooms[1].walls.first { $0.id == wallB }
-        let measuredOK = F.near(thickA?.thickness ?? 0, 0.12, 1e-4) && thickA?.thicknessSource == .measured
-            && F.near(thickB?.thickness ?? 0, 0.12, 1e-4) && thickB?.thicknessSource == .measured
-        c.check("walls.pairedThicknessMeasured", measuredOK)
+        let measuredA = F.near(thickA?.thickness ?? 0, 0.12, 1e-4) && thickA?.thicknessSource == Provenance.measured
+        let measuredB = F.near(thickB?.thickness ?? 0, 0.12, 1e-4) && thickB?.thicknessSource == Provenance.measured
+        c.check("walls.pairedThicknessMeasured", measuredA && measuredB)
         let outside = model.rooms[0].walls.first { $0.id == ElementID.derived(fromRoomPlan: F.uuid(204)) }
-        c.check("walls.exteriorEstimated", F.near(outside?.thickness ?? 0, exterior, 1e-6) && outside?.thicknessSource == .estimated)
+        let outsideThick = F.near(outside?.thickness ?? 0, exterior, 1e-6)
+        c.check("walls.exteriorEstimated", outsideThick && outside?.thicknessSource == Provenance.estimated)
         var single = CleanModel(rooms: [roomA], sourceIsStructure: false, stamp: nil)
         StructureWalls.applyThickness([], exteriorThickness: exterior, to: &single)
         let singleOK = !single.rooms[0].walls.isEmpty
@@ -166,11 +173,13 @@ extension StructureSelfTest {
         let before = model.rooms[1].openings.first { $0.id == idDoorB }
         StructureWalls.applyDoorways(links, to: &model)
         let after = model.rooms[1].openings.first { $0.id == idDoorB }
-        let kindOK = after?.kind == .opening && after?.swing == nil && before?.swing != nil
+        let kindOK = after?.kind == OpeningKind.opening && after?.swing == nil
+        let hadSwing = before?.swing != nil
         let sizeOK = after?.offsetAlongWall == before?.offsetAlongWall && after?.width == before?.width
-        let mergedOK = kindOK && sizeOK && after != nil
+        let mergedOK = kindOK && hadSwing && sizeOK && after != nil
         c.check("doorway.laterDoorBecomesOpening", mergedOK)
-        c.check("doorway.keptDoorUnchanged", model.rooms[0].openings.first { $0.id == idDoorA }?.kind == .door)
+        let keptDoor = model.rooms[0].openings.first(where: { $0.id == idDoorA })
+        c.check("doorway.keptDoorUnchanged", keptDoor?.kind == OpeningKind.door)
 
         let openingA = F.door(252, parent: 202, SIMD2<Float>(4, 2), SIMD2<Float>(4, 2.9), kind: .opening)
         let plainA = F.cleanRoom(F.rectangle(80, SIMD2<Float>(0, 0), SIMD2<Float>(4, 5), wallBase: 200, openings: [openingA]),
@@ -205,19 +214,21 @@ extension StructureSelfTest {
         let movedEdge = StructureAlignment.planTransform(SIMD2<Float>(4.25, 0), by: gap.delta)
         c.check("snap.wallGap", gap.snap == .wallGap && F.near(movedEdge, SIMD2<Float>(4.12, 0), 1e-4), "\(gap) \(movedEdge)")
 
-        let free = StructureSnapping.snap(farRoom, rotation: 0.5, translation: SIMD2<Float>(1, 1), others: [])
+        let unsnapped = StructureSnapping.snap(farRoom, rotation: 0.5, translation: SIMD2<Float>(1, 1), others: [])
         let pivot = farRoom.centroid
-        let freePivot = StructureAlignment.planTransform(pivot, by: free.delta)
-        c.check("snap.noneKeepsGesture", free.snap == .none && F.near(free.delta.yaw, 0.5, 1e-6)
-                && F.near(freePivot, pivot + SIMD2<Float>(1, 1), 1e-5) && free.delta.source == .user)
+        let unsnappedPivot = StructureAlignment.planTransform(pivot, by: unsnapped.delta)
+        let gestureKept = F.near(unsnapped.delta.yaw, 0.5, 1e-6) && F.near(unsnappedPivot, pivot + SIMD2<Float>(1, 1), 1e-5)
+        let noSnap = unsnapped.snap == AlignSnapKind.none && unsnapped.delta.source == Provenance.user
+        c.check("snap.noneKeepsGesture", noSnap && gestureKept)
 
         let doorway = F.door(250, parent: 202, SIMD2<Float>(4, 2), SIMD2<Float>(4, 2.9))
         let room = F.cleanRoom(F.rectangle(80, SIMD2<Float>(0, 0), SIMD2<Float>(4, 5), wallBase: 200, openings: [doorway]),
                                record: F.uuid(80))
         let shape = AlignShape.from(room)
-        let shapeOK = shape.walls.count == 4 && shape.doors.count == 1 && shape.roomID == F.uuid(80)
-            && F.near(shape.doors.first ?? SIMD2<Float>.zero, SIMD2<Float>(4, 2.45), 1e-4) && F.near(shape.centroid, SIMD2<Float>(2, 2.5), 1e-4)
-        c.check("alignShape.fromCleanRoom", shapeOK, "\(shape.doors) \(shape.centroid)")
+        let shapeCounts = shape.walls.count == 4 && shape.doors.count == 1 && shape.roomID == F.uuid(80)
+        let doorCenter = F.near(shape.doors.first ?? SIMD2<Float>.zero, SIMD2<Float>(4, 2.45), 1e-4)
+        let shapeCenter = F.near(shape.centroid, SIMD2<Float>(2, 2.5), 1e-4)
+        c.check("alignShape.fromCleanRoom", shapeCounts && doorCenter && shapeCenter, "\(shape.doors) \(shape.centroid)")
         let shifted = shape.moved(by: StructureAlignment.translation(by: SIMD2<Float>(1, 0), roomID: F.uuid(80)))
         c.check("alignShape.moved", F.near(shifted.centroid, SIMD2<Float>(3, 2.5), 1e-4))
     }

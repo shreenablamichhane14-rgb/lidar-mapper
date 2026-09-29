@@ -113,6 +113,7 @@ enum StructureWalls {
     /// Room A is the room that comes first in `model.rooms`; pairs are returned in the order of
     /// room A, then of wall A.
     static func sharedWalls(in model: CleanModel) -> [SharedWallPair] {
+        /// One possible pair: room and wall positions in the model, gap and overlap.
         struct Candidate {
             var roomA: Int
             var wallA: Int
@@ -211,6 +212,7 @@ enum StructureWalls {
     /// Each opening is in at most one link (nearest centers first); links are returned in pair
     /// order, then in the order of the first room's openings.
     static func doorwayLinks(in model: CleanModel, pairs: [SharedWallPair]) -> [DoorwayLink] {
+        /// One possible doorway: pair index, room and opening positions, center distance.
         struct Candidate {
             var pair: Int
             var roomA: Int

@@ -26,15 +26,20 @@ extension StructureSelfTest {
         log.append(alignEdit(r3, yaw: 0.4))
         log.undo()
         let user = StructureStore.userAlignments(log)
-        c.check("user.lastActivePerRoom", user[r1]?.yaw == 0.2 && user[r1]?.source == .user, "\(user)")
-        c.check("user.foundInsideBatch", user[r2]?.yaw == 0.3 && user[r2]?.source == .user)
+        let lastYaw: Float? = user[r1]?.yaw
+        c.check("user.lastActivePerRoom", lastYaw == 0.2 && user[r1]?.source == Provenance.user, "\(user)")
+        let batchYaw: Float? = user[r2]?.yaw
+        c.check("user.foundInsideBatch", batchYaw == 0.3 && user[r2]?.source == Provenance.user)
         c.check("user.ignoresUndone", user[r3] == nil && user.count == 2)
 
         let measured = [RoomAlignmentRecord(roomID: r1, yaw: 0.9, translation: .zero, source: .measured),
                         RoomAlignmentRecord(roomID: r3, yaw: 0.7, translation: .zero, source: .measured)]
         let effective = StructureStore.effectiveAlignments(measured: measured, log: log)
-        let preferOK = effective[r1]?.yaw == 0.2 && effective[r1]?.source == .user
-        let keepOK = effective[r3]?.yaw == 0.7 && effective[r3]?.source == .measured && effective[r2]?.yaw == 0.3
+        let userYaw: Float? = effective[r1]?.yaw
+        let measuredYaw: Float? = effective[r3]?.yaw
+        let batchedYaw: Float? = effective[r2]?.yaw
+        let preferOK = userYaw == 0.2 && effective[r1]?.source == Provenance.user
+        let keepOK = measuredYaw == 0.7 && effective[r3]?.source == Provenance.measured && batchedYaw == 0.3
         c.check("effective.prefersUserRecord", preferOK && keepOK, "\(effective)")
 
         var digestLog = EditLog()
@@ -124,7 +129,7 @@ extension StructureSelfTest {
         let leftover = StructureAttempt(startedAt: F.date, roomIDs: [F.uuid(1)], inputHash: "stored-hash")
         let crashed = MergeStructureStep.decision(isSupported: true, availableMemory: plenty, budget: budget, attempt: leftover,
                                                   attemptFileExists: true, currentHash: "different-hash", mergeableCount: 3)
-        c.check("decision.crashedBeforeWhateverHash", crashed == .crashedBefore)
+        c.check("decision.crashedBeforeWhateverHash", crashed == StructureMergeOutcome.crashedBefore)
         let unsupported = MergeStructureStep.decision(isSupported: false, availableMemory: plenty, budget: budget, attempt: nil,
                                                       attemptFileExists: false, currentHash: "h", mergeableCount: 3)
         let reduced = MergeStructureStep.decision(isSupported: true, availableMemory: budget - 1, budget: budget, attempt: leftover,
@@ -133,9 +138,12 @@ extension StructureSelfTest {
                                               attemptFileExists: false, currentHash: "h", mergeableCount: 1)
         let go = MergeStructureStep.decision(isSupported: true, availableMemory: plenty, budget: budget, attempt: nil,
                                              attemptFileExists: false, currentHash: "h", mergeableCount: 2)
-        c.check("decision.order", unsupported == .unsupported && reduced == .skippedReducedMemory && few == .tooFewRooms && go == nil)
+        let firstTwo = unsupported == StructureMergeOutcome.unsupported && reduced == StructureMergeOutcome.skippedReducedMemory
+        let lastTwo = few == StructureMergeOutcome.tooFewRooms && go == nil
+        c.check("decision.order", firstTwo && lastTwo)
         let step = MergeStructureStep()
-        c.check("decision.budgets", step.memoryBudgetBytes == budget && step.reducedMemoryBudgetBytes == 60 * 1024 * 1024)
+        let reducedBudget: UInt64 = 60 * 1024 * 1024
+        c.check("decision.budgets", step.memoryBudgetBytes == budget && step.reducedMemoryBudgetBytes == reducedBudget)
 
         let a = F.uuid(130)
         let other = F.uuid(131)
@@ -156,8 +164,10 @@ extension StructureSelfTest {
 
         let raised = F.rectangle(150, SIMD2<Float>(0, 0), SIMD2<Float>(3, 4), wallBase: 300, baseY: 2.8)
         let footprint = RoomFootprint.from(raised, roomID: F.uuid(150))
-        let footprintOK = footprint?.outline.count == 4 && F.near(footprint?.floorElevation ?? 0, 2.8, 1e-5)
-            && F.near(Polygon2D(points: footprint?.outline ?? []).area, 12, 1e-3)
+        let footprintCorners = footprint?.outline.count == 4
+        let footprintHeight = F.near(footprint?.floorElevation ?? 0, 2.8, 1e-5)
+        let footprintArea = F.near(Polygon2D(points: footprint?.outline ?? []).area, 12, 1e-3)
+        let footprintOK = footprintCorners && footprintHeight && footprintArea
         c.check("footprint.fromRoomInput", footprintOK, "\(String(describing: footprint))")
         let empty = RoomInput(identifier: F.uuid(151), walls: [], openings: [], floors: [], objects: [], sections: [], story: 0)
         c.check("footprint.noOutlineNil", RoomFootprint.from(empty, roomID: F.uuid(151)) == nil)
