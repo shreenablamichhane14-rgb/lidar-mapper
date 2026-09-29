@@ -104,22 +104,32 @@ Status: "merged" is on `integration` and compiled green (wave 0 is complete: Cor
 | Results | Results | 4 | 4c | Core, Store, Pipeline, RoomModel, MeshModel, FloorPlan, MeasureCore, Viewer3D, Quality, TextureJob, Units, Support; SwiftUI, RoomPlan, QuickLook | to build |
 | ExportUI | ExportUI | 4 | 4c | Core, Export, Store, RoomModel, MeshModel, FloorPlan, MeasureCore, Quality, TextureJob, Units, Support; SwiftUI, UIKit, RoomPlan | to build |
 | AppShell | AppShell | 4 | 4d | every build 4 module; SwiftUI, ARKit, RoomPlan, RealityKit | to build |
-| Structure | Structure | 5 | 5a | Core, Geometry, RoomModel, Store, Support; RoomPlan | to build |
-| CoverageLive | CoverageLive | 5 | 5a | Core, Coverage, CaptureCore, MeshRecord, RoomModel, Support; ARKit | to build |
-| LiveMeshView | LiveMeshView | 5 | 5a | Core, CaptureCore, Store, MeshRecord, Keyframes, GuidanceUI, Coverage, Support; ARKit, RealityKit, SwiftUI | to build |
-| ObjectCapture | ObjectCapture | 5 | 5a | Core, Store, GuidanceUI, Support; RealityKit, SwiftUI | to build |
-| ObjectModel | ObjectModel | 5 | 5a | Core, Geometry, MeshProcessing, Export, Store, Support; ModelIO | to build |
-| MeasureTool | MeasureTool | 5 | 5a | Core, Geometry, Viewer3D, MeasureCore, Store, Units, Support; SwiftUI | to build |
-| LiveMeasure | LiveMeasure | 5 | 5a | Core, CaptureCore, MeasureCore, Store, GuidanceUI, Units, Support; ARKit, RealityKit, SwiftUI | to build |
-| PlanEditor | PlanEditor | 5 | 5a | Core, FloorPlan, Store, Units, Support; SwiftUI | to build |
-| CoverageOverlay | CoverageOverlay | 5 | 5b | Core, CoverageLive, LiveMeshView, Coverage, Support; RealityKit, SwiftUI | to build |
-| LargeObject | LargeObject | 5 | 5b | Core, CaptureCore, CoverageLive, LiveMeshView, ObjectModel, MeshProcessing, Geometry, Store, Support | to build |
-| MissingAreas | MissingAreas | 5 | 5b | Core, CoverageLive, LiveMeshView, Quality, Units, Support; SwiftUI | to build |
-| HouseUI | HouseUI | 5 | 5b | Core, Store, Structure, RoomCapture, ScanUI, QualityUI, FloorPlan, Support; SwiftUI | to build |
-| ObjectUI | ObjectUI | 5 | 5b | Core, ObjectCapture, ObjectModel, Viewer3D, Store, Units, Support; SwiftUI | to build |
-| Viewer3D (build 5) | Viewer3D | 5 | 5a | as in build 4; RealityKit `Entity(contentsOf:)` | to build |
-| Build 5 revisions | ScanUI, Results, HomeUI, ExportUI | 5 | 5c | the 5a and 5b modules they wire | to build |
-| AppShell (build 5) | AppShell | 5 | 5d | everything | to build |
+| Core changes CR-1, CR-7, CR-8 (3.37a, 3.30a, 3.31c) | Core, Geometry (`Polygon2D.clipped`), Store (`EditStore.reset`); stub cases in RoomModel and FloorPlan | 5 | pre-5a (lead) | no new dependency | to build |
+| RoomModel revision (3.37b) | RoomModel | 5 | 5a0 | as build 4 (with CR-1) | to build |
+| FloorPlan revision (3.37c) | FloorPlan | 5 | 5a0 | as build 4 (with CR-1) | to build |
+| CaptureCore revision (3.30b) | CaptureCore | 5 | 5a0 | as build 4; ARKit | to build |
+| RoomCapture revision (3.30c) | RoomCapture | 5 | 5a0 | as build 4 | to build |
+| Viewer3D revision (3.34a) | Viewer3D | 5 | 5a0 | as build 4; RealityKit `Entity(contentsOf:)` | to build |
+| Coverage revision CR-9 (3.31a) | Coverage | 5 | 5a0 | as build 4 (Support) | to build |
+| Quality revision CR-10 (3.31b) | Quality | 5 | 5a0 | as build 4 | to build |
+| Structure | Structure | 5 | 5a | Core, Geometry, RoomModel, MeshProcessing, Store, Support; RoomPlan | to build |
+| CoverageLive | CoverageLive | 5 | 5a | Core, Coverage, CaptureCore, MeshRecord, RoomModel, Geometry, Support; ARKit | to build |
+| LiveMeshView | LiveMeshView | 5 | 5a | Core, CaptureCore, Store, MeshRecord, Keyframes, GuidanceUI, Coverage, Pipeline, ScanUI (`Copy.ScanUI.elapsed` only), Support; ARKit, RealityKit, SwiftUI, UIKit | to build |
+| ObjectCapture | ObjectCapture | 5 | 5a | Core, Store, GuidanceUI, Pipeline, Support; RealityKit, SwiftUI, Combine | to build |
+| ObjectModel | ObjectModel | 5 | 5a | Core, Geometry, MeshProcessing, MeshModel, Export, Store, Support; ModelIO, RealityKit (fallback loader) | to build |
+| MeasureTool | MeasureTool | 5 | 5a | Core, Geometry, Coverage, MeasureCore, Viewer3D, RoomModel, Quality, Store, Units, Support; SwiftUI, Combine | to build |
+| LiveMeasure | LiveMeasure | 5 | 5a | Core, CaptureCore, MeasureCore, Store, GuidanceUI, Coverage, Geometry, Pipeline, ScanUI (`ScanFlowModel.defaultProjectName` only), Units, Support; ARKit, RealityKit, SwiftUI, UIKit | to build |
+| PlanEditor | PlanEditor | 5 | 5a | Core, Geometry, FloorPlan, RoomModel, Store, Units, Support; SwiftUI, CoreGraphics, Combine | to build |
+| CoverageOverlay | CoverageOverlay | 5 | 5b | Core, CoverageLive, CaptureCore, Coverage, Support; RealityKit, SwiftUI | to build |
+| LargeObject | LargeObject | 5 | 5b | Core, CoverageLive, LiveMeshView, CaptureCore, MeshRecord, Store, Coverage (CR-9), Geometry, ScanUI, Units, Support; ARKit, RealityKit, SwiftUI | to build |
+| MissingAreas | MissingAreas | 5 | 5b | Core, CoverageLive, LiveMeshView, Quality (CR-10), MeshModel, RoomModel, CaptureCore, Store, ScanUI, Units, Support; RealityKit, SwiftUI | to build |
+| HouseUI | HouseUI | 5 | 5b | Core, Store, Structure, RoomCapture, CaptureCore, MeshRecord, Keyframes, Quality, QualityUI, ScanUI, GuidanceUI, RoomModel, FloorPlan, Pipeline, Support; SwiftUI, AVFoundation, ARKit, RealityKit | to build |
+| ObjectUI | ObjectUI | 5 | 5b | Core, Store, ObjectCapture, ObjectModel, Viewer3D, MeasureCore, ScanUI, Pipeline, TextureJob, Export, Geometry, MeshProcessing, Units, Support; SwiftUI, AVFoundation | to build |
+| ScanUI revision (3.43a) | ScanUI | 5 | 5c | as build 4 plus CoverageLive, LiveMeshView, Quality (CR-10), CoverageOverlay, MissingAreas; RealityKit | to build |
+| Results revision (3.43b) | Results | 5 | 5c | as build 4 plus MeasureTool, PlanEditor, Structure, LiveMeasure, HouseUI | to build |
+| HomeUI revision (3.43c) | HomeUI | 5 | 5c | as build 4 (Core CR-7) | to build |
+| ExportUI revision (3.43d) | ExportUI | 5 | 5c | as build 4 plus Structure, ObjectCapture, ObjectModel, LiveMeasure; PDFKit | to build |
+| AppShell revision (3.43e) | AppShell | 5 | 5d | every build 4 and build 5 module | to build |
 | ProjectOps | ProjectOps | 6 | 6a | Core, Store, Export (CRC32), Support; SwiftUI, UniformTypeIdentifiers | to build |
 | ObjectCrop | ObjectCrop | 6 | 6a | Core, ObjectModel, ObjectCapture, MeshProcessing, Viewer3D, Store, Support; RealityKit | to build |
 | AdvancedScan | AdvancedScan | 6 | 6a | Core, Support; SwiftUI | to build |
@@ -128,6 +138,7 @@ Status: "merged" is on `integration` and compiled green (wave 0 is complete: Cor
 | ExportUI (build 6) | ExportUI | 6 | 6a | as in build 4 plus ObjectModel | to build |
 | BackgroundWork | BackgroundWork | 6 | 6a | Core, Pipeline, Support; BackgroundTasks | to build |
 | Texturing revision | Texturing | 6 | 6a | none; CoreGraphics (atlas streaming callback, accepted by the lead) | to build |
+| HouseUI revision (D16 detail pass hook, 3.49) | HouseUI | 6 | 6a | as build 5 | to build |
 | Build 6 revisions | HomeUI, Results, ScanUI | 6 | 6b | the 6a modules they wire | to build |
 | AppShell (build 6) | AppShell | 6 | 6c | everything | to build |
 | EditMenus | EditMenus | 7 | 7a | Core, Viewer3D, RoomModel, Store, MeasureTool, Support | planned |
@@ -202,33 +213,71 @@ The same notes belong in TEST_PLAN.md 0.3 so the tester marks these N/A rather t
 ### 2.2 Build 5 (0.5)
 
 ```
-wave 5a (imports build 4)
-  Structure      <- RoomModel Store                    [RoomPlan StructureBuilder]
-  CoverageLive   <- CaptureCore MeshRecord RoomModel Coverage
-  LiveMeshView   <- CaptureCore Store MeshRecord Keyframes GuidanceUI Coverage   [RealityKit ARView .ar]
-  ObjectCapture  <- Store GuidanceUI                   [RealityKit Object Capture]
-  ObjectModel    <- MeshProcessing Export Store Geometry  [ModelIO]
-  MeasureTool    <- Viewer3D MeasureCore Store
-  LiveMeasure    <- CaptureCore MeasureCore Store GuidanceUI  [ARView .ar]
-  PlanEditor     <- FloorPlan Store
-  Viewer3D rev.  <- as build 4 (adds loadModel(_:) for Object Capture USDZ)
-  (TextureJob's TextureLowStep and KeyframeLoader, only if they slipped from build 4)
-wave 5b (imports build 4 and 5a)
-  CoverageOverlay <- CoverageLive LiveMeshView
-  LargeObject     <- CoverageLive LiveMeshView ObjectModel CaptureCore
-  MissingAreas    <- CoverageLive LiveMeshView Quality
-  HouseUI         <- Structure RoomCapture ScanUI QualityUI FloorPlan
-  ObjectUI        <- ObjectCapture ObjectModel Viewer3D
-wave 5c (revisions of build 4 screens, one agent each)
-  ScanUI   (+ CoverageLive hooks, minimap, CoverageOverlay, MissingAreas entry)
-  Results  (+ MeasureTool, PlanEditor, object results)
-  HomeUI   (+ House, Object, Quick Measure enabled in the mode picker)
-  ExportUI (+ house USDZ via CapturedStructure, multi-level plan, object USDZ as produced)
+before wave 5a (the lead, one commit, compiled green)
+  Core CR-1 (3.37a)  EditOperation moveOpening, resizeOpening, mergeRooms, splitRoom, batch; EditLog flattenedActive,
+                     reset(keeping:); mergedOutlines on CleanFloor and PlanRoom; wall orientation and WallArc docs;
+                     Geometry Polygon2D.clipped(leftOf:_:); Store EditStore.reset(_:keeping:); stub cases in
+                     RoomModel and FloorPlan
+  Core CR-7 (3.30a)  RoomRecord.supersededBy
+  Core CR-8 (3.31c)  MinimapSnapshot.camera, heading
+
+wave 5a0 (revisions of build 4 modules; each edits only its own folder; imports build 4 and the pre-5a Core)   est. lines
+  RoomModel rev.   (3.37b) <- as build 4   orientation invariant, CR-1 operations, merged outlines          350
+  FloorPlan rev.   (3.37c) <- as build 4   no reversed walls, CR-1 operations, merged rooms                 300
+  CaptureCore rev. (3.30b) <- as build 4   run(options:initialWorldMap:)                                      40
+  RoomCapture rev. (3.30c) <- as build 4   makeCaptureView keeps a running session                            15
+  Viewer3D rev.    (3.34a) <- as build 4   loadModel(_:layer:transform:pickMesh:pickTag:)                   180
+  Coverage rev.    (3.31a) <- (none)       GuidanceInput.extraConditions (CR-9)                               20
+  Quality rev.     (3.31b) <- as build 4   mesh-pass folders in the Done evaluation and QualityStep (CR-10)  120
+
+wave 5a (imports build 4, pre-5a and 5a0)
+  Structure     (3.30) <- RoomModel Store MeshProcessing (+ Core Geometry Support)   [RoomPlan StructureBuilder]  1450
+  CoverageLive  (3.31) <- CaptureCore MeshRecord RoomModel Coverage (+ Core Geometry Support)                     1200
+  LiveMeshView  (3.32) <- CaptureCore Store MeshRecord Keyframes GuidanceUI Coverage Pipeline ScanUI(copy)
+                          (+ Core Support)   [RealityKit ARView .ar]                                              1450
+  ObjectCapture (3.33) <- Store GuidanceUI Pipeline (+ Core Support)   [RealityKit + SwiftUI Object Capture]      1450
+  ObjectModel   (3.34) <- MeshProcessing MeshModel Export Store (+ Core Geometry Support)   [ModelIO, RealityKit]  900
+  MeasureTool   (3.35) <- Viewer3D MeasureCore RoomModel Quality Store Coverage (+ Core Geometry Units Support)   1350
+  LiveMeasure   (3.36) <- CaptureCore MeasureCore Store GuidanceUI Coverage Geometry Pipeline ScanUI(name)
+                          (+ Core Units Support)   [ARView .ar, planes]                                           1300
+  PlanEditor    (3.37) <- FloorPlan RoomModel Store (+ Core Geometry Units Support)                               1500
+
+wave 5b (imports build 4, pre-5a, 5a0 and 5a)
+  CoverageOverlay (3.38) <- CoverageLive CaptureCore Coverage (+ Core Support)   [RealityKit LowLevelMesh]         900
+  LargeObject     (3.39) <- CoverageLive LiveMeshView CaptureCore MeshRecord Store Coverage(CR-9) Geometry ScanUI
+                            Units (+ Core Support)                                                                1400
+  MissingAreas    (3.40) <- CoverageLive LiveMeshView Quality(CR-10) MeshModel RoomModel CaptureCore Store ScanUI
+                            Units (+ Core Support)                                                                1000
+  HouseUI         (3.41) <- Structure RoomCapture(3.30c) CaptureCore(3.30b) MeshRecord Keyframes Quality QualityUI
+                            ScanUI GuidanceUI RoomModel FloorPlan Pipeline Store (+ Core Support)                 1450
+  ObjectUI        (3.42) <- ObjectCapture ObjectModel Viewer3D(3.34a) MeasureCore ScanUI Pipeline TextureJob Export
+                            Geometry MeshProcessing Units Store (+ Core Support)                                  1400
+
+wave 5c (revisions of build 4 screens, one agent each; imports everything above; no 5c revision imports another)
+  ScanUI rev.   (3.43a) <- CoverageLive LiveMeshView Quality(CR-10) CoverageOverlay MissingAreas   [RealityKit]   400
+  Results rev.  (3.43b) <- MeasureTool PlanEditor Structure LiveMeasure HouseUI                                   650
+  HomeUI rev.   (3.43c) <- (Core CR-7)                                                                             60
+  ExportUI rev. (3.43d) <- Structure ObjectCapture ObjectModel LiveMeasure   [PDFKit]                              450
+
 wave 5d
-  AppShell (routes for House, Object, Quick Measure, missing areas, editors)
+  AppShell rev. (3.43e) <- everything; edits ContentView.swift and MapperApp.swift                                700
 ```
 
-After build 5: House mode room by room with progress, merge and alignment (D9), manual alignment, floors; Object mode small and medium (Object Capture) and large (LiDAR mesh driver, side guidance "Capture the left side"); Quick Measure; measuring inside the model with snapping and confidence; floor plan editing through the EditLog with undo; live green, yellow, red and gray coverage; Show Missing Areas.
+Why wave 5a0: PlanEditor's and MeasureTool's self-tests apply the CR-1 operations through `PlanModel.apply` and `CleanModel.applyingEdits`, Structure builds rooms with `CleanModelBuilder`, and MeasureTool picks on the revised viewer; revising a build 4 module inside wave 5a would let 5a modules compile against one behavior and merge into another. So every revision of a build 4 module that a later build 5 module needs is its own small agent in wave 5a0, on its own branch, touching only its own folder and using only build 4 and pre-5a symbols (the FloorPlan revision relies on the RoomModel revision's orientation invariant as data in clean.json, never as an import, so the two run in parallel). All seven merge, with `integration` green after each, before any 5a module starts.
+
+Why no module depends on its own wave. In 5a: ObjectModel receives ObjectCapture's model file and bounds through `ObjectMetricsStep`'s two closures, which AppShell wires, and ObjectCapture never reads dims.json; LiveMeshView never references CoverageLive (coverage plugs in as an extra `ScanRecorder` plus the two augmenter closures); LiveMeasure has its own container and never uses LiveMeshView; MeasureTool and PlanEditor never import each other (Results composes them in 5c); HouseUI (5b) is the only user of Structure's snapping math. In 5b: CoverageOverlay attaches to any `ARView`, so LargeObject and MissingAreas never import it (the overlay is attached through their `onViewReady` closures by ScanUI 5c and AppShell 5d: `CoverageOverlayRenderer(source: model.coverage, thermal: hub.thermal)`, `attach(to:)` in the closure, `detach()` when the screen goes away); HouseUI reaches MissingAreas and CoverageLive only through `onShowMissingAreas` and `captureExtras`, set by AppShell; ObjectUI hands a Large choice to AppShell (`onLargeObject`) and never imports LargeObject. In 5c: see 3.43. Every dependency of a 5a module on a 4c module (LiveMeshView, LiveMeasure on ScanUI) is on merged code.
+
+Wave gates as in build 4 (2.1): each module branches `impl/<module>` from the `integration` head on which the previous wave is merged and green, compiles on its branch until green with its self-test, and merges one at a time; the lead adds each `SelfTestSuite` line. After wave 5d the lead bumps `MARKETING_VERSION` to 0.5 and `CURRENT_PROJECT_VERSION` in `ios/project.yml`.
+
+After build 5: House mode room by room with progress, relocalization for later visits, merge and alignment (D9), manual alignment, floors, Rescan that supersedes a room; Object mode small and medium (Object Capture, on-device photogrammetry) and large (LiDAR mesh driver with a tapped seed, gravity-aligned box and side guidance "Capture the left side"), with dimensions, surface area and volume only when watertight; Quick Measure with plane-corner snapping and confidence; measuring inside the model with snapping and confidence; floor plan editing through the EditLog with undo, redo and Reset to Scan; live green, yellow, red and gray coverage (colored mesh in mesh-only views and the tour, minimap and legend in Room mode); Show Missing Areas on the still-running session with re-evaluated quality (Room and House rooms); the D16 detail pass when RoomPlan strips the mesh in Room mode (House rooms in build 6, 3.49); House, Object and Quick Measure exports.
+
+Build 5 acceptance on the phone (`docs/TEST_PLAN.md`):
+- As written: HOUSE-01 to HOUSE-09, OBJ-01 to OBJ-06, OBJ-09, MEAS-01 to MEAS-11, CONF-01 to CONF-04, PEDIT-01 to PEDIT-09, PLAN-05, QUAL-01 (with Show Missing Areas), QUAL-02, QUAL-03, REC-02, LIVE-01 to LIVE-10, MODE-02, MODE-03, MODE-06, EXP-05 (with annotations), EXP-09, OFF-01 (full workflow), PERF-03, PERF-10, PERF-13, PERF-25, PERF-28, and the smoke list #3, #4, #6, #7, #8, #9 as written.
+- Build 5 variants: OBJ-07 without step 4 (crop is build 6); EXP-08 with the JSON export only (CSV and the report page come in build 6); EDIT3D-01 shows Change Category on the card (the full object menu is build 7).
+- N/A in build 5: OBJ-08 (ObjectCrop, build 6), MODE-07 (Advanced Scan, build 6).
+The build 4 variants of QUAL-01, QUAL-02, OFF-01 and EXP-05 and the build 4 N/A of EXP-09, PERF-03, PERF-10, PERF-25 and PERF-28 are removed from TEST_PLAN 0.3 (the lead updates TEST_PLAN.md).
+
+Device questions the build 5 logs answer on the first run: StructureBuilder's output frame (per room: placement method, matches, rms); whether ModelIO reads Object Capture's USDZ on iOS 18.3.2 (`ObjectModelLoader.canReadUSDZ`, triangles, bounds against `.bounds`, and which loader path produced each object's mesh); whether `PhotogrammetrySession` accepts the capture checkpoint after it moved to `derived/objects/<id>/checkpoint/` (the "checkpoint retry" line); whether `ObjectCaptureActivity` ever made a capture or a reconstruction wait, and for how long; whether dismantling the relocalization and live mesh `ARView`s leaves the hub's session running (`hub.isRunning` and delegate identity after dismantle; both containers hand the view a fresh idle `ARSession()` first); relocalization time and success rate (seconds to `.normal`, Start Fresh Here taps); Object Capture limits on the A15 (`maximumNumberOfInputImages`, `PhotogrammetrySession.limits`), reconstruction time and downsampling; CoverageLive pass time (median under 60 ms for 50k visible faces) and CoverageOverlay main-thread time per tick (under 8 ms).
 
 ### 2.3 Build 6 (0.6)
 
@@ -242,6 +291,7 @@ wave 6a (imports builds 4 and 5 only)
   TextureJob rev.  <- as build 4 (adds TextureHighStep)
   ExportUI rev.    <- as build 4 plus ObjectModel
   Texturing rev.   <- (none)  atlas streaming callback so finished atlases go to disk (accepted by the lead)
+  HouseUI rev.     <- as build 5 (hook for the D16 detail pass of House rooms, composed by AppShell 6c)
 wave 6b (imports 6a)
   HomeUI, Results, ScanUI revisions (project menu, Photo Realistic, crop, reference length, Advanced flow)
 wave 6c
@@ -268,14 +318,19 @@ Each module to build has: Purpose; Build and wave; Files; Public Swift API (real
 
 ### 3.0 Known change requests (lead decides; agents do not apply them)
 
-Core changes for build 4 (CR-2, CR-4, CR-5 and CR-6 below) were applied on `integration` by the design review before wave 4a; every build 4 contract in this file compiles against Core as it is now. No further Core change is needed for build 4.
+Core changes for build 4 (CR-2, CR-4, CR-5 and CR-6 below) were applied on `integration` by the design review before wave 4a; every build 4 contract in this file compiles against Core as it is now. No further Core change is needed for build 4. Build 5 needs three Core changes before wave 5a (CR-1, CR-7, CR-8, applied by the lead in one commit) and revisions of seven build 4 modules in wave 5a0, two of them numbered (CR-9, CR-10); section 2.2 has the order.
 
-- CR-1 (Core, approved for build 5; the lead applies it before wave 5a, PlanEditor): `EditOperation` gains `moveOpening(opening: ElementID, offset: Float)`, `resizeOpening(opening: ElementID, width: Float, sillHeight: Float, headHeight: Float)`, `mergeRooms(rooms: [ElementID], into: ElementID)`, `splitRoom(room: ElementID, line: [Vec2], newRoom: ElementID)`, each with `targets` entries, and RoomModel and FloorPlan revisions apply them in 5a. Build 4 writes no edits, so nothing waits on it.
+- CR-1 (Core, Geometry and Store; approved; specified in 3.37a; the lead applies it before wave 5a with stub cases): `EditOperation` gains `moveOpening(opening:offset:)`, `resizeOpening(opening:width:sillHeight:headHeight:)`, `mergeRooms(rooms:into:)`, `splitRoom(room:line:newRoom:)` and `batch(operations:)` (one user action is one undo step), with `targets` and `flattened`; `EditLog` gains `flattenedActive` and `reset(keeping:)`; `CleanFloor` and `PlanRoom` gain optional `mergedOutlines`; the `WallArc` angle convention and the wall orientation invariant (room on the left of start -> end, normal the left perpendicular) are documented in Core; Geometry gains `Polygon2D.clipped(leftOf:_:)`; Store gains `EditStore.reset(_:keeping:)`. RoomModel (3.37b) and FloorPlan (3.37c) implement the operations in wave 5a0; the FloorPlan change request of build 4 (RoomModel reverses walls outside the loop instead of flipping their normal; FloorPlan stops reversing walls) lands in the same two revisions. Readers of one operation kind (scale corrections, room alignments, crops, recategorizations) read `EditLog.flattenedActive`, never `active`, because a batch can hold any operation.
 - CR-2 (Core, applied): one low-confidence rule everywhere. `MeasuredValue.isLowConfidence(length:)` implements "2 sigma above max(4 cm, 3 percent of the length)" for lengths and "2 sigma above 3 percent of the value" for areas and volumes (`length: nil`); `isLowConfidence(kind:)` picks the variant from a `MeasurementKind`, and the `isLowConfidence` property treats the value as a length. MeasureCore's `MeasureDisplay.isLowConfidence(_:length:)` delegates to it, and every screen goes through MeasureDisplay.
 - CR-3 (MeshProcessing): done. `MeshChunk` was renamed `MergeChunk`, and `Cleanup.swift` (`MeshCleanup`) and `ObjectIsolation.swift` (`ObjectIsolation`) are merged. Code against the names in 3.8.
 - CR-4 (Core, applied): `RawScanFolder.resolve(_:) -> URL?` returns nil for absolute paths, `..`, `.` or empty components, backslashes, NUL bytes and anything outside the folder (`RawScanFolder.isSafeRelativePath(_:)` is the pure rule); `ProjectStore.readJSON(_:from:maxBytes:)` throws `CoreError.fileTooLarge(name:bytes:)` above `maxBytes` (default `ProjectStore.defaultMaxJSONBytes`, 32 MB; `readManifest` uses `maxManifestBytes`, 1 MB); `listProjects()` lists only folders named exactly `<UUID>.mapperproj` (`ProjectStore.projectID(fromPackageName:)`) whose manifest id matches; `ProjectStore.writeData(_:to:protection:createParents:)` keeps `.atomic` and adds `ProjectStore.defaultProtection(for:)` when `protection` is nil: `.completeFileProtectionUnlessOpen` under a package's `edits/` and `exports/` and for `thumbnail.jpg`, the system default for raw and derived. `ProjectStore.inProgressRoot()` re-applies backup exclusion on every call.
 - CR-5 (Core, documentation, applied): the `ProjectPackage` doc comment places the Object Capture checkpoint at `derived/objects/<id>/checkpoint/` (section 3.33) and lists the per-module derived files of section 3.1.
 - CR-6 (Core, applied by the design review): `writeData(... createParents: false)` refuses to recreate a missing parent folder and `ProjectStore.ensureDirectory(_:inside:)` creates a derived folder only while the package root exists (late writes after a discard or delete, 3.10); `ProjectPackage.pipelineAttemptURL` (`derived/pipeline_attempt.json`, 3.15); `RawScanFolder.liveCapturedRoomURL` (`capturedroom-live.json`) and `RawScanFolder.worldMapURL` (`worldmap.arworldmap`) (3.21); `MapperError.lowMemory` (3.21); `CoreError.fileTooLarge`; `ScanEngine.discard()` (3.21, 3.24; `FakeScanEngine.discard()` equals `cancel()`); doc comments on `ProjectStatus.capturing`, `PlanModel.northAngle` (counter-clockwise from plan +y) and `ObjectCategory` display names.
+- CR-7 (Core, build 5; specified in 3.30a; the lead applies it with CR-1 before wave 5a): `RoomRecord.supersededBy: UUID? = nil` for HouseUI's Rescan. Backward compatible (build 4 manifests decode with nil); CoreSelfTest gains 2 checks. Rooms that count are `supersededBy == nil` (Structure `StructureEligibility.activeRooms`).
+- CR-8 (Core, build 5; specified in 3.31c; the lead applies it with CR-1 before wave 5a): `MinimapSnapshot` gains `camera: Vec2? = nil` and `heading: Float? = nil` (the "you are here" marker of the minimap). Backward compatible; CoreSelfTest gains 2 checks.
+- CR-9 (Coverage revision, wave 5a0; specified in 3.31a): `GuidanceInput.extraConditions: Set<GuidanceKind> = []`, tier 2 and 3 conditions decided outside the engine (LargeObject's sector guidance), with no change to thresholds or display rules.
+- CR-10 (Quality revision, wave 5a0; specified in 3.31b): `QualityEvaluator.evaluateSealedRoom(package:record:passes:now:)`, `QualityEvaluator.doneInputHash(seals:)` and `QualityStep(room:passes:)` (default `[]`), so a room's sealed mesh-pass folders count in its quality.
+- Other revisions of build 4 modules in wave 5a0 (no change request number, each specified in its own section): RoomModel (3.37b), FloorPlan (3.37c), CaptureCore `run(options:initialWorldMap:)` and `ScanConfigurationFactory.make(_:initialWorldMap:)` (3.30b), RoomCapture `makeCaptureView` keeps a running session (3.30c), Viewer3D `loadModel` (3.34a). The build 4 screens are revised in wave 5c (3.43a to 3.43d) and AppShell in 5d (3.43e).
 
 ### 3.1 Derived and raw file contract (all modules)
 
@@ -294,15 +349,24 @@ Paths below are relative to the project package (`ProjectPackage.root`). Core na
 | `derived/plan.json`, `thumbnail.jpg` (package root) | FloorPlan | FloorPlan `PlanModelStore`; `ProjectPackage.thumbnailURL` |
 | `derived/rooms/<r>/quality.json` | Quality | Quality `QualityStore` |
 | `derived/rooms/<r>/texture/textured.mchk`, `textured.tuv`, `page_<n>.jpg` | TextureJob | TextureJob `TextureStore` |
-| `edits/editlog.json`, `edits/measurements.json` | Store `EditStore` | Store `EditStore` |
+| `edits/editlog.json` (build 5: CR-1 operations and `batch` entries; PlanEditor writes one entry per user action) | Store `EditStore` (PlanEditor, Results, HouseUI and LargeObject append) | Store `EditStore`; replayed by RoomModel `CleanModelStore.loadEdited` and FloorPlan `PlanModelStore.loadEdited` |
+| `edits/measurements.json` | Store `EditStore`, written by MeasureTool (viewer measurements) and Results (renames and deletions of Quick Measure records; once written it supersedes `raw/measure/quick.json` for display, and the raw file stays sealed) | Store `EditStore.loadMeasurements`; Results `QuickMeasureRecords.effective` |
 | `exports/<yyyyMMdd-HHmmss>/...` | ExportUI (also Results' Quick Look copy) | none (shared out) |
 | `Library/Application Support/InProgress/<scanID>/` (RawScanFolder layout plus `scan.json`, D5) | Store `InProgressScans` (RoomCapture, ObjectCapture, LiveMeshView write through `RawScanWriter`) | Store `InProgressScans.list()`, AppShell `RecoveryService` |
-| `raw/sessions/<s>/mesh-pass/<p>/` (build 5 patch and mesh-only passes) | LiveMeshView `MeshScanEngine` via Store | MeshModel `MeshConsolidator.latestChunks(in:)`, Store `RawScanReader` |
-| `raw/objects/<o>/` (`Images/`, `objectlog.json`, `SEAL.json`; RawScanFolder layout for large objects) | ObjectCapture, LargeObject (build 5) | ObjectCapture `PhotogrammetryStep`, ObjectModel |
-| `derived/objects/<o>/checkpoint/`, `model.usdz`, `dims.json` (build 5) | ObjectCapture (checkpoint, model), ObjectModel (`dims.json`) | ObjectModel, ObjectUI |
-| `derived/structure/structure.json`, `alignment.json`, `attempt.json` (build 5) | Structure | Structure |
+| `raw/sessions/<s>/mesh-pass/<p>/` (RawScanFolder layout plus `scan.json` with kind `.meshPass` and the room id; Show Missing Areas and the D16 detail pass in build 5, space scans in build 6) | LiveMeshView `MeshScanEngine` via Store | LiveMeshView `MeshPassFolders` (`forRoom(_:in:)`, `spacePasses(in:)`); MeshModel `ConsolidateMeshStep(roomID:folders:)`; Quality `evaluateSealedRoom(package:record:passes:now:)` (CR-10); Store `RawScanReader` |
+| `raw/measure/quick.json` and its `SEAL.json` (Quick Measure projects) | LiveMeasure `QuickMeasureStore.save` | LiveMeasure `QuickMeasureStore.load`; Results `QuickMeasureRecords.effective`; ExportUI |
+| `raw/objects/<o>/` (`Images/`, `objectlog.json`, `SEAL.json`; small and medium) | ObjectCapture `ObjectScanFolders.seal` | ObjectCapture `PhotogrammetryStore.imagesURL`; FloorPlan `ThumbnailStep` (first image) |
+| `raw/objects/<o>/` (RawScanFolder layout plus `largeobject.json`; large) | LargeObject through LiveMeshView `MeshScanEngine` | MeshModel `ConsolidateMeshStep` (subject = object id) |
+| `derived/objects/<o>/checkpoint/` (moved from the capture at sealing, kept for build 6 ObjectCrop), `model.usdz`, `model-partial.usdz` (only while reconstructing), `reconstruction.json` | ObjectCapture (`ObjectScanFolders.seal`, `PhotogrammetryStep`) | ObjectCapture `PhotogrammetryStore`; ObjectModel through `ObjectMetricsStep`'s closures |
+| `derived/objects/<o>/dims.json`, `mesh.mchk` | ObjectModel `ObjectMetricsStep` | ObjectModel `ObjectModelStore` |
+| `derived/structure/structure.json` (only after a successful merge), `attempt.json` (only while the builder runs), `merge.json` | Structure `MergeStructureStep` | Structure `StructureStore` |
+| `derived/structure/alignment.json` ([RoomAlignmentRecord], measured and parked), `placements.json` | Structure `AlignRoomsStep` | Structure `StructureStore` (`effectiveAlignments` adds the user edits) |
+| `derived/structure/connections.json`; `derived/clean.json` of House projects | Structure `HouseCleanModelStep` | Structure `StructureStore`; RoomModel `CleanModelStore` |
+| `raw/sessions/<s>/` of House sessions: `CaptureSessionRef.worldMapFile` = `rooms/<r>/worldmap.arworldmap` (the room's own map, no new file) | HouseUI (manifest field only) | HouseUI `HouseRelocalization.sourceMap` (resolved with `RawScanFolder.resolve`) |
 
 Input hashes (D11): a step hashes the `SealFile`s of the raw folders it reads with `InputHasher.hash(seals:editRevision:extra:)`; a step that reads another step's output also adds that step's current stamp `inputHash` (read from `derived/index.json` with `ProjectStore.readJSON(DerivedIndex.self, from:)`, `"-"` when there is none) to `extra`, so it reruns when its input was rebuilt (for example `CleanModelStep` adds the room's `consolidateMesh` stamps, `FloorPlanStep` the `cleanModel` stamp, `TextureLowStep` the room's `consolidateMesh` stamp, `QualityStep` the room's `buildRoom` and `consolidateMesh` stamps). Only steps that read edits pass `EditLog.revision` (build 4: `ThumbnailStep`).
+
+Build 5 additions to the input hashes: `HouseCleanModelStep` adds `StructureStore.alignmentEditDigest` (the active alignment edits only) instead of `EditLog.revision`; `ObjectMetricsStep` adds `ObjectModelStore.cropDigest` for large objects; `QualityStep` adds the seals of the room's mesh-pass folders (CR-10); `CleanModelStep` hashes `CleanModelStep.rulesVersion` ("cleanModel-rules=2" from build 5) and `FloorPlanStep` hashes `FloorPlanStep.rulesVersion` ("planBuilder-rules=2"); AppShell's `ProcessingPlans.upgradeIfNeeded()` enqueues every ready, non-demo room and house project once per `ProcessingPlans.rulesVersion`, so derived files made under older rules are rebuilt.
 
 Writes: raw files go through Store's `RawScanWriter` with `createParents: false`; derived writers create their folder with `ProjectStore.ensureDirectory(_:inside: package.root)` and write with `ProjectStore.writeData(_:to:protection:createParents: false)`, so a step or recorder that finishes after its project or scan was deleted fails instead of recreating the folder (CR-6). `edits/`, `exports/` and `thumbnail.jpg` get `.completeFileProtectionUnlessOpen` automatically (CR-4).
 
@@ -2575,179 +2639,4804 @@ Composition: when `scanRequest` becomes non-nil AppShell calls `ProcessingRunner
 
 ## Build 5 (0.5)
 
-Same rules as build 4; sections are shorter because the build 4 contracts already fix the shared types. Every build 5 and 6 module receives its section plus section 0. For these sections: the wave is in the heading; dependencies are the module index row (section 1) and the named symbols follow the build 4 sections; new strings follow rule 0.4 with existing Copy constants reused where UX_COPY.md has them; acceptance checks are that the listed API exists exactly, the self-test count is met, every "Must NOT do" holds, and each SPEC item owned is handled on device per the matching TEST_PLAN.md cases (HOUSE, OBJ, MEAS, CONF, PEDIT, LIVE, QUAL, PROJ, EXP).
+Same rules and format as build 4 (Purpose; Build and wave; Files; Public Swift API; Uses; Apple APIs; Must NOT do; Copy strings; Self-test; Acceptance checks; SPEC owned; TEST_PLAN ids). Every build 5 agent receives section 0, section 3.1 and its own section. Symbols of merged modules are the real ones on `integration` (build 4, all waves); a symbol of another build 5 module is the declaration in that module's section below, with the same spelling. Waves are in section 2.2: the Core changes before wave 5a (applied by the lead), wave 5a0 (revisions of build 4 modules that later build 5 modules compile against), 5a, 5b, 5c (revisions of the build 4 screens) and 5d (AppShell). The module sections keep their numbers; a lettered section is a Core change or a revision of a build 4 module, placed next to the module that needs it first.
+
+| Section | Module or change | Wave | Folder |
+|---|---|---|---|
+| 3.37a | Core change CR-1: plan editing operations (with Geometry `Polygon2D.clipped` and Store `EditStore.reset`) | pre-5a (lead) | Core, Geometry, Store |
+| 3.30a | Core change CR-7: superseded rooms | pre-5a (lead) | Core |
+| 3.31c | Core change CR-8: minimap camera | pre-5a (lead) | Core |
+| 3.37b | RoomModel revision: wall orientation, CR-1 operations | 5a0 | RoomModel |
+| 3.37c | FloorPlan revision: CR-1 operations, merged rooms | 5a0 | FloorPlan |
+| 3.30b | CaptureCore revision: relocalization run | 5a0 | CaptureCore |
+| 3.30c | RoomCapture revision: keep a running session | 5a0 | RoomCapture |
+| 3.34a | Viewer3D revision: loadModel | 5a0 | Viewer3D |
+| 3.31a | Coverage revision CR-9: extra guidance conditions | 5a0 | Coverage |
+| 3.31b | Quality revision CR-10: mesh-pass folders | 5a0 | Quality |
+| 3.30 | Structure | 5a | Structure |
+| 3.31 | CoverageLive | 5a | CoverageLive |
+| 3.32 | LiveMeshView | 5a | LiveMeshView |
+| 3.33 | ObjectCapture | 5a | ObjectCapture |
+| 3.34 | ObjectModel | 5a | ObjectModel |
+| 3.35 | MeasureTool | 5a | MeasureTool |
+| 3.36 | LiveMeasure | 5a | LiveMeasure |
+| 3.37 | PlanEditor | 5a | PlanEditor |
+| 3.38 | CoverageOverlay | 5b | CoverageOverlay |
+| 3.39 | LargeObject | 5b | LargeObject |
+| 3.40 | MissingAreas | 5b | MissingAreas |
+| 3.41 | HouseUI | 5b | HouseUI |
+| 3.42 | ObjectUI | 5b | ObjectUI |
+| 3.43a | ScanUI revision | 5c | ScanUI |
+| 3.43b | Results revision | 5c | Results |
+| 3.43c | HomeUI revision | 5c | HomeUI |
+| 3.43d | ExportUI revision | 5c | ExportUI |
+| 3.43e | AppShell revision | 5d | AppShell |
 
 ### 3.30 Structure (wave 5a)
 
-**Purpose.** House merge and alignment (D9): merge rooms whose frames are confirmed shared with `StructureBuilder`, recover each room's rigid transform into the structure frame from kept wall, door and window identifiers (least squares on matched wall endpoints), detect stacked rooms, group floors by elevation, build the clean model from the structure, and store `derived/structure/structure.json` and `alignment.json`; manual alignment records (source `.user`) come from edits.
-**Files.** `ios/Sources/Structure/StructureMerger.swift`, `StructureAlignment.swift`, `StructureFloors.swift`, `StructureSteps.swift`, `StructureSelfTest.swift`.
-**API.**
+**Purpose.** House merge and alignment (D9) as pure logic plus three processing steps: which rooms share an ARKit world frame (frame groups from `RoomRecord.frameLink` and `CaptureSessionRef.frameLink`), `StructureBuilder(options: [.beautifyObjects])` on the confirmed shared-frame rooms only, each room's rigid transform (yaw about +Y plus translation) into the structure frame recovered by least squares on the wall, door, window and opening identifiers the merge keeps, fallback placements (shared frame, group median, parked beside the building for rooms from unaligned sessions), stacked-room detection, floor levels by elevation, shared walls with measured thickness, each connecting doorway kept once, the House clean model in the structure frame with the user's alignment edits applied, the snapping math of manual alignment (used by HouseUI's `AlignRoomsScreen`), and every file under `derived/structure/`. Raw data is never moved: transforms are applied at derivation time, to the clean model here and to meshes, keyframes and textures by their consumers through `StructureStore.effectiveAlignments`.
+
+**Build and wave.** Build 5, wave 5a. Core (with CR-1 and CR-7, 3.37a and 3.30a), Geometry, RoomModel (as revised in wave 5a0, 3.37b), MeshProcessing (the `MeshWithAttributes` type only), Store (`EditStore`), Support; RoomPlan only in `StructureStore.swift` and `StructureSteps.swift`. About 1450 lines excluding the self-test. No UI, no Copy.
+
+**Files.** `ios/Sources/Structure/StructureEligibility.swift`, `StructureAlignment.swift`, `StructureFloors.swift`, `StructureWalls.swift`, `StructureLayout.swift`, `StructureSnapping.swift`, `StructureStore.swift`, `StructureSteps.swift` (MergeStructureStep, AlignRoomsStep), `StructureCleanStep.swift` (HouseCleanModelStep), `StructureSelfTest.swift`, `StructureSelfTestFixtures.swift`.
+
+**Public Swift API.** Everything except the steps and the store's file IO is pure, nonisolated and safe on any queue. Plan coordinates are `PlanAxes` (plan x = world x, plan y = -world z); a yaw is a rotation about world +Y, which is counter-clockwise both seen from above and in plan coordinates.
 ```swift
-enum StructureEligibility { static func mergeable(_ rooms: [RoomRecord], sessions: [CaptureSessionRef]) -> (merge: [RoomRecord], separate: [RoomRecord]) }
-enum StructureAlignment {
-    /// Yaw about +Y plus translation minimizing matched endpoint distances; nil with fewer than 2 matches.
-    static func solve(before: [UUID: (SIMD2<Float>, SIMD2<Float>)], after: [UUID: (SIMD2<Float>, SIMD2<Float>)]) -> (yaw: Float, translation: SIMD2<Float>, rms: Float)?
-    static func overlapRatio(_ a: [SIMD2<Float>], _ b: [SIMD2<Float>]) -> Float     // stacked-room check (> 0.3 of the smaller room sends it to manual alignment)
-    static func apply(_ record: RoomAlignmentRecord, to model: inout CleanModel)
+// MARK: Frames (StructureEligibility.swift)
+
+/// Rooms captured in one ARKit world frame (D9): sessions joined by
+/// `.relocalized(sessionID:from:)` links, plus the active rooms captured in them.
+struct StructureFrameGroup: Equatable, Sendable {
+    /// Session identifiers, in `ProjectManifest.sessions` order.
+    var sessions: [UUID]
+    /// Active room identifiers, in `ProjectManifest.rooms` order.
+    var rooms: [UUID]
 }
-enum StructureFloors { static func group(elevations: [UUID: Float], gap: Float = 1.2) -> [UUID: Int] }
-final class MergeStructureStep: ProcessingStep { init(rooms: [RoomRecord]) }   // id .mergeStructure
-final class AlignRoomsStep: ProcessingStep { init(rooms: [RoomRecord]) }       // id .alignRooms
+
+enum StructureEligibility {
+    /// Rooms that belong in house models: `supersededBy == nil` (CR-7) and status `.captured`,
+    /// `.processed` or `.needsRescan` (a poor room is still real data). Manifest order.
+    static func activeRooms(_ manifest: ProjectManifest) -> [RoomRecord]
+    /// Groups sessions by relocalization links (undirected, transitive), each group with the
+    /// active rooms of its sessions. A session whose `CaptureSessionRef.frameLink` is `.unaligned`
+    /// or `.manual` never joins another session but keeps all its rooms in one group: Start Fresh
+    /// Here continues one ARKit session with `startNextRoom`, so those rooms share a frame with
+    /// each other (their own `frameLink` is `.unaligned` too, which must not split them). Only a
+    /// room whose own `frameLink` is `.manual` is a group of its own (one room).
+    static func frameGroups(rooms: [RoomRecord], sessions: [CaptureSessionRef]) -> [StructureFrameGroup]
+    /// The structure frame: the group with the most rooms; ties go to the group that holds the
+    /// earliest session in `sessions` order. Nil when there are no rooms.
+    static func anchorGroup(_ groups: [StructureFrameGroup], sessions: [CaptureSessionRef]) -> StructureFrameGroup?
+    /// Rooms passed to StructureBuilder: active rooms of the anchor group for which `isFinal` is
+    /// true (a raw or rebuilt capturedroom.json, never the provisional live file). Everything
+    /// else is `separate`. Both keep the order of `rooms`.
+    static func mergeable(_ rooms: [RoomRecord], sessions: [CaptureSessionRef],
+                          isFinal: (RoomRecord) -> Bool) -> (merge: [RoomRecord], separate: [RoomRecord])
+    /// Stable text of a frame link for input hashes ("project:<id>", "reloc:<id>:<from>",
+    /// "manual", "unaligned").
+    static func linkKey(_ link: FrameLink) -> String
+}
+
+// MARK: Rigid placement (StructureAlignment.swift)
+
+/// One surface (wall, door, window or opening) found both in a room's own capture and in the
+/// merged structure: plan segment endpoints and the surface center height (world y).
+struct AlignmentSegmentPair: Equatable, Sendable {
+    var beforeStart: SIMD2<Float>
+    var beforeEnd: SIMD2<Float>
+    var beforeY: Float
+    var afterStart: SIMD2<Float>
+    var afterEnd: SIMD2<Float>
+    var afterY: Float
+    init(beforeStart: SIMD2<Float>, beforeEnd: SIMD2<Float>, beforeY: Float,
+         afterStart: SIMD2<Float>, afterEnd: SIMD2<Float>, afterY: Float)
+    /// Weight in the solve: the length of the before segment, meters.
+    var weight: Float { get }
+}
+
+/// A rigid placement solved from segment pairs.
+struct AlignmentSolution: Equatable, Sendable {
+    /// Rotation about world +Y, radians.
+    var yaw: Float
+    /// World translation, meters (y is the weighted median height change).
+    var translation: SIMD3<Float>
+    /// Root mean square plan distance of the matched endpoints after the transform, meters.
+    var rms: Float
+    /// Segment pairs used.
+    var matches: Int
+    /// The Core record for a room (Core `RoomAlignmentRecord`, translation as `Vec3`).
+    func record(roomID: UUID, source: Provenance) -> RoomAlignmentRecord
+}
+
+enum StructureAlignment {
+    /// A solve is trusted only with at least `minimumMatches` pairs and rms at most this, meters.
+    static let maxTrustedRMS: Float = 0.05
+    static let minimumMatches = 2
+    /// Weighted 2D Procrustes (D9). Pass 1 solves yaw and translation from segment midpoints;
+    /// pass 2 orders each pair's after endpoints to agree with the pass 1 rotation (RoomPlan's
+    /// `columns.0` sign is arbitrary) and solves again on all endpoints. Nil with fewer than 2
+    /// pairs or when the midpoints are all within 1 cm of each other.
+    static func solve(_ pairs: [AlignmentSegmentPair]) -> AlignmentSolution?
+    /// Pairs for one room: every wall, door, window and opening of `room` (its own capture,
+    /// RoomModel `RoomInput`) whose identifier appears in `structure` (see
+    /// `StructureSurfaces.index`), with endpoints from RoomModel `RoomOutline.surfaceEndpoints`
+    /// and heights from the surface transforms. Surfaces without endpoints are skipped.
+    static func pairs(room: RoomInput, structure: [UUID: SurfaceInput]) -> [AlignmentSegmentPair]
+    /// Rotation about +Y by `record.yaw` (column-major: column 0 = (cos, 0, -sin, 0), column 2 =
+    /// (sin, 0, cos, 0)), then translation by `record.translation`.
+    static func matrix(_ record: RoomAlignmentRecord) -> simd_float4x4
+    static func transform(_ point: SIMD3<Float>, by record: RoomAlignmentRecord) -> SIMD3<Float>
+    /// The same placement in plan coordinates: counter-clockwise rotation by yaw, then
+    /// (translation.x, -translation.z).
+    static func planTransform(_ point: SIMD2<Float>, by record: RoomAlignmentRecord) -> SIMD2<Float>
+    static func identity(roomID: UUID, source: Provenance) -> RoomAlignmentRecord
+    static func inverse(_ record: RoomAlignmentRecord) -> RoomAlignmentRecord
+    /// `inner` first, then `outer`; the result keeps `inner.roomID`.
+    static func compose(_ outer: RoomAlignmentRecord, after inner: RoomAlignmentRecord, source: Provenance) -> RoomAlignmentRecord
+    /// A plan rotation about `pivot` expressed as a record (manual alignment turns rooms about
+    /// their own centroid).
+    static func rotation(by angle: Float, about pivot: SIMD2<Float>, roomID: UUID) -> RoomAlignmentRecord
+    /// A plan move expressed as a record (world y unchanged).
+    static func translation(by delta: SIMD2<Float>, roomID: UUID) -> RoomAlignmentRecord
+    /// Component-wise median of yaw and translation over trusted solutions; nil when empty.
+    static func median(_ solutions: [AlignmentSolution]) -> AlignmentSolution?
+    /// The room moved: wall start, end and normal, wall arc center (angles plus yaw), floor
+    /// outline and elevation (plus translation.y), object transforms. Openings, spans,
+    /// metrics, names and ids are unchanged (rigid move).
+    static func apply(_ record: RoomAlignmentRecord, to room: CleanRoom) -> CleanRoom
+    /// Moves the room whose `recordID == record.roomID`; false when there is none.
+    @discardableResult
+    static func apply(_ record: RoomAlignmentRecord, to model: inout CleanModel) -> Bool
+    /// Stacked-room check: cells of a `cell` grid (plan meters) inside both polygons divided by
+    /// the cells inside the smaller one (`Polygon2D.contains(point:)` at cell centers over the
+    /// intersection of the bounding boxes). 1 for identical squares, 0 when disjoint.
+    static func overlapRatio(_ a: [SIMD2<Float>], _ b: [SIMD2<Float>], cell: Float = 0.05) -> Float
+}
+
+// MARK: Floors (StructureFloors.swift)
+
+struct FloorAssignmentInput: Equatable, Sendable {
+    var roomID: UUID
+    /// `RoomRecord.floorIndex` (Add Floor in HouseUI).
+    var userFloor: Int
+    /// Floor elevation in the structure frame; nil for parked or unplaced rooms.
+    var elevation: Float?
+}
+
+enum StructureFloors {
+    static let defaultGap: Float = 1.2
+    /// Cluster rank per room, 0 for the lowest cluster: elevations sorted, a new cluster starts
+    /// where two neighbors differ by more than `gap`.
+    static func group(elevations: [UUID: Float], gap: Float = 1.2) -> [UUID: Int]
+    /// The derived floor index of every room (ARCHITECTURE 4.3: "story as a hint only").
+    /// Rooms with an elevation are clustered with `group`; each cluster, lowest first, takes the
+    /// user floor most of its rooms carry (ties: the smaller index), unless a lower cluster
+    /// already took that index, in which case it takes one more than the largest index used so
+    /// far. Rooms without an elevation keep their user floor.
+    static func assign(_ rooms: [FloorAssignmentInput], gap: Float = 1.2) -> [UUID: Int]
+}
+
+// MARK: Shared walls and doorways (StructureWalls.swift)
+
+/// Two walls of different rooms that are the two faces of one wall.
+struct SharedWallPair: Codable, Equatable, Sendable {
+    var roomA: UUID
+    var wallA: ElementID
+    var roomB: UUID
+    var wallB: ElementID
+    /// Distance between the two inner faces, meters: the measured wall thickness.
+    var gap: Float
+    /// Length along which the two faces overlap, meters.
+    var overlap: Float
+}
+
+/// One doorway seen from both rooms; the kept opening stays a door, the other becomes a plain
+/// opening so the plan and 3D Clean draw the door once (TEST_PLAN HOUSE-04).
+struct DoorwayLink: Codable, Equatable, Sendable {
+    var keptRoom: UUID
+    var kept: ElementID
+    var mergedRoom: UUID
+    var merged: ElementID
+    /// Distance between the two opening centers, plan meters.
+    var distance: Float
+}
+
+enum StructureWalls {
+    static let minimumGap: Float = 0.05
+    static let maximumGap: Float = 0.5
+    static let parallelToleranceDegrees: Float = 10
+    /// Required face overlap: min(0.5 m, half the shorter wall).
+    static let minimumOverlap: Float = 0.5
+    static let doorwayDistance: Float = 0.4
+    static let doorwayWidthTolerance: Float = 0.25
+    /// Probe distance behind a wall for the exterior test, meters.
+    static let exteriorProbe: Float = 0.3
+    /// Mutual-best pairs of straight walls (arc nil) of different rooms on the same floor:
+    /// antiparallel normals within 10 degrees, room B's wall behind room A's wall (on the side
+    /// opposite A's normal), gap 0.05 to 0.5 m, overlap at least `minimumOverlap`. Each wall is
+    /// in at most one pair; smaller gap, then larger overlap wins. Deterministic order.
+    static func sharedWalls(in model: CleanModel) -> [SharedWallPair]
+    /// Paired walls get `thickness = gap`, `thicknessSource = .measured`. An unpaired straight
+    /// wall on a floor with at least 2 rooms whose probe point (midpoint moved `exteriorProbe`
+    /// against its normal) lies inside no other room outline of that floor gets
+    /// `exteriorThickness` with `.estimated`; every other wall keeps RoomModel's value.
+    static func applyThickness(_ pairs: [SharedWallPair], exteriorThickness: Float, to model: inout CleanModel)
+    /// Openings of kind door, openDoor or opening on the two walls of a pair whose centers are
+    /// within `doorwayDistance` and whose widths differ by at most `doorwayWidthTolerance`.
+    /// Kept: the door when only one is a door, else the opening of the room that comes first
+    /// in `model.rooms`.
+    static func doorwayLinks(in model: CleanModel, pairs: [SharedWallPair]) -> [DoorwayLink]
+    /// The merged opening of each link becomes kind `.opening` with `swing = nil`; ids,
+    /// offsets and sizes are kept, so its wall still has the gap.
+    static func applyDoorways(_ links: [DoorwayLink], to model: inout CleanModel)
+}
+
+// MARK: Placement plan (StructureLayout.swift)
+
+/// A room's outline in its own capture frame, from RoomModel `RoomOutline.build(_:).polygon`,
+/// and its floor height (the lowest `WallSegment.baseY`).
+struct RoomFootprint: Equatable, Sendable {
+    var roomID: UUID
+    var outline: [SIMD2<Float>]
+    var floorElevation: Float
+    /// Nil when the loop has fewer than 3 points.
+    static func from(_ input: RoomInput, roomID: UUID) -> RoomFootprint?
+}
+
+/// How a room got its placement. Raw values are persisted in placements.json.
+enum AlignmentMethod: String, Codable, CaseIterable, Sendable {
+    /// Same ARKit frame as the structure, no trusted merge solve: identity.
+    case sharedFrame
+    /// Solved from the StructureBuilder merge (trusted).
+    case structureMerge
+    /// Anchor-group room without a trusted solve while others have one: their median.
+    case groupMedian
+    /// Room from another frame: laid out beside the building until the user lines it up.
+    case parked
+    /// A `setRoomAlignment` edit (source `.user`) overrides the derived placement.
+    case user
+}
+
+struct RoomPlacementReport: Codable, Equatable, Sendable {
+    var roomID: UUID
+    var method: AlignmentMethod
+    var matches: Int
+    var rms: Float?
+    /// The earlier room this one overlaps by more than 30 percent on the same floor.
+    var stackedWith: UUID?
+    /// True for parked and stacked rooms (HouseUI shows "needs lining up" until a user edit).
+    var needsManualAlignment: Bool
+}
+
+struct StructurePlacementPlan: Equatable, Sendable {
+    /// One record per placed or parked room (source `.measured` for sharedFrame,
+    /// structureMerge and groupMedian, `.estimated` for parked).
+    var records: [RoomAlignmentRecord]
+    var reports: [RoomPlacementReport]
+    /// Active rooms that got no record (another frame and no loadable outline).
+    var unplaced: [UUID]
+}
+
+enum StructureLayout {
+    static let parkingGap: Float = 1.0
+    static let stackedOverlap: Float = 0.3
+    /// Rooms whose floors are closer than this in height are on the same floor for the
+    /// stacked check, meters.
+    static let sameFloorHeight: Float = 1.2
+    /// The whole placement plan (used by AlignRoomsStep, and by HouseCleanModelStep when
+    /// alignment.json is missing): anchor-group rooms take their trusted solve
+    /// (structureMerge), else the median of the trusted solves (groupMedian), else identity
+    /// (sharedFrame); rooms of other groups are parked with `parking`; then `stacked` flags.
+    static func plan(rooms: [RoomRecord], sessions: [CaptureSessionRef], footprints: [UUID: RoomFootprint],
+                     solutions: [UUID: AlignmentSolution]) -> StructurePlacementPlan
+    /// Parked placements, one translation per frame group so the rooms of a group keep their
+    /// relative layout (they share an ARKit frame): each group's union bounds in a row to the +x
+    /// side of the placed footprints' plan bounds, 1 m apart, bottom edges aligned, never
+    /// overlapping, in `groups` order. Without placed footprints the first group stays where it
+    /// is and the rest follow to its right.
+    static func parking(_ groups: [[RoomFootprint]], placed: [RoomFootprint]) -> [UUID: RoomAlignmentRecord]
+    /// Later room to earlier room for placed pairs on the same floor whose placed outlines
+    /// overlap by more than `stackedOverlap` (`StructureAlignment.overlapRatio`).
+    static func stacked(_ footprints: [RoomFootprint], records: [UUID: RoomAlignmentRecord], order: [UUID]) -> [UUID: UUID]
+}
+
+// MARK: Manual alignment math (StructureSnapping.swift), used by HouseUI
+
+struct AlignWall: Equatable, Sendable {
+    var start: SIMD2<Float>
+    var end: SIMD2<Float>
+    /// Unit plan normal pointing into the room.
+    var inward: SIMD2<Float>
+}
+
+/// A room as the alignment screen draws and snaps it, plan meters, structure frame.
+struct AlignShape: Equatable, Sendable {
+    var roomID: UUID
+    var outline: [SIMD2<Float>]
+    var walls: [AlignWall]
+    /// Centers of doors and openings.
+    var doors: [SIMD2<Float>]
+    /// From a clean room (edited model, already in the structure frame).
+    static func from(_ room: CleanRoom) -> AlignShape
+    func moved(by record: RoomAlignmentRecord) -> AlignShape
+    var centroid: SIMD2<Float> { get }
+}
+
+enum AlignSnapKind: String, CaseIterable, Sendable { case none, parallel, wallGap, doorway }
+
+struct AlignPlacement: Equatable, Sendable {
+    /// Delta to compose after the room's current effective alignment.
+    var delta: RoomAlignmentRecord
+    var snap: AlignSnapKind
+}
+
+enum StructureSnapping {
+    static let angleSnapDegrees: Float = 5
+    static let wallSnapDistance: Float = 0.3
+    static let doorSnapDistance: Float = 0.4
+    static let assumedWallThickness: Float = 0.12
+    /// The user's raw gesture (rotation about the moving shape's centroid, then translation)
+    /// snapped in this order: yaw to the nearest wall direction of `others` within 5 degrees
+    /// (parallel, modulo 90 degrees); then door centers within 0.4 m made to coincide
+    /// (doorway); else the nearest antiparallel wall within 0.3 m moved to a 0.12 m gap
+    /// (wallGap). Pure; the returned delta applies to `moving` as given.
+    static func snap(_ moving: AlignShape, rotation: Float, translation: SIMD2<Float>, others: [AlignShape]) -> AlignPlacement
+}
+
+// MARK: Files (StructureStore.swift, imports RoomPlan)
+
+/// `derived/structure/attempt.json`: written right before StructureBuilder runs, removed right
+/// after it returns or throws. Present at the next run: the app died inside the builder.
+struct StructureAttempt: Codable, Equatable, Sendable {
+    var startedAt: Date
+    var roomIDs: [UUID]
+    var inputHash: String
+}
+
+enum StructureMergeOutcome: String, Codable, CaseIterable, Sendable {
+    case merged, tooFewRooms, builderFailed, crashedBefore, skippedReducedMemory, unsupported
+}
+
+/// `derived/structure/merge.json` (MergeStructureStep).
+struct StructureMergeResult: Codable, Equatable, Sendable {
+    var outcome: StructureMergeOutcome
+    var mergedRooms: [UUID]
+    var separateRooms: [UUID]
+    /// Anchor-group rooms left out because only the provisional live room exists.
+    var provisionalRooms: [UUID]
+    /// Builder error description (logs only, never shown).
+    var detail: String?
+    var seconds: Double
+    var inputHash: String
+    var finishedAt: Date
+}
+
+/// `derived/structure/placements.json` (AlignRoomsStep).
+struct StructurePlacements: Codable, Equatable, Sendable {
+    var rooms: [RoomPlacementReport]
+    var unplaced: [UUID]
+    var inputHash: String
+    var finishedAt: Date
+}
+
+struct FloorAssignmentEntry: Codable, Equatable, Sendable { var roomID: UUID; var floorIndex: Int }
+
+/// `derived/structure/connections.json` (HouseCleanModelStep).
+struct StructureConnections: Codable, Equatable, Sendable {
+    var sharedWalls: [SharedWallPair]
+    var doorways: [DoorwayLink]
+    var floors: [FloorAssignmentEntry]
+    var inputHash: String
+}
+
+/// Everything HouseUI and Results read about a house's structure, in one value.
+struct StructureReport: Equatable, Sendable {
+    var merge: StructureMergeResult?
+    var placements: StructurePlacements?
+    var connections: StructureConnections?
+    var hasCrashedAttempt: Bool
+    static let empty: StructureReport
+    func placement(for roomID: UUID) -> RoomPlacementReport?
+}
+
+enum StructureStore {
+    static let maxStructureBytes: Int64 = 128 * 1024 * 1024
+    static func attemptURL(_ package: ProjectPackage) -> URL        // derived/structure/attempt.json
+    static func mergeURL(_ package: ProjectPackage) -> URL          // merge.json
+    static func placementsURL(_ package: ProjectPackage) -> URL     // placements.json
+    static func connectionsURL(_ package: ProjectPackage) -> URL    // connections.json
+    /// `ProjectStore.ensureDirectory(package.structureURL, inside: package.root)` (CR-6).
+    @discardableResult static func ensureFolder(_ package: ProjectPackage) throws -> URL
+    /// `package.capturedStructureURL` with a plain `JSONDecoder()` through RoomModel's
+    /// `CapturedRoomStore.decodeRoomPlanJSON(_:from:maxBytes:)`; nil when absent.
+    static func loadStructure(_ package: ProjectPackage) throws -> CapturedStructure?
+    /// Plain `JSONEncoder()`, `ProjectStore.writeData(_:to:createParents: false)`.
+    static func saveStructure(_ structure: CapturedStructure, to package: ProjectPackage) throws
+    static func removeStructure(_ package: ProjectPackage)
+    /// `package.alignmentURL` ([RoomAlignmentRecord], Core doc); empty when absent or unreadable.
+    static func loadAlignments(_ package: ProjectPackage) -> [RoomAlignmentRecord]
+    static func saveAlignments(_ records: [RoomAlignmentRecord], to package: ProjectPackage) throws
+    static func loadReport(_ package: ProjectPackage) -> StructureReport
+    /// The last `setRoomAlignment` per room in `log.flattenedActive` (CR-1: a batch may hold one),
+    /// source forced to `.user`.
+    static func userAlignments(_ log: EditLog) -> [UUID: RoomAlignmentRecord]
+    /// Derived records overridden by user edits (pure).
+    static func effectiveAlignments(measured: [RoomAlignmentRecord], log: EditLog) -> [UUID: RoomAlignmentRecord]
+    /// `loadAlignments` plus `EditStore.load(package)` (any thread). Results, ExportUI and the
+    /// build 5 viewers place each room's mesh, keyframes and textures with
+    /// `StructureAlignment.matrix` of this record.
+    static func effectiveAlignments(_ package: ProjectPackage) -> [UUID: RoomAlignmentRecord]
+    /// Pure. Where Results and ExportUI draw each active room (`StructureEligibility.activeRooms`):
+    /// `StructureAlignment.matrix` of its record in `alignments`; without a record, identity for a
+    /// room of the anchor frame group (it shares the structure frame, exactly as
+    /// HouseCleanModelStep's fallback plan places it while alignment.json is missing) and no entry
+    /// for a room of another group (it waits for AlignRoomsStep to park it). Every active room of a
+    /// non-House project gets identity. Rooms without an entry are skipped by the caller.
+    static func placementMatrices(manifest: ProjectManifest, alignments: [UUID: RoomAlignmentRecord]) -> [UUID: simd_float4x4]
+    /// Stable text of the user alignments for input hashes ("-" when none).
+    static func alignmentEditDigest(_ log: EditLog) -> String
+    static func hasCrashedAttempt(_ package: ProjectPackage) -> Bool
+    /// HouseUI "Join Rooms Again": removes attempt.json so the next job calls the builder again.
+    static func clearCrashedAttempt(_ package: ProjectPackage) throws
+}
+
+// MARK: Steps (StructureSteps.swift and StructureCleanStep.swift)
+
+/// RoomPlan surfaces of a merged structure by identifier: walls, doors, windows and openings
+/// of `structure.rooms` first, then the structure-level lists for identifiers not seen yet,
+/// each converted with RoomModel's `SurfaceInput.init(_:)` (StructureSteps.swift, RoomPlan).
+enum StructureSurfaces {
+    static func index(_ structure: CapturedStructure) -> [UUID: SurfaceInput]
+}
+
+/// id .mergeStructure; optional in the House plan; budget 400 MB, reduced 60 MB (the reduced
+/// variant never calls StructureBuilder). Reads `ctx.manifest`, so it takes no arguments (rooms
+/// can change between enqueue and run).
+final class MergeStructureStep: ProcessingStep { init() }
+/// id .alignRooms; optional; budget 150 MB.
+final class AlignRoomsStep: ProcessingStep { init() }
+/// id .cleanModel for House projects (AppShell schedules it instead of RoomModel's
+/// CleanModelStep); required; budget 250 MB. Same provider shape as CleanModelStep.
+final class HouseCleanModelStep: ProcessingStep {
+    static let rulesVersion = "houseClean-rules=1"
+    init(meshProvider: @escaping (ProjectPackage, UUID) -> MeshWithAttributes?)
+}
 ```
-**Apple APIs.** `class StructureBuilder { init(options: StructureBuilder.ConfigurationOptions); func capturedStructure(from rooms: [CapturedRoom]) async throws -> CapturedStructure }` with `[.beautifyObjects]` (never `option:`); `StructureBuilder.BuildError { deviceNotSupported, exceedSceneSizeLimit, insufficientInput, internalError, invalidInput, invalidRoomLocation }`; `CapturedStructure` (Codable; rooms, walls, doors, windows, openings, floors, objects, sections; room and floor identifiers are regenerated, surface and object identifiers kept).
-**Must NOT do.** Never pass rooms with `.unaligned` or `.manual` frame links to StructureBuilder; never rely on it to throw for unrelated frames; never overwrite per-room captures; never move raw data (alignment is applied at derivation time to mesh, keyframes and textures); never call StructureBuilder without first writing `derived/structure/attempt.json` (a crash cannot be caught, so after one crashed attempt the step is not retried automatically and HouseUI offers "Join rooms again" or manual alignment; RESEARCH 3.10 gotcha 9).
-**Self-test.** At least 15 checks: solve recovers yaw 30 degrees and translation (1, 2) from 4 matched walls within 1e-3; fewer than 2 matches gives nil; overlap of identical squares is 1; floor grouping with elevations 0, 0.05, 2.8 gives 2 floors; eligibility splits projectFrame, relocalized and unaligned rooms; apply moves walls, openings and objects.
-**SPEC owned.** "HOUSE / BUILDING MODE" (preserve room relationships, recognize shared walls, maintain coordinate alignment, detect doorways connecting rooms (shared door identifiers), combine rooms into one building model, support multiple floors); "2D FLOOR PLAN" (wall thickness where determinable: antiparallel wall pairs 0.05 to 0.5 m apart become `.measured`).
+
+**Rules.**
+
+*Frames.* A room shares the structure frame only when its session is in the anchor group: the first session of a new house is `.projectFrame(sessionID:)`, and HouseUI writes `.relocalized(sessionID:from:)` only after tracking returned to `.normal` against a saved world map (so the D9 "tracking normal" condition is in the link itself), else `.unaligned`. Rooms of the anchor group always get a placement, even when StructureBuilder is skipped, fails or crashes, because they share ARKit's frame. Rooms of other groups are never merged and never stacked silently: they are parked beside the building and flagged until the user lines them up (HouseUI `AlignRoomsScreen`); a user edit on one room of a group is written for every room of that group, because they share a frame.
+
+*MergeStructureStep.* Input hash: `InputHasher.hash(seals:editRevision: nil, extra:)` over the seals of the `mergeable` rooms, their `buildRoom` stamp hashes ("-" when absent), every session's `linkKey`, "attempt=present" or "attempt=absent", and `"mergeStructure-rules=1"`. Order: (1) outcome `unsupported` when `RoomCaptureSession.isSupported` is false; (2) `skippedReducedMemory` when `ctx.availableMemory < memoryBudgetBytes` (Core rule: the reduced variant; also what the runner forces after one crash, 3.15 `PipelineAttempt`); (3) `crashedBefore` when attempt.json exists, whatever input hash it records (the builder died last time; a crash cannot be caught, RESEARCH 3.10 gotcha 9; matching the stored hash would never succeed, because the current hash carries "attempt=present" while the stored one was computed with "attempt=absent", so the builder would be called again after every crash; only `clearCrashedAttempt` removes the file, and its absence changes the hash so the step reruns); (4) `tooFewRooms` with fewer than 2 mergeable rooms; (5) otherwise write attempt.json, load each room with `CapturedRoomStore.loadCapturedRoom`, `ctx.checkCancelled()`, then `try await StructureBuilder(options: [.beautifyObjects]).capturedStructure(from: rooms)`, catching every error (`StructureBuilder.BuildError` and others) as `builderFailed` with `detail`; remove attempt.json after the call returns or throws. Only `merged` writes `structure.json`; every other outcome removes a stale one. merge.json is written in every case, and the step never fails the job (only cancellation and a failed derived write throw). Logged (category "structure"): outcome, room count, seconds, surface counts, available memory before and after.
+
+*AlignRoomsStep.* Input hash: seals of the active rooms, their `buildRoom` stamps, the `mergeStructure` stamp, session `linkKey`s, `"alignRooms-rules=1"`. It loads each active room's `RoomInput` (`CapturedRoomStore.loadInput`; a failure leaves the room without a footprint) and, when merge.json says `merged`, the structure (`StructureStore.loadStructure`) indexed with `StructureSurfaces.index`. For each merged room `StructureAlignment.solve(pairs(room:structure:))` is trusted at `minimumMatches` or more and rms at most `maxTrustedRMS`; untrusted solves are logged with their rms. `StructureLayout.plan` then gives every record and report; alignment.json and placements.json are written. The step never fails for a room it cannot place.
+
+*HouseCleanModelStep.* Input hash: seals of the active rooms; per room id, floor, name, `supersededBy`, `buildRoom` and `consolidateMesh` stamp hashes; the `alignRooms` stamp; `StructureStore.alignmentEditDigest(EditStore.load(package))` (only the alignment edits, not `EditLog.revision`, so unrelated edits do not rebuild the model); `findFurniture`; `rulesVersion`. Per active room, one at a time: `CapturedRoomStore.loadInput` (failure: the room is left out and logged, as CleanModelStep does), `CleanModelBuilder.buildRoom(_:recordID:name:floorIndex:mesh:options:)` in the room's capture frame with the provider's mesh, then `StructureAlignment.apply` of its effective record (`effectiveAlignments(measured: loadAlignments, log:)`; without alignment.json, `StructureLayout.plan` with no solutions). Then `StructureFloors.assign` sets each room's `floorIndex` (placed rooms by their structure-frame floor elevation, parked rooms keep the user floor), `StructureWalls.sharedWalls`, `applyThickness(_:exteriorThickness: CleanBuildOptions().exteriorThickness, to:)`, `doorwayLinks` and `applyDoorways`. It writes clean.json through `CleanModelStore.save` with `sourceIsStructure` true when any room's method is `structureMerge` or `groupMedian`, and its stamp, then connections.json. Edits that store absolute positions (`moveObject`, `moveWallEndpoint`, `addWall`, `addOpening`, annotations, dimensions) are in the structure frame and are not moved when that room's alignment later changes; the step logs one line per room whose effective alignment changed since the previous build.
+
+*Consumers.* FloorPlanStep reads clean.json unchanged (its levels are the union of the manifest floors and the rooms' derived floor indices). Results, ExportUI and viewers that draw per-room meshes, keyframes or textures of a house use `StructureStore.placementMatrices(manifest:alignments: StructureStore.effectiveAlignments(package))` and skip rooms without an entry, so the meshes stand where the House clean model puts the rooms even before AlignRoomsStep has run (a plain "skip rooms with no record" would leave Realistic and Raw Scan empty until then, and "identity for every room" would drop rooms of other frames on top of the building).
+
+**Uses.** Core: `ProjectManifest`, `RoomRecord` (with CR-7 `supersededBy`), `RoomStatus`, `CaptureSessionRef`, `FrameLink` (`mayShareFrame`, `sessionID`), `RoomAlignmentRecord`, `EditOperation.setRoomAlignment`, `EditLog.flattenedActive` (CR-1), `CleanModel`, `CleanRoom`, `CleanWall`, `CleanOpening`, `OpeningKind`, `WallArc`, `DetectedObject`, `Transform4`, `Vec2`, `Vec3`, `Provenance`, `ElementID`, `PlanAxes`, `ProjectPackage` (`structureURL`, `capturedStructureURL`, `alignmentURL`, `derivedIndexURL`, `root`), `ProjectStore` (`ensureDirectory(_:inside:)`, `writeJSON`, `writeData`, `readJSON`, `encoder`), `DerivedIndex`, `DerivedStamp`, `InputHasher`, `SealFile`, `ProcessingStep`, `StepContext`, `MapperError`. Geometry: `Polygon2D` (`contains(point:)`, `area`, `boundingBox`), `Segment2D`. RoomModel: `RoomInput`, `SurfaceInput` (`init(_ surface: CapturedRoom.Surface)`), `RoomOutline` (`build(_:)`, `surfaceEndpoints(_:)`, `wallSegments(_:)`), `WallSegment.baseY`, `CleanModelBuilder.buildRoom(_:recordID:name:floorIndex:mesh:options:)`, `CleanBuildOptions` (`findFurniture`, `exteriorThickness`), `CapturedRoomStore` (`loadInput`, `loadCapturedRoom`, `loadWithSource`, `hasFinalRoom`, `rawFolder`, `decodeRoomPlanJSON`), `CleanModelStore.save`. MeshProcessing: `MeshWithAttributes`. Store: `EditStore.load(_:)`. Support: `LogStore` (category "structure").
+
+**Apple APIs** (RESEARCH 3.2, 3.10):
+```swift
+class StructureBuilder                                                     // iOS 17.0
+init(options: StructureBuilder.ConfigurationOptions)                       // typealias of RoomBuilder.ConfigurationOptions
+func capturedStructure(from rooms: [CapturedRoom]) async throws -> CapturedStructure
+struct RoomBuilder.ConfigurationOptions   // OptionSet, init(rawValue: Int); only option: static let beautifyObjects
+enum StructureBuilder.BuildError          // iOS 17.0: deviceNotSupported, exceedSceneSizeLimit, insufficientInput,
+                                          // internalError, invalidInput, invalidRoomLocation
+// CapturedStructure: struct, Codable, Sendable: identifier, version, rooms: [CapturedRoom], walls, doors,
+// windows, openings, floors, objects, sections (Surface/Object/Section are typealiases of the CapturedRoom types)
+static var isSupported: Bool { get }      // RoomCaptureSession, iOS 16.0
+```
+`JSONEncoder()` and `JSONDecoder()` (plain, section 3.1 rule for RoomPlan types). Nothing else outside Foundation and simd.
+
+**Must NOT do.** Never pass a room outside the anchor group, a `.manual` or `.unaligned` room, or a provisional (live) room to StructureBuilder; never rely on StructureBuilder to throw for unrelated frames (D9); never write `StructureBuilder(option:)` (RESEARCH 3.10 gotcha 10); never call the builder without writing attempt.json first, and never call it again automatically after a crash (only `clearCrashedAttempt` re-enables it); never trust a solve with fewer than 2 matches or rms above 5 cm; never place a room from another frame at its capture coordinates (park it); never move, rewrite or delete raw data or rewrite a `RoomRecord` (steps never write the manifest); never keep a structure.json that does not match the current merge; never write a user alignment anywhere but the EditLog (HouseUI) and never bake it into alignment.json; never parse USDZ node names; never import RoomPlan outside `StructureStore.swift` and `StructureSteps.swift`; never pass `EditLog.revision` into the step hashes (only the alignment digest).
+
+**Copy strings.** None (HouseUI owns all house text).
+
+**Self-test.** `StructureSelfTest.run()`, at least 35 checks, fixtures in `StructureSelfTestFixtures.swift` (hand-made `RoomInput` rectangles and `CleanRoom`s; no RoomPlan objects are created): `solve` recovers yaw 30 degrees and translation (1, 0.2, 2) from the 4 walls of a 4 x 5 m room within 1e-3, also when two pairs have their after endpoints swapped; 1 pair gives nil; coincident midpoints give nil; a solve with noise 0.1 m reports rms above `maxTrustedRMS`; `matrix` of yaw 90 degrees maps world (1, 0, 0) to (0, 0, -1) and `planTransform` maps plan (1, 0) to (0, 1); `inverse` then `compose` gives identity within 1e-5; `rotation(by:about:)` keeps the pivot fixed; `median` of three solutions; `apply` moves walls, normals, the arc center and angles, floor outline, floor elevation and object transforms, and leaves openings and metrics equal; `apply(to: inout CleanModel)` returns false for an unknown room; `overlapRatio` gives 1 for identical squares, 0 for disjoint ones, 0.5 within 0.02 for half-overlapping squares, and works for an L-shape; `frameGroups`: projectFrame session A plus a session B relocalized from A form one group, an unaligned session C is separate and its two rooms (both with frameLink `.unaligned`) form one group, a room with frameLink `.manual` in session A is its own group; `anchorGroup` picks the largest group and breaks a tie by session order; `mergeable` leaves a provisional room and an unaligned room out; `activeRooms` drops a superseded room and a `.capturing` room and keeps `.needsRescan`; `group` of elevations 0, 0.05 and 2.8 gives two clusters; `assign` puts an upstairs room on a new floor when every user floor is 0, keeps user floors 0, 0, 1 for elevations 0, 0, 2.8, and keeps the user floor of a room without elevation; `plan` gives sharedFrame identity to anchor rooms without a merge, groupMedian to an anchor room without a solve when others have one, parked records (source `.estimated`) 1 m to the right of the building for another session's rooms, and a stacked flag for a second copy of the same room; `parking` never overlaps two parked groups and keeps the relative layout of two rooms of one group; two rooms whose shared wall faces are 0.12 m apart give one `SharedWallPair` with gap 0.12 within 1e-4, and both walls get thickness 0.12 `.measured`; faces 0.8 m apart give no pair; an outside wall of a two-room floor gets `exteriorThickness` `.estimated` and a single-room floor keeps 0.115; a door on both sides of a shared wall gives one `DoorwayLink`, the later room's door becomes `.opening` with no swing and keeps its offset; a door facing an opening keeps the door; `StructureSnapping.snap` turns a room rotated 3 degrees parallel to its neighbor, moves a door 0.3 m away onto the neighbor's door, and moves an antiparallel wall 0.25 m away to a 0.12 m gap; `userAlignments` keeps the last active edit per room, finds one inside a `batch` and ignores an undone one; `effectiveAlignments` prefers the user record; `alignmentEditDigest` changes when an alignment edit is appended and not when a rename is; a temp package round trip of merge.json, placements.json, connections.json and alignment.json through `StructureStore`; `hasCrashedAttempt` true after writing attempt.json and false after `clearCrashedAttempt`; the merge decision (a pure helper of the step) gives `crashedBefore` for a leftover attempt.json whose stored input hash differs from the current one; `placementMatrices` gives the record's matrix, identity for an anchor-group room without a record, no entry for another group's room without a record, and identity for every room of a Room project.
+
+**Acceptance checks.** RoomPlan is imported only in the two named files; every pure function is nonisolated and deterministic (no `Date()` except `finishedAt` stamps, no randomness); derived writes use `ensureFolder` and `createParents: false`; MergeStructureStep writes attempt.json before and removes it after the builder call in every code path; no step throws for a merge, solve or placement failure; `HouseCleanModelStep` holds at most one room's consolidated mesh at a time; logs name each room's method, matches and rms; section 3.1's `structure.json` is written only by MergeStructureStep.
+
+**SPEC owned.** "HOUSE / BUILDING MODE": preserve room relationships (frame groups, D9), recognize shared walls (`StructureWalls.sharedWalls`), maintain coordinate alignment (solve, fallbacks, effective alignments), detect doorways connecting rooms (`DoorwayLink`), combine rooms into one building model (`HouseCleanModelStep`), support multiple floors (`StructureFloors.assign`), manual correction (snapping math and user records; the screen is HouseUI). "2D FLOOR PLAN": wall thickness where determinable (measured from wall pairs, estimated exterior). "CORE DESIGN PRINCIPLE": raw never moved (alignment at derivation time).
+
+**TEST_PLAN ids.** HOUSE-02 (rooms combined, shared walls within 10 cm), HOUSE-03 (one wall, thickness within 3 cm or estimated), HOUSE-04 (each connecting door once), HOUSE-06 (relocalized room placed in the same frame), HOUSE-07 (user alignment applied, raw unchanged), HOUSE-08 (upstairs rooms on their own level), HOUSE-09, PLAN-05, PERF-10; EXP-09 through ExportUI's use of structure.json (5c).
+
+### 3.30a Core change CR-7: superseded rooms (applied by the lead before wave 5a)
+
+HouseUI's Rescan (TEST_PLAN HOUSE-05, HOUSE-06) captures a room again and must replace the old capture in every model without deleting its raw data (D5, D6). Core has no way to say "this capture was replaced". One optional field, backward compatible with build 4 manifests (synthesized `Decodable` uses `decodeIfPresent` for optionals; the memberwise initializer gains a trailing defaulted parameter, so no call site changes):
+```swift
+struct RoomRecord {
+    // ...existing fields unchanged...
+    /// The room that replaced this capture after a Rescan (HouseUI, build 5); nil while this
+    /// capture is current. A superseded room keeps its sealed raw folder and its record; house
+    /// models, processing plans, the room list, Results and exports leave it out. Build 6 Free up
+    /// space may offer to remove it (D6).
+    var supersededBy: UUID? = nil
+}
+```
+CoreSelfTest adds 2 checks: a build 4 manifest JSON without the key decodes with `supersededBy == nil`, and a round trip keeps a set value. Consumers that list rooms filter with `StructureEligibility.activeRooms` (3.30) or `supersededBy == nil`. CR-1 (3.37a) and CR-8 (3.31c) are applied in the same pre-5a Core commit.
+
+### 3.30b CaptureCore revision: relocalization run (wave 5a0)
+
+**Purpose.** HouseUI's Continue Scanning and Rescan (ARCHITECTURE 4.3, RESEARCH 3.2 recommended 7) start a new session that relocalizes against a saved `ARWorldMap` before RoomPlan starts. The merged hub can only run `ScanConfigurationFactory.make(profile)`, which has no world map.
+
+**Build and wave.** Build 5, wave 5a0 (one agent, branch `impl/capturecore-reloc`). CaptureCore only; merges before wave 5a starts. Its only caller is HouseUI (5b).
+
+**Files.** Edits `ios/Sources/CaptureCore/CaptureConfiguration.swift`, `CaptureSessionHub+Lifecycle.swift`, `CaptureCoreSelfTest.swift`.
+
+**Public Swift API.**
+```swift
+extension ScanConfigurationFactory {
+    /// `make(profile)` with `initialWorldMap` set (nil gives exactly `make(profile)`).
+    static func make(_ profile: ScanProfile, initialWorldMap: ARWorldMap?) -> ARWorldTrackingConfiguration
+}
+extension ARSessionHub {
+    /// Call on the main thread, before any RoomPlan object exists. Same as `run(options:)`
+    /// (monitors, identity check, logging) with the configuration from
+    /// `make(profile, initialWorldMap: map)`. HouseUI passes [.resetTracking, .removeExistingAnchors]
+    /// (allowed here because RoomPlan has not started). The map is used for this run only:
+    /// `reapplyConfiguration` keeps building `make(profile)` without it, which is safe because the
+    /// watchdog runs only after `markScanStart`, when relocalization is over.
+    func run(options: ARSession.RunOptions, initialWorldMap: ARWorldMap)
+}
+```
+No default arguments on the new `run`, so `run()` and `run(options:)` stay unambiguous.
+
+**Apple APIs** (RESEARCH 3.1, 3.2): `var initialWorldMap: ARWorldMap? { get set }` (ARWorldTrackingConfiguration, iOS 12.0); `func run(_ configuration: ARConfiguration, options: ARSession.RunOptions = [])`; RunOptions `.resetTracking`, `.removeExistingAnchors`.
+
+**Must NOT do.** Never set a world map in `reapplyConfiguration`; never pass reset options anywhere else; no RoomPlan import.
+
+**Self-test.** At least 3 new checks in `CaptureCoreSelfTest`: `make(profile, initialWorldMap: nil)` has a nil `initialWorldMap` and the same reconstruction, semantics and plane detection as `make(profile)`; `describe` of it contains "initialWorldMap: false".
+
+**Acceptance checks.** The log line of the new run names the options and "initialWorldMap: true"; Room mode (ScanUI) behaves exactly as before.
+
+**SPEC owned.** "HOUSE / BUILDING MODE" ("Allow the user to return to incomplete sections", capture side). **TEST_PLAN ids.** HOUSE-06.
+
+### 3.30c RoomCapture revision: keep a running session (wave 5a0)
+
+**Purpose.** `RoomScanEngine.makeCaptureView()` calls `hub.install()` and `hub.run()` unconditionally, so after HouseUI relocalized the engine's hub with a world map, creating the view would re-run the plain configuration. It must re-assert the delegate but keep a running session, as `startNextRoom` already does.
+
+**Build and wave.** Build 5, wave 5a0 (branch `impl/roomcapture-reloc`). RoomCapture only; merges before wave 5a starts. Its only caller is HouseUI (5b).
+
+**Files.** Edits `ios/Sources/RoomCapture/RoomScanEngine.swift`, `RoomScanStats.swift`, `RoomCaptureSelfTest.swift`.
+
+**Public Swift API.**
+```swift
+extension RoomScanStats {
+    /// Pure: `makeCaptureView` runs the hub only when it is not running yet.
+    static func shouldRunHub(isRunning: Bool) -> Bool
+}
+// makeCaptureView(): hub.install(); if RoomScanStats.shouldRunHub(isRunning: hub.isRunning) { hub.run() }
+// else log "session already running (relocalized), not run again".
+```
+
+**Must NOT do.** No other behavior change; the order install, (run), view, delegates stays as in 3.21.
+
+**Self-test.** 2 new checks (`shouldRunHub` true for false, false for true). **Acceptance checks.** In Room mode the hub is never running before `makeCaptureView`, so ScanUI's path is unchanged; the log shows which branch ran. **TEST_PLAN ids.** HOUSE-06 (capture side).
 
 ### 3.31 CoverageLive (wave 5a)
 
-**Purpose.** Live coverage during ARKit captures: a `ScanRecorder` that integrates Coverage's `CoverageGrid` at up to 3 Hz on the hub queue from the latest mesh faces (MeshRecord `currentChunks`) and the frame pose, keeps expected surfaces from the live room (`RoomScanEngine.liveRoomHandler`), produces the top-down `MinimapSnapshot`, and fills `GuidanceInput.viewCoverage` and `nearbyMissing` through the engine's augmenter hooks.
-**Files.** `ios/Sources/CoverageLive/CoverageLiveRecorder.swift`, `CoverageLiveMinimap.swift`, `CoverageLiveHooks.swift`, `CoverageLiveSelfTest.swift`.
-**API.**
+**Purpose.** Live coverage for every ARKit capture from build 5 on (Room and House rooms on `RoomCaptureView`, Show Missing Areas patch passes, the two-pass fallback, mesh-only space scans, large objects): a `ScanRecorder` that keeps one Coverage `CoverageGrid` (10 cm voxels) current at up to 3 Hz from the latest camera pose and the live LiDAR faces (MeshRecord `MeshStore`), marks expected surfaces (the live RoomPlan room, a finished room, or watched point sets such as missing areas) so unscanned parts read red, finds missing areas with windows, doors and openings excluded (D19), and publishes what the other build 5 modules draw and say: per-anchor face states (CoverageOverlay, LargeObject), the top-down `MinimapSnapshot` and `coverageFraction` (through the engines' snapshot augmenter), `viewCoverage`, `nearbyMissing` and `overallComplete` (through the guidance augmenter, so Coverage's `GuidanceEngine` says "Scan this corner", "Point toward the floor", "Scan the ceiling" and "This area needs another pass"), and the observed fraction of each watched point set (MissingAreas). It writes no file: live coverage is display state; the sealed scan is scored again by Quality.
+
+**Build and wave.** Build 5, wave 5a. Core, Coverage, CaptureCore, MeshRecord, RoomModel (`RoomInput`, `RoomOutline.floorPolygon`), Geometry, Support; ARKit (callback types only). About 1200 lines plus the self-test. CR-8 (3.31c) must be applied to Core before this module starts.
+
+**Files.** `ios/Sources/CoverageLive/CoverageLiveRecorder.swift` (recorder, lock, rate, hooks, readers), `CoverageLiveRecorder+Work.swift` (the work-queue pass: anchor refresh, integration, states, evaluation, publishing), `CoverageLiveFaces.swift` (pure: faces of a chunk, visibility, rate), `CoverageLiveBoundary.swift` (pure: live room to boundary and exclusions), `CoverageLiveMissing.swift` (pure: missing-area filter, nearby choice, ages, watched fractions, completeness), `CoverageLiveMinimap.swift` (pure), `CoverageLiveSelfTest.swift`. No Copy file (no UI).
+
+**Public Swift API.**
 ```swift
-final class CoverageLiveRecorder: ScanRecorder {
-    init(meshSource: MeshStore, hz: Double = 3)
-    func setExpectedRoom(_ room: RoomInput)                   // hub queue, from liveRoomHandler
-    func augment(_ input: inout GuidanceInput)                // hub queue
-    func augment(_ snapshot: inout LiveScanSnapshot)          // coverageFraction and minimap
-    func faceStates() -> [UUID: [CoverageState]]              // per anchor, for CoverageOverlay
-    func currentMissingAreas() -> [MissingArea]
+/// Tunables in one place (RESEARCH 3.8 disputed 13: engineering choices, tuned on device).
+struct CoverageLiveOptions: Equatable, Sendable {
+    /// Integration rate cap, Hz. The rate used is min(maxHz, ThermalPolicy.coverageHz), that is 3, 3, 1, 0.
+    var maxHz: Double = 3
+    /// Voxel edge, meters (Coverage default).
+    var voxelSize: Float = 0.10
+    /// Least seconds between two anchor refreshes from MeshStore.
+    var anchorRefreshSeconds: Double = 1
+    /// Least seconds between two expected-surface evaluations (missing areas, fraction, minimap).
+    var evaluationSeconds: Double = 1
+    /// Minimap cell edge, meters; doubled until the map fits `maxMinimapCells` on each side.
+    var minimapCellSize: Float = 0.25
+    var maxMinimapCells: Int = 96
+    /// Faces tracked at most; anchors past the cap are left out (logged once per recording).
+    var maxTrackedFaces: Int = 500_000
+    /// With an expected room but no mesh face after this many seconds of scanning, the expected
+    /// shell samples stand in for faces (meshStripped, D16).
+    var shellFallbackSeconds: Double = 8
+    /// Live-room mode only: missing areas reach guidance after this much scan time, once each has
+    /// been missing this long, within this horizontal distance of the camera, at most 3.
+    var nearbyAfterSeconds: Double = 30
+    var nearbyMinAgeSeconds: Double = 15
+    var nearbyRadius: Float = 3
+    init() {}
 }
-enum CoverageLiveMinimap { static func make(grid: CoverageGrid, boundary: CoverageRoomBoundary?, cellSize: Float) -> MinimapSnapshot }
+
+/// One anchor's triangles with their live coverage states. A value copy: the arrays share
+/// storage with MeshStore's chunk of the same version (copy on write, nothing is duplicated).
+struct CoverageAnchorFaces {
+    var anchorID: UUID
+    /// `MeshChunkIndexEntry.updateCount` of the version these faces came from.
+    var updateCount: UInt32
+    /// Anchor to world.
+    var transform: simd_float4x4
+    /// `MeshChunk.positions`, `normals` (per vertex) and `indices`, anchor-local.
+    var localPositions: [SIMD3<Float>]
+    var localNormals: [SIMD3<Float>]
+    var indices: [UInt32]
+    /// One per triangle (indices.count / 3): world centroid, unit normal oriented like the ARKit
+    /// vertex normals, area (0 for a degenerate or out-of-range triangle) and class.
+    var faces: [CoverageFace]
+    /// One per triangle: `CoverageGrid.state(atVoxel:)` of the centroid's voxel; gray for area 0.
+    var states: [CoverageState]
+    /// World bounds of the positions.
+    var boundsMin: SIMD3<Float>
+    var boundsMax: SIMD3<Float>
+    /// From one recorder-wide counter; set anew whenever the geometry or any state changed.
+    var revision: UInt64
+}
+
+/// Diagnostics and simple UI values.
+struct CoverageLiveSummary: Equatable {
+    var integrations: Int
+    var skippedBusy: Int
+    var anchors: Int
+    var trackedFaces: Int
+    /// With an expected room: observed / expected area; otherwise the green share of the tracked face area. 0...1.
+    var coverageFraction: Float
+    /// Green share of the in-view face area at the last pass; nil when under 0.05 m^2 is in view.
+    var viewCoverage: Float?
+    var missingCount: Int
+    var hasExpectedRoom: Bool
+    var usesShellFallback: Bool
+    var effectiveHz: Double
+    var lastPassMilliseconds: Double
+}
+
+/// Live coverage recorder. ScanRecorder calls arrive on the hub queue and only copy values; all
+/// grid work runs on the private serial queue "mapper.coverage.live" (QoS utility) with at most one
+/// pass queued (a due frame that finds a pass in flight is skipped and counted). Published values
+/// are lock-protected, so readers and hooks are safe on any thread and never compute.
+final class CoverageLiveRecorder: ScanRecorder {
+    static let logCategory = "coverage"
+    let options: CoverageLiveOptions
+    init(meshSource: MeshStore, options: CoverageLiveOptions = CoverageLiveOptions())
+
+    // MARK: ScanRecorder (hub queue)
+    /// A fresh grid for this room or pass: everything is cleared except `options`. Writes nothing into `folder`.
+    func beginRecording(into folder: RawScanFolder, profile: ScanProfile, startTimestamp: TimeInterval)
+    /// When due (rate below, tracking `.normal`, no pass in flight) copies one `CoverageObservation`
+    /// (`camera.transform`, `camera.intrinsics`, `camera.imageResolution`, `ARFrameReading.meanConfidence(of:)`,
+    /// `timestamp`) and queues one pass. A frame that is not due returns after two comparisons.
+    func hub(_ hub: ARSessionHub, didUpdate frame: ARFrame)
+    /// Stops queuing, waits for the pass in flight, drops every per-anchor array (so `MeshStore.evict()`
+    /// really frees memory, D17), keeps the last published values, then calls `completion` on the work queue.
+    func finishRecording(completion: @escaping () -> Void)
+    /// Always zero: coverage records no raw data.
+    var stats: RecorderStats { get }
+
+    // MARK: Expected surfaces (any thread; applied at the next pass)
+    /// The live RoomPlan room (RoomScanEngine.liveRoomHandler, at most 1 Hz). Turns on live-room
+    /// mode (nearby missing areas and `overallComplete` for guidance).
+    func setExpectedRoom(_ room: RoomInput)
+    /// A boundary built elsewhere (a finished CleanRoom through `QualityInputs.boundary(for:)`), or nil
+    /// to clear. Samples inside `exclusions` (window, door and opening boxes) are never expected.
+    func setExpectedBoundary(_ boundary: CoverageRoomBoundary?, exclusions: [OrientedBox])
+    /// Point sets to watch, keyed by the caller (MissingAreas: `MissingAreaRecord.id`). Their points are
+    /// marked expected (they read red until observed) and their well-observed fraction is published
+    /// after every pass. An empty dictionary clears them.
+    func setWatchedAreas(_ areas: [Int: [SIMD3<Float>]])
+    /// Integrates earlier observations of the same place (a patch pass starting from the room pass)
+    /// in order before any live pass, until `deadlineSeconds` of work-queue time; logs how many were used.
+    func seed(observations: [CoverageObservation], faces: [CoverageFace], deadlineSeconds: Double)
+
+    // MARK: Engine hooks (hub queue; copy the latest published values)
+    /// Sets `viewCoverage`; in live-room mode also `nearbyMissing` (options above) and `overallComplete`.
+    func augment(_ input: inout GuidanceInput)
+    /// Sets `coverageFraction` and `minimap` (with `camera` and `heading`, CR-8).
+    func augment(_ snapshot: inout LiveScanSnapshot)
+    /// Ready-made closures for `RoomScanEngine.liveRoomHandler`, `guidanceAugmenter` and
+    /// `snapshotAugmenter` (and MeshScanEngine's two augmenters). They capture `self` weakly and are
+    /// formed here, outside any actor: a closure formed inside a `@MainActor` method is main-actor
+    /// isolated and must not be handed to a hub-queue hook (RoomCapture's `installHubClosures` rule).
+    var liveRoomHook: (RoomInput) -> Void { get }
+    var guidanceHook: (inout GuidanceInput) -> Void { get }
+    var snapshotHook: (inout LiveScanSnapshot) -> Void { get }
+
+    // MARK: Readers (any thread)
+    /// Anchors whose revision is greater than `revision`, and the newest revision (0 returns all).
+    func anchorFaces(changedSince revision: UInt64) -> (revision: UInt64, anchors: [CoverageAnchorFaces])
+    /// Missing areas of the expected room after the exclusions, largest first.
+    func currentMissingAreas() -> [MissingArea]
+    /// Well-observed fraction 0...1 per watched set.
+    func watchedFractions() -> [Int: Float]
+    func summary() -> CoverageLiveSummary
+    /// Camera to world of the last integrated observation.
+    func lastCameraTransform() -> simd_float4x4?
+}
+
+/// Faces of a chunk, visibility and rate. Pure, any queue.
+enum CoverageLiveFaces {
+    /// One face per triangle: corners through `chunk.transform`; the normal is the cross product,
+    /// flipped when it disagrees with the mean of the three ARKit vertex normals rotated to world,
+    /// kept when that mean is zero (normals are per vertex, RESEARCH 3.8 gotcha 6); class
+    /// `SurfaceClass(rawValue: chunk.classes[t])` when the count matches, else `.none`; area 0 and a
+    /// zero normal for degenerate or out-of-range triangles.
+    static func faces(of chunk: MeshChunk) -> [CoverageFace]
+    /// Voxel key per face (`grid.key(for: centroid)`) and the unique keys of the anchor (area-0 faces
+    /// get the key of their first corner and are never integrated).
+    static func keys(_ faces: [CoverageFace], grid: CoverageGrid) -> (perFace: [SIMD3<Int32>], unique: [SIMD3<Int32>])
+    /// Cone test: the bounding sphere of the bounds meets the view cone (the wider half field of view
+    /// from the intrinsics plus 10 degrees) within `CoverageGrid.maxRange` of the camera.
+    static func mayBeVisible(boundsMin: SIMD3<Float>, boundsMax: SIMD3<Float>, observation: CoverageObservation) -> Bool
+    /// CoverageGrid's own projection test for one face: inside the image with the same margin,
+    /// `CoverageGrid.minRange` to `maxRange` away, facing the camera.
+    static func isInView(_ face: CoverageFace, observation: CoverageObservation) -> Bool
+    /// min(maxHz, policy.coverageHz); 0 means never.
+    static func effectiveHz(maxHz: Double, policy: ThermalPolicy) -> Double
+    /// True when `timestamp - last >= 1 / hz` (always when `last` is nil); false when hz <= 0.
+    static func isDue(timestamp: Double, last: Double?, hz: Double) -> Bool
+}
+
+/// The live RoomPlan room as a Coverage boundary. Pure. Never calls CleanModelBuilder or
+/// RoomOutline.build: both log per call and a live room arrives every second.
+enum CoverageLiveBoundary {
+    /// Walls: endpoints `transform * (-+w/2, 0, 0, 1)` as world (x, z), baseY = center y - height / 2,
+    /// height = dimensions.y (walls under 0.05 m long or with non-finite values skipped). Floor polygon:
+    /// `RoomOutline.floorPolygon(room)` converted from plan (x, -z) to world (x, z), else the convex hull
+    /// of the wall endpoints; floorY = the lowest wall base; ceilingY = floorY + the tallest wall;
+    /// ceilingPolygon empty (Coverage reuses the floor). Nil with fewer than 2 usable walls.
+    static func boundary(from room: RoomInput) -> CoverageRoomBoundary?
+    /// One box per door, open door, window and opening (its transform, width, height and a 0.3 m
+    /// depth), grown by `margin` on every side.
+    static func exclusions(from room: RoomInput, margin: Float) -> [OrientedBox]
+    /// Expected sample positions outside every exclusion.
+    static func expectedPoints(_ samples: [ExpectedSample], exclusions: [OrientedBox]) -> [SIMD3<Float>]
+}
+
+/// First-seen times of missing areas across evaluations. A key is the surface raw value plus the
+/// centroid rounded to 0.5 m (clusters drift as coverage grows).
+struct CoverageLiveMissingAges: Equatable {
+    init()
+    /// Ages in seconds, one per area in the same order; keys not seen this time are forgotten.
+    mutating func update(_ areas: [MissingArea], now: Double) -> [Double]
+}
+
+/// Missing areas, guidance inputs and watched fractions. Pure.
+enum CoverageLiveMissing {
+    /// Drops areas whose surface is `.window` or `.door`, or whose centroid lies in an exclusion (D19).
+    static func filtered(_ areas: [MissingArea], exclusions: [OrientedBox]) -> [MissingArea]
+    /// Empty before `options.nearbyAfterSeconds`; then areas at least `nearbyMinAgeSeconds` old within
+    /// `nearbyRadius` (horizontal, camera to centroid), nearest first, at most 3.
+    static func nearby(_ areas: [MissingArea], ages: [Double], camera: SIMD3<Float>, elapsed: Double,
+                       options: CoverageLiveOptions) -> [MissingArea]
+    /// Area-weighted share of `faces` whose state is green; nil when their total area is under 0.05 m^2.
+    static func greenFraction(faces: [CoverageFace], states: [CoverageState]) -> Float?
+    /// A point counts when a voxel within `radius` of it has `goodObservationCount >= 1`.
+    static func wellObservedFraction(_ points: [SIMD3<Float>], grid: CoverageGrid, radius: Float) -> Float
+    /// Observed at least 0.9 of the expected area and no missing area left.
+    static func isComplete(observedFraction: Float, missingCount: Int) -> Bool
+}
+
+/// The top-down map. Pure.
+enum CoverageLiveMinimap {
+    /// Cells in plan coordinates (`PlanAxes`: x, -z) over the union of the voxels' extent and the
+    /// boundary's floor polygon, `cellSize` doubled until both sides fit `maxCells`. A cell is
+    /// `.covered` when a voxel in its column is green, else `.partial` when one is yellow, else
+    /// `.missing` when an unobserved expected sample falls in it, else `.empty`. Walls are the boundary
+    /// walls as plan polylines. `camera` and `heading` (CR-8) come from `camera` when given.
+    static func make(voxels: [(key: SIMD3<Int32>, state: CoverageState)], voxelSize: Float,
+                     boundary: CoverageRoomBoundary?, unobservedExpected: [SIMD3<Float>],
+                     camera: simd_float4x4?, cellSize: Float, maxCells: Int) -> MinimapSnapshot
+    /// Plan angle, radians counter-clockwise from plan +x, of the camera's forward direction (its -Z
+    /// column) projected on the floor; of its top edge (its -X column, portrait) when the forward is
+    /// within 30 degrees of vertical.
+    static func heading(cameraToWorld: simd_float4x4) -> Float
+}
 ```
-**Rules.** Rate follows `ThermalPolicy.coverageHz` (0 at critical); only frames with normal tracking; depth confidence mean from `ARFrameReading.meanConfidence`; faces keyed per anchor and rebuilt when an anchor's updateCount changes (coverage is position keyed in the grid).
-**Self-test.** At least 12 checks: minimap cells for a synthetic grid; augment sets viewCoverage between 0 and 1; missing areas empty when everything is observed; the 3 Hz throttle; thermal critical stops integration.
-**SPEC owned.** "LIVE SCANNING EXPERIENCE" (GREEN, YELLOW, RED, GRAY; "Scan this corner", "Point toward the floor", "Scan the ceiling", "This area needs another pass"); "SCAN QUALITY SYSTEM" ("Track coverage for surfaces and geometry", live).
+
+One pass on the work queue, in this order:
+1. Anchor refresh (at most every `anchorRefreshSeconds`): read `meshSource.index` (a lock-protected copy) and compare each entry's `updateCount` with the stored one; for changed or new anchors read `meshSource.currentChunks()` once and rebuild `faces(of:)` and `keys(_:grid:)`. Stale anchors keep their faces (RESEARCH 3.1 gotcha 15). Past `maxTrackedFaces`, new anchors are skipped.
+2. Integration: the positive-area faces of the anchors that pass `mayBeVisible`, in first-seen anchor order, plus the shell samples as faces when the shell fallback is on (`ExpectedSurfaces.samples(for:)` positions and inward normals), then `grid.integrate(observation:faces:)`. The grid's per-face statistics are keyed by position in this per-pass list and are never read; every state comes from `state(atVoxel:)` of the face's voxel (RESEARCH 3.8 gotcha 7, 3.10 gotcha 16).
+3. States: recomputed for the anchors of step 2, and for every anchor after the expected marks changed; an anchor gets a new revision only when a state or its geometry changed.
+4. View coverage: `greenFraction` over the faces with `isInView` (every second face).
+5. Expected marks, when the boundary or the watched sets changed: `clearExpected()`, then `markExpected` of `expectedPoints` (boundary samples outside exclusions) and of every watched point.
+6. Evaluation (at most every `evaluationSeconds`): with a boundary, `ExpectedSurfaces.evaluate(room:grid:)`, observed fraction = sum of observed area / sum of expected area, missing = `filtered(result.missing, exclusions:)`, ages, nearby list (live-room mode), complete flag, minimap from every anchor's unique voxel keys and the unobserved expected samples; without one, the fraction is the green share of all tracked faces and the minimap has no missing cells.
+7. Watched fractions (`wellObservedFraction`, radius 0.15 m), then one locked publish of everything.
+
+Logs (category "coverage"): the effective rate whenever it changes; the face cap once; one line every 30 s with integrations, skipped passes, anchors, faces, fraction, missing count and the median pass time; the seed summary.
+
+**Uses.** CaptureCore: `ScanRecorder`, `ARSessionHub` (`thermal.policy`), `ThermalPolicy` (`coverageHz`), `ScanProfile`, `RecorderStats`, `ARFrameReading.meanConfidence(of:stride:)`, `TrackingMonitor.summary(_:)`. MeshRecord: `MeshStore` (`index`, `currentChunks()`), `MeshChunkIndexEntry.updateCount`. Coverage: `CoverageGrid` (`init(voxelSize:)`, `integrate(observation:faces:)`, `key(for:)`, `state(atVoxel:)`, `voxelStats(_:)`, `markExpected(_:)`, `clearExpected()`, `minRange`, `maxRange`, `frustumMarginFraction`), `CoverageStats.goodObservationCount`, `CoverageFace`, `CoverageObservation`, `CoverageState`, `CoverageRoomBoundary`, `CoverageWall`, `SurfaceClass`, `ExpectedSurfaces.samples(for:spacing:)`, `ExpectedSurfaces.evaluate(room:grid:spacing:)`, `ExpectedSample`, `ExpectedSurfacesResult`, `MissingArea`, `GuidanceInput` (`viewCoverage`, `nearbyMissing`, `overallComplete`). RoomModel: `RoomInput`, `SurfaceInput`, `SurfaceKind` (`openingKind`), `RoomOutline.floorPolygon(_:)`. Core: `MeshChunk`, `RawScanFolder`, `LiveScanSnapshot` (`coverageFraction`, `minimap`), `MinimapSnapshot` (with CR-8), `MinimapCell`, `PlanAxes.toPlan(_:)`, `PlanAxes.toWorld(_:y:)`, `Vec2`, `Transform4` (`simd`, `translation`). Geometry: `OrientedBox` (`init(center:axes:halfExtents:)`, `contains(_:tolerance:)`), `Polygon2D.convexHull(_:)`. Support: `LogStore`.
+
+**Apple APIs** (RESEARCH 3.1, read inside the callback only):
+```swift
+var camera: ARCamera { get }                                   // ARFrame
+var timestamp: TimeInterval { get }                            // ARFrame
+var transform: simd_float4x4 { get }                           // ARCamera, camera to world
+var intrinsics: simd_float3x3 { get }                          // ARCamera, pixels of capturedImage
+var imageResolution: CGSize { get }                            // ARCamera
+var trackingState: ARCamera.TrackingState { get }              // .notAvailable, .limited(Reason), .normal
+```
+Depth confidence goes through CaptureCore's `ARFrameReading.meanConfidence(of:)`; no other ARKit call.
+
+**Must NOT do.** Never write a file (coverage is not raw data). Never key coverage by face index across versions or passes (states only from voxels). Never retain an `ARFrame`, `ARAnchor` or ARKit buffer, and never pass the frame to the work queue. Never run grid work on the hub queue, never queue more than one pass, never integrate while the effective rate is 0 (thermal critical) or tracking is not `.normal`. Never call `CleanModelBuilder.buildRoom` or `RoomOutline.build` on live rooms. Never mark windows, doors or openings as expected (D19). Never read MeshStore beyond `index` and `currentChunks()`, never keep chunk arrays after `finishRecording` (D17). No UI, no RealityKit, no Copy.
+
+**Copy strings.** None.
+
+**Self-test.** `CoverageLiveSelfTest.run()`, at least 22 checks, hardware-free (MeshStore is fed through its internal `ingest(_:)` after `beginRecording` into a temporary folder that is removed afterwards; the recorder exposes an internal `ingest(observation:)` and a blocking `waitForWork()` for the test; the ARFrame path is covered on device):
+1. `faces(of:)` of a 1 m square chunk (2 triangles, identity transform) gives 2 faces of area 0.5 with the right centroids.
+2. A triangle wound against its vertex normals (0, 0, 1) gets normal (0, 0, 1); with zero vertex normals the cross product is kept.
+3. A translation of (1, 2, 3) moves centroids and world bounds; a degenerate triangle has area 0 and state gray.
+4. `mayBeVisible`: bounds 2 m ahead true, 2 m behind false, 8 m ahead false.
+5. `isInView`: a face 2 m ahead facing the camera true, facing away false, 0.1 m away false.
+6. `effectiveHz` gives 3 for nominal and fair, 1 for serious, 0 for critical.
+7. `isDue` at 3 Hz: 0.2 s after the last false, 0.34 s true, nil last true, hz 0 false.
+8. `boundary(from:)` of a 4 x 5 m fixture with 4 walls of 2.5 m and no floor surface: 4 walls, hull area 20 within 1e-3, ceilingY - floorY = 2.5.
+9. The same fixture with a floor surface uses its polygon, converted so plan y 3 becomes world z -3.
+10. `exclusions(from:)` gives one box per door, window and opening; `expectedPoints` drops the samples inside a 1 x 1 m window (about 25 fewer at 0.2 m spacing).
+11. `filtered`: an area centered in a window box is dropped, one 1 m away is kept, a `.window` surface area is dropped.
+12. `nearby`: at elapsed 20 s empty; at 40 s an area aged 20 s 2 m away is included, one 4 m away is not, one aged 5 s is not; at most 3, nearest first.
+13. `CoverageLiveMissingAges`: an area keeps its age when its centroid moves 0.1 m and resets after it disappears for one evaluation.
+14. Three observations 1.5 m in front of the square make its faces green; one observation makes them yellow.
+15. `viewCoverage` is 1 after step 14 and nil when the camera looks away.
+16. A watched set on the square reads 0 before and 1 after the observations; an unobserved watched point is expected, so its voxel state is red.
+17. `anchorFaces(changedSince: 0)` returns the anchor with green states; asking again with the returned revision returns nothing; a new chunk version returns it again; `guidanceHook` applied to an empty `GuidanceInput` sets `viewCoverage`.
+18. After `finishRecording`, an ingested observation changes nothing and no anchor arrays remain.
+19. Shell fallback: with a boundary and no chunk after 9 s of observations the integrated faces equal the shell samples and the summary says so.
+20. `coverageFraction` of a boundary seen from its center in 8 directions is at least 0.9 and `isComplete` is true with no missing area.
+21. `CoverageLiveMinimap.make`: one green and one yellow voxel and one unobserved expected sample give codes 3, 2 and 1 in the right cells; a 40 m extent at 0.25 m cells gives cell size 0.5 within 96 cells; a boundary wall at world z 2 lies at plan y -2.
+22. `heading`: identity camera (forward -Z) gives pi / 2 (plan +y); a camera looking straight down uses its top edge; the minimap camera of a camera at (1, 1.4, 2) is plan (1, -2).
+23. `seed` with 3 observations and a 0 s deadline integrates none; with 1 s it integrates all 3.
+
+**Acceptance checks.** The hub-queue callback copies only (under 0.5 ms when not due, under 2 ms when due, measured and logged once); no `ARFrame` or anchor crosses a queue; one pass in flight at most and skipped passes counted; the effective rate follows `ThermalPolicy.coverageHz`; the per-pass time is logged (target median under 60 ms for 50k visible faces on the A15); no integration after `finishRecording`; readers and hooks take the lock only to copy.
+
+**SPEC owned.** "LIVE SCANNING EXPERIENCE" (GREEN = scanned well, YELLOW = partially scanned, RED = missing information, GRAY = not scanned: the states; "Scan this corner", "Point toward the floor", "Scan the ceiling", "This area needs another pass" through `nearbyMissing` and `viewCoverage`; "Do not overwhelm the user" by the nearby rules above); "SCAN QUALITY SYSTEM" ("Track coverage for surfaces and geometry", live; missing areas during capture).
+
+**TEST_PLAN ids.** LIVE-02, LIVE-05, LIVE-08, LIVE-09, QUAL-02 (live part), QUAL-03 (filled detection), PERF-01, PERF-05 (rate drops at serious), PERF-08.
+
+### 3.31a Coverage revision: extra guidance conditions (wave 5a0, change request CR-9)
+
+**Purpose.** LargeObject's `SectorCoverage` decides "Capture the left side", "Capture the right side", "Capture the back", "Capture the top", "Move closer to this area" and "This section needs more detail", but Coverage's `GuidanceEngine` only shows kinds its own `conditions(for:)` produced, so those decisions could not pass through the display rules (one message, hold, minimum time, repeat cooldown). The revision lets a caller add conditions.
+
+**Build and wave.** Build 5, wave 5a0 (Coverage is wave 0; one small agent, branch `impl/coverage-extras`). Needed by LargeObject (5b); merges before wave 5a starts.
+
+**Files.** `ios/Sources/Coverage/GuidanceEngine.swift`, `CoverageSelfTestGuidance.swift` (edits only).
+
+**Public Swift API.**
+```swift
+struct GuidanceInput {
+    // ... existing members unchanged ...
+    /// Conditions decided outside the engine (LargeObject sector coverage). Tier 2 and 3 kinds count
+    /// only while tracking is `.normal`, like the engine's own coverage conditions; tier 1 kinds are
+    /// ignored here (the engine owns tier 1). Default empty.
+    var extraConditions: Set<GuidanceKind> = []
+}
+```
+In `conditions(for:)`, after `guard input.tracking == .normal else { return out }`: `for kind in input.extraConditions where kind.message.tier >= 2 { out.insert(kind) }`. Nothing else changes, so every existing caller compiles and behaves as before.
+
+**Must NOT do.** No change to thresholds, priorities or display rules.
+
+**Self-test.** Extend the Coverage guidance tests by at least 3 checks: an extra `.objectCaptureLeft` is shown after the 0.75 s hold; it is not shown while tracking is `.excessiveMotion`; an extra `.trackingLost` is ignored.
+
+### 3.31b Quality revision: mesh-pass folders (wave 5a0, change request CR-10)
+
+**Purpose.** Show Missing Areas and the two-pass fallback (D16) add sealed mesh-pass folders to a room (`raw/sessions/<s>/mesh-pass/<p>/`). The quality check after the tour and the pipeline's `QualityStep` must see their poses and keyframes, or the pipeline would replace the better score with a room-only one. The consolidated mesh already includes pass chunks once AppShell hands `ConsolidateMeshStep` the pass folders (3.43e).
+
+**Build and wave.** Build 5, wave 5a0 (branch `impl/quality-passes`). Needed by MissingAreas (5b), the ScanUI revision (5c) and AppShell (5d); merges before wave 5a starts.
+
+**Files.** `ios/Sources/Quality/QualityEvaluator+Sealed.swift`, `QualityStep.swift`, `QualitySelfTest+Files.swift` (edits only).
+
+**Public Swift API.**
+```swift
+extension QualityEvaluator {
+    /// `evaluateSealedRoom(package:record:now:)` plus the room's sealed mesh-pass folders, oldest first:
+    /// pose samples and keyframe records of all folders concatenated (room first; one ARKit session,
+    /// so one timebase), mesh = `MeshConsolidator.fastWorldMesh(MeshConsolidator.latestChunks(in: [room] + passes))`,
+    /// log from the room folder, input hash `doneInputHash(seals:)` over the room seal and every pass seal.
+    /// With `passes` empty it equals the existing function.
+    static func evaluateSealedRoom(package: ProjectPackage, record: RoomRecord, passes: [RawScanFolder],
+                                   now: Date) throws -> QualityEvaluation
+    /// InputHasher over the seals (nil entries skipped) plus extra ["done"].
+    static func doneInputHash(seals: [SealFile?]) -> String
+}
+final class QualityStep: ProcessingStep {
+    /// Mesh-pass folders whose poses and keyframes join the room's.
+    let passes: [RawScanFolder]
+    /// `passes` defaults to empty, so `QualityStep(room:)` call sites keep compiling.
+    init(room: RoomRecord, passes: [RawScanFolder] = [])
+}
+```
+`QualityStep.inputHash(_:)` adds every pass seal to the seals it hashes; the evaluation concatenates poses and keyframes as above and keeps using the consolidated mesh.
+
+**Must NOT do.** Never read a pass folder that has no `SEAL.json`; never let a missing pass folder fail the step (log and skip it).
+
+**Self-test.** At least 4 checks: a temporary room plus one pass with extra keyframes looking at wall 2 raise the walls score over the room alone; the hash with a pass differs from the room-only hash; `passes: []` gives the same evaluation and hash as before; an unsealed pass folder is skipped.
+
+### 3.31c Core change CR-8: minimap camera (applied by the lead before wave 5a)
+
+The Room-mode minimap (CoverageOverlay) needs a "you are here" marker, and `LiveScanSnapshot` carries no camera pose. `MinimapSnapshot` (`ios/Sources/Core/ScanEngine.swift`) gains two optional fields at the end:
+```swift
+/// Camera position on the plan when the map was made, plan meters; nil when unknown.
+var camera: Vec2? = nil
+/// Camera heading on the plan, radians counter-clockwise from plan +x; nil when unknown.
+var heading: Float? = nil
+```
+Synthesized `Codable` decodes older recordings without these keys as nil, and the memberwise initializer keeps its existing call sites. `CoreSelfTest` gains 2 checks (round trip with both set; a JSON line without them decodes).
 
 ### 3.32 LiveMeshView (wave 5a)
 
-**Purpose.** The mesh-only scan driver: `MeshScanEngine` (ScanEngine without RoomPlan, used for Advanced space scans, Show Missing Areas patch passes, the two-pass fallback when RoomPlan strips the mesh (D16), and large objects) plus `LiveMeshScreen`, an `ARView` in `.ar` mode bound to the hub session with `ARCoachingOverlayView` (goal `.tracking`) and a slot for the coverage overlay.
-**Files.** `ios/Sources/LiveMeshView/MeshScanEngine.swift`, `LiveMeshContainer.swift`, `LiveMeshScreen.swift`, `LiveMeshViewSelfTest.swift`.
-**API.**
+**Purpose.** The mesh-only scan driver and its live camera view, used wherever capture runs without RoomPlan: Show Missing Areas patch passes and the two-pass fallback on the room's still-running session (D16, D19), large objects (D4), and space scans without room finding (AdvancedScan, build 6). `MeshScanEngine` is a `ScanEngine` (D1) over CaptureCore's `ARSessionHub` with the same recorders as a room scan, full Mapper guidance (Coverage's `GuidanceEngine` with speed, distance, light and depth inputs, since no RoomPlan coaching runs), interruptions, system stops (heat, storage, memory) and a finish sequence that seals the pass into `raw/sessions/<s>/mesh-pass/<p>/` or `raw/objects/<o>/`. It can own its hub or borrow a running one and give it back unchanged. `LiveMeshContainer` is the `ARView` in `.ar` mode on the hub's session with Apple's coaching overlay (goal `.tracking`), a tap hook and an `onViewReady` hook where 5b modules attach their RealityKit content (CoverageOverlay, the large-object box). `MeshScanModel` and `LiveMeshScreen` are the `@MainActor` facade and screen shell that MissingAreas, LargeObject and the build 6 space scan build on.
+
+**Build and wave.** Build 5, wave 5a. Core, CaptureCore, Store, MeshRecord, Keyframes, GuidanceUI, Coverage, Pipeline (`IdleTimerGuard`), ScanUI (`Copy.ScanUI.elapsed` only), Support; ARKit, RealityKit, SwiftUI, UIKit. It must not reference CoverageLive or CoverageOverlay (same or later wave): coverage plugs in as an extra `ScanRecorder` plus the two augmenters. About 1450 lines plus the self-test.
+
+**Files.** `ios/Sources/LiveMeshView/MeshScanTypes.swift` (target, result, recorder set, pass folders, settings key), `MeshScanEngine.swift` (public API, stored state, main entry points), `MeshScanEngine+Lifecycle.swift` (hub handlers, status tick, finish sequence), `MeshScanStats.swift` (pure rules), `MeshScanModel.swift`, `LiveMeshContainer.swift`, `LiveMeshScreen.swift`, `LiveMeshViewSelfTest.swift`, `ios/Sources/Support/Copy+LiveMeshView.swift`.
+
+**Public Swift API.**
 ```swift
-struct MeshScanTarget: Equatable, Sendable { var projectID: UUID; var package: ProjectPackage; var sessionID: UUID; var passID: UUID; var kind: RawScanKind; var destination: URL; var settings: ScanSettings }
-final class MeshScanEngine: NSObject, ScanEngine {
-    @MainActor init(target: MeshScanTarget, recorders: [ScanRecorder], hub: ARSessionHub? = nil)  // reuse a running hub for patch passes
-    let hub: ARSessionHub
-    var guidanceAugmenter: ((inout GuidanceInput) -> Void)?; var snapshotAugmenter: ((inout LiveScanSnapshot) -> Void)?
+extension SettingsKey {
+    /// Bool, absent means off. Diagnostics only: ARKit's scene-understanding wireframe in live views.
+    static let liveMeshDebugView = "liveMeshDebugView"
 }
-struct LiveMeshContainer: UIViewRepresentable { init(engine: MeshScanEngine, overlay: (@MainActor (ARView) -> Void)?) }
+
+/// What one mesh-only pass records and where it is sealed.
+struct MeshScanTarget: Equatable, Sendable {
+    var projectID: UUID
+    var package: ProjectPackage
+    /// ARKit session (raw/sessions/<id>/, FrameLink.projectFrame).
+    var sessionID: UUID
+    /// InProgress scan id and sealed folder name; the object id for `.object`.
+    var passID: UUID
+    /// `.meshPass` or `.object`.
+    var kind: RawScanKind
+    /// Profile mode and scan.json mode: room, house or advancedSpace for `.meshPass`; object or
+    /// advancedObject for `.object`. Never quickMeasure (D14).
+    var mode: ScanMode
+    /// The room a patch pass or fallback pass belongs to (scan.json `roomID`).
+    var roomID: UUID?
+    /// `package.rawMeshPassURL(session:pass:)` or `package.rawObjectURL(_:)`.
+    var destination: URL
+    var settings: ScanSettings
+    init(projectID: UUID, package: ProjectPackage, sessionID: UUID, passID: UUID, kind: RawScanKind,
+         mode: ScanMode, roomID: UUID?, destination: URL, settings: ScanSettings)
+    /// A pass on a room's session (Show Missing Areas, two-pass fallback). Pass the room's own mode
+    /// and settings, so a borrowed hub keeps its profile.
+    static func patchPass(projectID: UUID, package: ProjectPackage, sessionID: UUID, roomID: UUID,
+                          mode: ScanMode, settings: ScanSettings, passID: UUID = UUID()) -> MeshScanTarget
+    /// A large object (kind .object, mode .object, passID = objectID).
+    static func largeObject(projectID: UUID, package: ProjectPackage, sessionID: UUID, objectID: UUID,
+                            settings: ScanSettings) -> MeshScanTarget
+    /// A space scan without room finding (kind .meshPass, mode .advancedSpace, no room).
+    static func spaceScan(projectID: UUID, package: ProjectPackage, sessionID: UUID, settings: ScanSettings,
+                          passID: UUID = UUID()) -> MeshScanTarget
+}
+
+/// What a finished pass produced; `MeshScanEngine.lastResult` after `.roomFinished(roomID: passID)`.
+struct MeshScanResult: Equatable, Sendable {
+    var passID: UUID
+    var kind: RawScanKind
+    var roomID: UUID?
+    var sealedFolder: RawScanFolder
+    /// roomlog.json of the pass (instructionSeconds empty, error nil unless a system stop).
+    var log: RoomCaptureLog
+    var keyframeCount: Int
+    var photoCount: Int
+    var meshFaceCount: Int
+    var frameLink: FrameLink
+    var capturedAt: Date
+    /// The engine finished by itself (heat, storage, memory) and paused the session.
+    var stoppedBySystem: Bool
+}
+
+/// The standard recorders of a mesh-only pass. Creating them touches no hardware.
+struct MeshScanRecorderSet {
+    let mesh: MeshStore
+    let keyframes: KeyframeRecorder
+    let poses: PoseTrackRecorder
+    let photos: PhotoRecorder?
+    /// Extra recorders (CoverageLiveRecorder, LargeObjectTracker), fed after the standard ones.
+    var extra: [ScanRecorder]
+    /// `mesh` is passed in so extras made first can read the same store
+    /// (`CoverageLiveRecorder(meshSource: mesh)`).
+    init(photos: Bool, mesh: MeshStore = MeshStore(), extra: [ScanRecorder] = [])
+    /// mesh, keyframes, poses, photos (when present), then `extra`.
+    var all: [ScanRecorder] { get }
+}
+
+/// Finding a room's sealed mesh passes (AppShell's processing plans, MissingAreas, the Quality revision's callers).
+enum MeshPassFolders {
+    /// Sealed folders under raw/sessions/*/mesh-pass/ whose scan.json has kind `.meshPass` and this
+    /// roomID, oldest `startedAt` first. Unreadable scan.json files are skipped and logged.
+    static func forRoom(_ roomID: UUID, in package: ProjectPackage) -> [RawScanFolder]
+    /// Sealed mesh-pass folders without a room (space scans), oldest first.
+    static func spacePasses(in package: ProjectPackage) -> [RawScanFolder]
+}
+
+/// Mesh-only engine. Call the ScanEngine methods on main; work runs on hub.queue; events arrive on
+/// main. `state` and `lastResult` are written on main only, in the same main hop that emits the
+/// matching event; hub.queue keeps a private phase copy. Not `@MainActor` (only the listed members).
+final class MeshScanEngine: ScanEngine {
+    static let logCategory = "meshscan"
+    /// Seconds without a frame while scanning before the engine re-applies the configuration once.
+    static let frameGapSeconds: Double = 1.5
+    /// Seconds to wait for each recorder's `finishRecording`.
+    static let recorderFinishTimeout: Double = 20
+    private(set) var state: ScanEngineState
+    var onEvent: ((ScanEngineEvent) -> Void)?
+    let hub: ARSessionHub
+    let target: MeshScanTarget
+    let recorders: [ScanRecorder]
+    /// True when this engine created the hub (it pauses it in teardown); false for a borrowed hub.
+    let ownsHub: Bool
+    /// Main. Valid after `.roomFinished`.
+    private(set) var lastResult: MeshScanResult?
+    /// Hub queue hooks (lock-protected get and set): adjust the guidance input before
+    /// `GuidanceEngine.update`, and each snapshot before it is posted. Callers pass closures formed
+    /// outside any actor (`CoverageLiveRecorder.guidanceHook`, `snapshotHook`, or a nonisolated
+    /// static helper), never a closure written inside a `@MainActor` method.
+    var guidanceAugmenter: ((inout GuidanceInput) -> Void)?
+    var snapshotAugmenter: ((inout LiveScanSnapshot) -> Void)?
+    /// Latest camera to world (any thread; updated at most 10 times a second from frames).
+    var latestCameraTransform: simd_float4x4? { get }
+    /// Main actor (creates the hub when `hub` is nil). Nothing runs until `start()`.
+    @MainActor init(target: MeshScanTarget, recorders: [ScanRecorder], hub: ARSessionHub? = nil)
+    /// Main. Checks, folders, hub, recorders (order below). Throws before creating anything on disk
+    /// when a check fails: `.ioFailed(problem)` for an invalid target, `.unsupportedDevice`,
+    /// `.lowStorage(freeBytes:)` under `ProjectStore.refuseScanBelowBytes`.
+    func start() throws
+    /// Main. State `.paused`, keyframes paused (the session keeps running). Used for interruptions.
+    func pause()
+    /// Main. Back to `.scanning`; after `sessionInterruptionEnded` the engine stays `.paused` until this call.
+    func resume()
+    /// Main. `finish(attachments: [:])`.
+    func finish()
+    /// Main. The finish sequence below; `attachments` are small extra files written into the folder
+    /// root before the seal (names checked by `MeshScanStats.isSafeAttachmentName`), for example LargeObject's log.
+    func finish(attachments: [String: Data])
+    /// Main. Ordered stop without sealing (recorders detached and finished, writer flushed and
+    /// closed); raw stays in InProgress for recovery; then `.stateChanged(.idle)`.
+    func cancel()
+    /// Main. `cancel()`'s ordered stop, then `InProgressScans.discard(scanID:)` once the writer is
+    /// closed, then `.stateChanged(.idle)`.
+    func discard()
+    /// Main, idempotent, safe in any state: a capture still running gets `cancel()`'s ordered stop;
+    /// recorders are detached; the four hub closures are restored to the ones saved at `start()` for
+    /// a borrowed hub (nil for an owned hub); a borrowed hub gets `install()` again and keeps running,
+    /// an owned hub is paused. Logs "mesh engine deinit" when released.
+    func teardown()
+}
+
+/// Pure rules (tested).
+enum MeshEngineSignal: Equatable, Sendable { case start, firstFrame, pause, interruptionEnded, resume, finish, sealed, failure, cancel }
+enum MeshFinishStep: String, CaseIterable, Sendable {
+    case detachRecorders, finishRecorders, writeAttachments, writeLogs, flushWriter, closeWriter, seal,
+         pauseIfSystemStop, emitRoomFinished
+}
+enum MeshScanStats {
+    static func next(_ state: ScanEngineState, on signal: MeshEngineSignal) -> ScanEngineState
+    /// The finish sequence in order (tested as data).
+    static let finishSteps: [MeshFinishStep]
+    /// Mesh-mode input: tracking (`GuidanceSignals.tracking(status.tracking)`), angularSpeed, linearSpeed,
+    /// centerDistance, depthConfidenceMean, ambientIntensity from the status, deviceHot at thermal
+    /// serious or worse. Everything RoomScanStats leaves out in Room mode is set here (no RoomPlan coaching).
+    static func guidanceInput(time: Double, status: HubStatus) -> GuidanceInput
+    static func snapshot(timestamp: Double, status: HubStatus, recorders: RecorderStats, guidance: GuidanceKind?) -> LiveScanSnapshot
+    /// thermal .critical -> .deviceTooHot, storage .pause -> .lowStorage(freeBytes: 0) (the caller
+    /// fills the bytes), memory .critical -> .lowMemory, else nil.
+    static func systemStopReason(thermal: ThermalLevel, storage: StorageState, memory: MemoryState) -> MapperError?
+    /// Nil when valid: kind and mode agree (meshPass with room, house or advancedSpace; object with
+    /// object or advancedObject), `destination` equals the package URL for the kind, session and passID.
+    static func validationProblem(_ target: MeshScanTarget) -> String?
+    /// The start checks as one pure rule: `.ioFailed(problem)` for an invalid target, then
+    /// `.unsupportedDevice` without mesh support, then `.lowStorage(freeBytes:)` under
+    /// `ProjectStore.refuseScanBelowBytes`; nil when capture may start.
+    static func startProblem(_ target: MeshScanTarget, supportsMesh: Bool, freeBytes: Int64) -> MapperError?
+    /// True only for an owned hub (teardown pauses it); a borrowed hub keeps running.
+    static func pausesHubOnTeardown(ownsHub: Bool) -> Bool
+    /// True once per gap: scanning, a previous frame known, and more than `frameGapSeconds` since it.
+    static func shouldReapplyForFrameGap(now: Double, lastFrame: Double?, triedForThisGap: Bool, isScanning: Bool) -> Bool
+    /// A single safe file name (RawScanFolder.isSafeRelativePath, no "/") that is not a name the
+    /// engine or a recorder writes: SEAL.json, scan.json, roomlog.json, events.jsonl, keyframes.jsonl,
+    /// photos.jsonl, poses.ptrk.
+    static func isSafeAttachmentName(_ name: String) -> Bool
+    static func log(seconds: Double, relocalizations: Int, limitedFraction: Double, degraded: DegradedMode,
+                    error: String?) -> RoomCaptureLog
+}
+
+/// Main-actor facade for mesh-only screens (MissingAreas, LargeObject, build 6 space scans).
+@MainActor final class MeshScanModel: ObservableObject {
+    @Published private(set) var state: ScanEngineState
+    @Published private(set) var snapshot: LiveScanSnapshot
+    @Published private(set) var result: MeshScanResult?
+    /// Latest `.failed` error, for the owner's alert (ScanUI's `ScanErrorCopy.alert(for:)`).
+    @Published private(set) var failure: MapperError?
+    @Published private(set) var isPaused: Bool
+    let engine: MeshScanEngine
+    /// After `.roomFinished` (the pass is sealed).
+    var onFinished: ((MeshScanResult) -> Void)?
+    /// After cancel or discard completed (`.stateChanged(.idle)`).
+    var onIdle: (() -> Void)?
+    init(engine: MeshScanEngine, photos: PhotoRecorder? = nil)
+    /// `engine.start()`, an `IdleTimerGuard` token, `GuidanceAnnouncer` reset.
+    func start() throws
+    func finish(attachments: [String: Data] = [:])
+    func pause(); func resume(); func cancel(); func discard()
+    /// `engine.teardown()` and the token released; idempotent.
+    func teardown()
+    func takePhoto()
+    /// `Copy.ScanUI.elapsed(minutes:seconds:)` of `snapshot.elapsed`.
+    var elapsedText: String { get }
+}
+
+/// SwiftUI host of the live camera: `ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)`,
+/// then `arView.session = hub.session` and `hub.install()` at once (whoever assigns last wins; the hub
+/// logs `session.delegate === hub`), `environment.sceneUnderstanding.options = []`, the debug
+/// wireframe only when `SettingsKey.liveMeshDebugView` is on, `ARCoachingOverlayView` (session, goal
+/// `.tracking`, activatesAutomatically) on top, a tap recognizer, then `onViewReady`.
+/// `dismantleUIView` removes the recognizer and the coaching overlay, gives the ARView a fresh idle
+/// `ARSession()` so the departing view can never pause or reconfigure the hub's session (a borrowed
+/// hub must keep running for the room engine: the next room, a second tour), then calls
+/// `hub.install()` again (as `HouseRelocalizationView`, 3.41). It never pauses the session.
+struct LiveMeshContainer: UIViewRepresentable {
+    init(hub: ARSessionHub, showsCoaching: Bool = true, onViewReady: (@MainActor (ARView) -> Void)? = nil,
+         onTap: (@MainActor (CGPoint, ARView) -> Void)? = nil)
+    func makeCoordinator() -> LiveMeshCoordinator
+    func makeUIView(context: Context) -> ARView
+    func updateUIView(_ uiView: ARView, context: Context)
+    static func dismantleUIView(_ uiView: ARView, coordinator: LiveMeshCoordinator)
+}
+@MainActor final class LiveMeshCoordinator: NSObject {
+    var onTap: (@MainActor (CGPoint, ARView) -> Void)?
+    /// Target of the UITapGestureRecognizer; passes `location(in:)` of the ARView.
+    @objc func handleTap(_ recognizer: UITapGestureRecognizer)
+}
+
+/// Screen shell: camera (LiveMeshContainer), guidance banner (`GuidanceBanner(kind: snapshot.guidance)`),
+/// the "starting up" line while `.starting`, the paused card (`Copy.Scanning.paused` with Resume) while
+/// paused, and the caller's HUD on top. Forced dark, `.persistentSystemOverlays(.hidden)`, HUD Dynamic
+/// Type clamped to xxxLarge.
+struct LiveMeshScreen<HUD: View>: View {
+    init(model: MeshScanModel, showsCoaching: Bool = true, onViewReady: (@MainActor (ARView) -> Void)? = nil,
+         onTap: (@MainActor (CGPoint, ARView) -> Void)? = nil, @ViewBuilder hud: @escaping () -> HUD)
+}
+/// Standard top bar for mesh-only screens: Cancel (left), elapsed time (center), Done (right, hidden when `onDone` is nil).
+struct LiveMeshTopBar: View {
+    init(elapsed: String, doneEnabled: Bool, onCancel: @escaping () -> Void, onDone: (() -> Void)?)
+}
 ```
-**Apple APIs.** `ARView(frame:cameraMode: .ar, automaticallyConfigureSession: false)`, then `arView.session = hub.session` and immediately re-assert `hub.install()` and log `session.delegate === hub` (whoever assigns last wins); `ARCoachingOverlayView` (`goal`, `session`, `activatesAutomatically`); `debugOptions.insert(.showSceneUnderstanding)` only behind the Diagnostics toggle.
-**Must NOT do.** Plane detection stays off (D14); never create a second ARSession for a patch pass (same session keeps the frame).
-**Self-test.** At least 8 checks on the pure state reducer and target validation.
-**SPEC owned.** "ADVANCED SCAN" space scanning driver; "LIVE SCANNING EXPERIENCE" ("The user should see the model forming while walking").
+
+Start order (`start()`, main):
+1. `MeshScanStats.startProblem(target, supportsMesh: ScanConfigurationFactory.supportsMesh, freeBytes: ProjectStore.freeBytes())` (throws before touching disk).
+2. `ProjectStore.ensureDirectory(target.package.sessionURL(target.sessionID), inside: target.package.root)`; `InProgressScans.create(InProgressScanInfo(scanID: target.passID, projectID: target.projectID, sessionID: target.sessionID, roomID: target.kind == .object ? target.passID : target.roomID, kind: target.kind, mode: target.mode, startedAt: Date()))` (an object scan carries its object id in `roomID`, as ObjectCapture's does, so AppShell's recovery reads one field); `RawScanWriter(folder:)`. An IO failure removes what was made and throws `.ioFailed`.
+3. Owned hub: `hub.install()`, `hub.run()`. Borrowed hub: save its four closures (`onCaptureEvent`, `onStatus`, `onFrame`, `onMemoryPressure`, lock-protected getters), `hub.install()`, then `hub.reapplyConfiguration(reason: "mesh pass start")` when `hub.isRunning`, else `hub.run()`. The re-apply restores mesh and depth after RoomPlan (the two-pass fallback for `meshStripped` relies on it) and is safe because RoomPlan is stopped; the options stay `[]`, so tracking, anchors and the world frame are kept (RESEARCH 3.1 gotcha 12). The profile of a borrowed hub is not changed (the target carries the room's own mode and settings).
+4. The engine's four closures with `[weak self]`.
+5. On hub.queue: attach every recorder and call `beginRecording(into:profile:startTimestamp:)` (latest frame timestamp or 0); state `.starting`.
+6. First frame after start: `hub.markScanStart(timestamp:)`, state `.scanning`.
+
+Each status tick (4 Hz, hub queue): a system stop reason (`systemStopReason`, the storage case with `status.freeBytes`) finishes the pass by itself; memory `.low` is logged once per episode (keyframes stop inside KeyframeRecorder); otherwise `guidanceInput` plus `guidanceAugmenter`, `GuidanceEngine.update`, `snapshot` from the status and the summed recorder stats, `snapshotAugmenter`, then `.snapshot` on main. The frame gap rule re-applies the configuration once per gap (for example after the RoomPlan objects of a borrowed session were released) and logs it. Interruptions come as `.tracking` events with `ARSessionHub.interruptedDetail` (state `.paused`, keyframes paused) and `interruptionEndedDetail` (stays paused until `resume()`); `sessionFailedPrefix` errors finish the pass with what exists and report `.trackingFailed` after `.roomFinished`. `hub.onMemoryPressure` flushes every recorder (`flushNow()`) and finishes the pass as a system stop with `.lowMemory`. Pause and resume set `KeyframeRecorder.isPaused` on any `KeyframeRecorder` among the recorders.
+
+Finish sequence (`MeshScanStats.finishSteps`, one `Task` inside `UIApplication.shared.beginBackgroundTask(withName:expirationHandler:)`, ended at the last step or on expiry; `UIApplication.shared` is main-actor only and the engine is not, so the task is begun and ended inside `await MainActor.run { }` with the identifier kept as its raw value behind a lock, the pattern of RoomCapture's `RoomBackgroundTask`, which this module cannot import):
+1. `detachRecorders` on hub.queue, so no callback arrives after it.
+2. `finishRecorders`: each `finishRecording(completion:)` awaited with `withCheckedContinuation`, at most `recorderFinishTimeout` each (every recorder flushes and closes its own `RawScanWriter`, so this must complete before the seal).
+3. `writeAttachments`: each safe name written with `writer.writeFile(_:to:)` at the folder root.
+4. `writeLogs`: `roomlog.json` (`MeshScanStats.log`, relocalizations and limited fraction from `hub.tracking`, degraded from `hub.degraded`), the remaining `events.jsonl` lines, and `raw/sessions/<s>/session.json` from `hub.diagnostics.sessionRecord(id:)` only when `package.sessionRecordURL(sessionID)` does not exist yet.
+5. `flushWriter` (`await writer.flush()`), 6. `closeWriter`, 7. `seal` (`InProgressScans.seal(folder, into: target.destination, package: target.package)`), 8. `pauseIfSystemStop` (`hub.pause()` for a system stop, borrowed hub included, RESEARCH 3.1 recommended 10), 9. `emitRoomFinished` (main: `lastResult`, state `.finished`, `.roomFinished(roomID: target.passID)`, then `.failed(reason)` for a system stop; state stays `.finished`).
+No file is written into the folder after `SEAL.json`. `cancel()` and `discard()` emit no `.stopping`, only `.stateChanged(.idle)` last (as RoomCapture).
+
+A borrowed hub is given back as it was lent: same session still running (unless a system stop paused it), same profile, the saved closures restored, recorders detached, delegate re-asserted. Its owner (RoomScanEngine) must stay alive, and its `RoomCaptureView` mounted, until the borrowing engine is torn down (ScanUI revision, 3.43a).
+
+**Uses.** CaptureCore: `ARSessionHub` (`init(profile:)`, `install()`, `run(options:)`, `pause()`, `isRunning`, `reapplyConfiguration(reason:)`, `attach(_:)`, `detach(_:)`, `markScanStart(timestamp:)`, `queue`, `onCaptureEvent`, `onStatus`, `onFrame`, `onMemoryPressure`, `tracking`, `degraded`, `diagnostics`, `interruptedDetail`, `interruptionEndedDetail`, `sessionFailedPrefix`), `ScanRecorder` (`flushNow()`), `ScanProfile`, `HubStatus`, `RecorderStats`, `ThermalLevel`, `StorageState`, `MemoryState`, `ScanConfigurationFactory.supportsMesh`, `CaptureDiagnostics.sessionRecord(id:)`, `TrackingMonitor` (`relocalizations`, `limitedFraction`). Store: `InProgressScans` (`create`, `seal(_:into:package:)`, `discard(scanID:)`), `InProgressScanInfo`, `RawScanKind`, `RawScanWriter` (`appendJSONLine`, `writeFile`, `flush()`, `close()`), `RawScanReader.info()`, `StorePackageOps.meshPassFolders(in:)`. MeshRecord: `MeshStore`. Keyframes: `KeyframeRecorder` (`init(jpegQuality:)`, `isPaused`), `PoseTrackRecorder`, `PhotoRecorder` (`requestPhoto(note:)`). GuidanceUI: `GuidanceSignals.tracking(_:)` (summary form), `GuidanceBanner`, `GuidanceAnnouncer` (`present(_:now:)`, `reset()`). Coverage: `GuidanceEngine`, `GuidanceInput`. Pipeline: `IdleTimerGuard.acquire(_:)`, `release(_:)`. Core: `ScanEngine`, `ScanEngineState`, `ScanEngineEvent`, `LiveScanSnapshot`, `MapperError`, `RoomCaptureLog`, `DegradedMode`, `CaptureEvent`, `CaptureEventKind`, `FrameLink`, `ProjectPackage` (`sessionURL(_:)`, `sessionRecordURL(_:)`, `rawMeshPassURL(session:pass:)`, `rawObjectURL(_:)`), `RawScanFolder` (`isSafeRelativePath(_:)`, `eventsLogURL`, `roomLogURL`, `sealURL`), `ScanMode`, `ScanSettings`, `ProjectStore` (`freeBytes()`, `refuseScanBelowBytes`, `ensureDirectory(_:inside:)`, `encoder`). Support: `Copy.Scanning` (`paused`, `resume`, `startingUp`, `done`, `cancel`), `Copy.A11y.scanView`, `Copy.ScanUI.elapsed(minutes:seconds:)` (3.24), `SettingsKey`, `LogStore`.
+
+**Apple APIs** (RESEARCH 3.5, 3.10, 3.1):
+```swift
+@MainActor @preconcurrency init(frame frameRect: CGRect, cameraMode: ARView.CameraMode, automaticallyConfigureSession: Bool)   // ARView, .ar
+dynamic var session: ARSession { get set }                       // ARView; assign hub.session, then hub.install()
+var debugOptions: ARView.DebugOptions                            // ARView
+static let showSceneUnderstanding: ARView.DebugOptions            // 13.4, Diagnostics only
+var environment: ARView.Environment
+var sceneUnderstanding: ARView.Environment.SceneUnderstanding { mutating get set }   // options stay [] (no .occlusion)
+class ARCoachingOverlayView                                      // iOS 13.0: goal, activatesAutomatically, setActive(_:animated:)
+func run(_ configuration: ARConfiguration, options: ARSession.RunOptions = [])   // through the hub only, options []
+@MainActor @preconcurrency protocol UIViewRepresentable : View   // makeUIView, updateUIView, makeCoordinator,
+                                                                 // static func dismantleUIView(_ uiView: Self.UIViewType, coordinator: Self.Coordinator)
+nonisolated func persistentSystemOverlays(_ visibility: Visibility) -> some View
+func dynamicTypeSize<T>(_ range: T) -> some View where T : RangeExpression, T.Bound == DynamicTypeSize
+```
+Not in RESEARCH (checked against Apple's documentation JSON, all iOS 13.0 or earlier): `var session: ARSession? { get set }` and `var goal: ARCoachingOverlayView.Goal { get set }` (`.tracking`) on `ARCoachingOverlayView`; `ARSession()` (iOS 11, the idle session given to a dismantled view); `UITapGestureRecognizer(target:action:)` and `location(in:)` (iOS 3.2); `UIApplication.shared.beginBackgroundTask(withName:expirationHandler:)` and `endBackgroundTask(_:)` (iOS 4, main).
+
+**Must NOT do.** Plane detection stays off (D14): a target with mode `.quickMeasure` is invalid. Never create a second `ARSession` for a patch pass (borrow the room's hub; one session keeps one frame). Never pass reset run options. Never pause a borrowed hub except for a system stop, and never leave a borrowed hub's closures replaced after `teardown()`. Never show `.showSceneUnderstanding` as the user-facing view and never enable `.occlusion` (it would z-fight the coverage overlay, RESEARCH 3.5). Never write outside the InProgress folder except `session.json`, never write after `SEAL.json`, never emit `.roomFinished` before the seal. Never retain an `ARFrame` or anchor. No `ARView(frame:cameraMode:)` 2-argument init. Never import RoomPlan, CoverageLive or CoverageOverlay. Never mark the engine `@MainActor` (only the listed members). Never write `isIdleTimerDisabled` (IdleTimerGuard). No hardcoded text.
+
+**Copy strings.** Existing: `Copy.Scanning.paused`, `resume`, `startingUp`, `done`, `cancel`, `addPhoto`, `photoSaved`; `Copy.A11y.scanView`, `doneScanning`; `Copy.ScanUI.elapsed(minutes:seconds:)`; guidance through `GuidanceKind.message`. New (`extension Copy { enum LiveMeshView }` in `Copy+LiveMeshView.swift`): `saving = "Saving your scan..."`, `debugViewToggle = "Show Scanner Debug View"`, `debugViewFooter = "Draws the scanner's raw output over the camera. For troubleshooting only."` (the last two for AppShell's Diagnostics screen).
+
+**Self-test.** `LiveMeshViewSelfTest.run()`, at least 18 checks:
+1. `next`: idle + start = starting; starting + firstFrame = scanning; scanning + pause = paused; paused + interruptionEnded = paused; paused + resume = scanning.
+2. `next`: scanning + finish = stopping; stopping + sealed = finished; scanning + failure = failed; scanning + cancel = idle; finished + failure = finished (a notice after the seal).
+3. `finishSteps` is exactly the 9 steps in order, with `seal` after `closeWriter` and `emitRoomFinished` last.
+4. `guidanceInput` copies tracking, angular and linear speed, center distance, depth confidence and ambient intensity from a `HubStatus`, and sets deviceHot at serious and critical only.
+5. `snapshot` takes mesh faces, keyframes and photos from `RecorderStats`, plus thermal, degraded, tracking, elapsed and the guidance raw value.
+6. `systemStopReason` for thermal critical, storage pause, memory critical and all good.
+7. `validationProblem` is nil for `patchPass` and `largeObject` targets, and not nil for kind `.object` with a mesh-pass destination, for a destination outside the package, for mode `.quickMeasure`, and for kind `.meshPass` with mode `.object`.
+8. `patchPass` sets kind `.meshPass`, the room id and `rawMeshPassURL(session:pass:)`; `largeObject` sets passID = objectID and `rawObjectURL(_:)`.
+9. `shouldReapplyForFrameGap`: 1.6 s after the last frame while scanning true; already tried false; paused false; no frame yet false.
+10. `isSafeAttachmentName`: "largeobject.json" true; "../x", "a/b.json", "", "SEAL.json", "roomlog.json" false.
+11. `log(...)` fills a `RoomCaptureLog` with empty instruction seconds.
+12. `MeshScanRecorderSet(photos: true, extra: [one])`.all has 5 recorders in order; `photos: false` has 4 without a PhotoRecorder; a passed-in `mesh` is the first recorder (identity).
+13. `MeshPassFolders.forRoom` in a temporary package: two sealed passes for room A (started t2 and t1) and one for room B, plus an unsealed one for A, return the two sealed A folders in t1, t2 order.
+14. `spacePasses` returns only the sealed pass without a room.
+15. A scan.json larger than `InProgressScanInfo.maxBytes` or unreadable is skipped.
+16. `LiveMeshTopBar` and screen strings are non-empty (`Copy.LiveMeshView` members).
+17. `pausesHubOnTeardown(ownsHub:)` is true only when owned.
+18. `startProblem`: an invalid target gives `.ioFailed`, no mesh support gives `.unsupportedDevice`, 1 GB free gives `.lowStorage`, a valid target with 5 GB free gives nil (the engine's `start()` calls this before touching disk; the self-test never creates a hub, whose initializer is main actor).
+
+**Acceptance checks.** The engine mirrors RoomCapture's queue discipline (state on main, private phase on hub.queue, value copies only); every hub closure captures `[weak self]`; a borrowed hub is returned with its saved closures, running, and its delegate re-asserted (log lines "hub lent" and "hub returned"); two passes in a row log two "mesh engine deinit" lines and, for owned hubs, two "hub deinit" lines; the finish sequence awaits every recorder before the seal; nothing is written after `SEAL.json`; the delegate identity is logged after the ARView takes the session and again after the container is dismantled (with `hub.isRunning`, which stays true for a borrowed hub); the debug wireframe appears only with the Diagnostics key.
+
+**SPEC owned.** "LIVE SCANNING EXPERIENCE" in mesh-only scans ("The user should see the model forming while walking", with the overlay attached through `onViewReady`; "Move slower", "Move closer", "Too close", "Too far", "Tracking quality is low", "Lighting is poor" from Mapper's own guidance); "SCAN QUALITY SYSTEM" (the patch-pass driver behind SHOW MISSING AREAS); "OBJECT SCANNING" (the large-object driver); "ADVANCED SCAN" (the space-scan driver used in build 6); D16 two-pass fallback driver.
+
+**TEST_PLAN ids.** LIVE-01 (mesh-only), LIVE-03, LIVE-04, LIVE-07, LIVE-10, QUAL-03, MODE-07 (build 6 space scan), PERF-05, PERF-06, PERF-14 (camera off after teardown), PERF-16, PERF-20, PERF-26 (recovery through AppShell).
 
 ### 3.33 ObjectCapture (wave 5a)
 
-**Purpose.** Small and medium objects (D4): a port of Apple's GuidedCapture flow: `ObjectScanModel` owning `ObjectCaptureSession?`, fresh, empty `Images/` and `Checkpoint/` folders per scan inside the scan's InProgress folder (D5; RESEARCH 3.3 gotcha 2: a non-empty checkpoint folder fails the session), sealed and moved on `.completed` (the checkpoint is moved out first, then the folder is sealed) so that `Images/` and `objectlog.json` land in `raw/objects/<id>/` while the checkpoint moves to `derived/objects/<id>/checkpoint/` (it is a cache that `PhotogrammetrySession` keeps writing, not raw; CR-5), the onboarding state machine (three passes, flip or not), `ObjectScanScreen` with `ObjectCaptureView` and Mapper overlay, Object Capture preflight (3 GB free, D18), and `PhotogrammetryStep` (`reconstructObject`) with `reconstructionPending` resume (D17).
-**Files.** `ios/Sources/ObjectCapture/ObjectScanModel.swift`, `ObjectScanFolders.swift`, `ObjectOnboarding.swift`, `ObjectScanScreen.swift`, `PhotogrammetryStep.swift`, `ObjectCaptureSelfTest.swift`, `Copy+ObjectCapture.swift`.
-**API.**
+**Purpose.** Small and medium objects (D4) with Apple Object Capture: a port of Apple's GuidedCapture flow (REUSE 2.1) around `ObjectCaptureSession` and `ObjectCaptureView`, and on-device reconstruction with `PhotogrammetrySession`. It owns the capture model (`ObjectScanModel`, one session per scan, never reused after `.completed` or `.failed`), fresh empty `Images/` and `Checkpoint/` folders inside the scan's InProgress folder (D5; RESEARCH 3.3 gotcha 2), the three-pass onboarding state machine (flip or not), the capture screen with Mapper's controls over Apple's view and the review sheet with `ObjectCapturePointCloudView`, the Object Capture preflight (support and 3 GB free, D18), `objectlog.json` with the runtime limits, sealing (checkpoint moved to `derived/objects/<id>/checkpoint/`, CR-5, then `Images/` and `objectlog.json` sealed into `raw/objects/<id>/`), `PhotogrammetryStep` (`reconstructObject`, only the default `.reduced` detail, the capture's checkpoint reused), its progress for ObjectUI, and `reconstructionPending` clearing (D17).
+
+**Build and wave.** Build 5, wave 5a. Core, Store, GuidanceUI, Pipeline (`ProcessingGuards.availableMemory()` only), Support; RealityKit and SwiftUI (every file that names an Object Capture or photogrammetry type imports both, CI lesson 0.2.13), Combine. About 1450 lines excluding the self-test.
+
+**Files.** `ios/Sources/ObjectCapture/ObjectScanModel.swift`, `ObjectScanModel+Session.swift` (update tasks, log), `ObjectScanFolders.swift`, `ObjectOnboarding.swift`, `ObjectCaptureSignals.swift` (state, error and feedback mapping, preflight), `ObjectScanScreen.swift`, `PhotogrammetryStep.swift`, `PhotogrammetryStore.swift` (paths, info, progress, monitor), `ObjectCaptureSelfTest.swift`, `ios/Sources/Support/Copy+ObjectCapture.swift`.
+
+**Public Swift API.**
 ```swift
-struct ObjectScanTarget: Equatable, Sendable { var projectID: UUID; var package: ProjectPackage; var objectID: UUID }
-@MainActor final class ObjectScanModel: ObservableObject {
-    @Published private(set) var captureState: ObjectCaptureSession.CaptureState?
-    @Published private(set) var shotCount: Int; @Published private(set) var shotLimit: Int
-    @Published private(set) var guidance: GuidanceKind?; @Published private(set) var onboarding: ObjectOnboardingState
-    init(target: ObjectScanTarget)
-    func start() throws; func continueTapped(); func startCapture(); func nextPass(flipped: Bool); func finish(); func cancel()
-    var onComplete: ((UUID) -> Void)?
+// MARK: Types (ObjectScanModel.swift, ObjectCaptureSignals.swift)
+
+struct ObjectScanTarget: Equatable, Sendable {
+    var projectID: UUID
+    var package: ProjectPackage
+    /// The `ObjectRecord.id` the scan will become (also `InProgressScanInfo.roomID`, which
+    /// carries the object id for `kind == .object`).
+    var objectID: UUID
 }
-enum ObjectOnboardingState: Equatable, Sendable { case firstSegment, secondSegment, thirdSegment, flipObject, captureFromLowerAngle, captureFromHigherAngle, done }
-final class PhotogrammetryStep: ProcessingStep { init(object: ObjectRecord) }  // id .reconstructObject; Apple-managed memory; nothing else runs
+
+/// Mapper's copy of `ObjectCaptureSession.CaptureState` without the error payload.
+enum ObjectCaptureStage: String, Equatable, Sendable {
+    case initializing, ready, detecting, capturing, finishing, completed, failed
+}
+
+/// Why a capture stopped (from `ObjectCaptureSession.Error`, RESEARCH 3.3).
+enum ObjectScanFailure: Equatable, Sendable {
+    case cancelled, directoryNotEmpty, insufficientStorage(requiredBytes: Int64), sensorFailed, trackingFailed
+    /// Any other error; the payload is for the log only.
+    case other(String)
+}
+
+/// Contents of `objectlog.json`: capture diagnostics and the device's runtime limits.
+struct ObjectCaptureLog: Codable, Equatable, Sendable {
+    static let fileName = "objectlog.json"
+    var objectID: UUID
+    var startedAt: Date
+    var seconds: Double
+    var shotCount: Int
+    /// `ObjectCaptureSession.maximumNumberOfInputImages` read after `start`.
+    var maximumNumberOfInputImages: Int
+    /// `PhotogrammetrySession.limits` (device-specific, RESEARCH 3.3 disputed 4).
+    var photogrammetryMaxImages: Int
+    var photogrammetryMaxImageDimension: Int
+    var passes: Int
+    var flips: Int
+    /// Seconds each feedback case was present, keyed by `ObjectCaptureSignals.name(of:)`.
+    var feedbackSeconds: [String: Double]
+    var trackingLimitedSeconds: Double
+    var detectionFailures: Int
+    /// Last stage name and the failure, when any (logs only).
+    var finalStage: String
+    var failure: String?
+    var thermalAtStart: String
+    var thermalAtEnd: String
+    var freeBytesAtStart: Int64
+    var availableMemoryAtStart: UInt64
+    var osVersion: String
+}
+
+struct ObjectScanResult: Equatable, Sendable {
+    var objectID: UUID
+    /// `raw/objects/<id>/` after sealing.
+    var sealedFolder: URL
+    /// Image files sealed under `Images/`.
+    var imageCount: Int
+    var log: ObjectCaptureLog
+}
+
+enum ObjectScanPhase: Equatable, Sendable {
+    case idle, capturing, reviewing, finishing, sealing
+    case done(ObjectScanResult)
+    /// The session failed; `imageCount` photos are on disk (Use These Photos needs at least
+    /// `ObjectScanFolders.minimumImages`).
+    case failed(ObjectScanFailure, imageCount: Int)
+    case cancelled
+}
+
+enum ObjectPreflightIssue: Equatable, Sendable { case unsupported, lowStorage(free: Int64), deviceHot, deviceWarm }
+struct ObjectPreflightReport: Equatable, Sendable { var blocking: ObjectPreflightIssue?; var warnings: [ObjectPreflightIssue] }
+
+enum ObjectCapturePreflight {
+    /// Pure. Blocking: either API unsupported, free space below
+    /// `ProjectStore.objectCapturePreflightBytes` (3 GB, D18), thermal `.critical`. Warning:
+    /// thermal `.serious`. Camera permission, battery and LiDAR are ScanUI's `ScanPreflight`.
+    static func evaluate(captureSupported: Bool, photogrammetrySupported: Bool, freeBytes: Int64,
+                         thermal: ThermalLevel) -> ObjectPreflightReport
+    /// Reads `ObjectCaptureSession.isSupported` (main actor), `PhotogrammetrySession.isSupported`,
+    /// `ProjectStore.freeBytes()` and the thermal state (RESEARCH 3.3 gotcha 1: check before
+    /// creating a session).
+    @MainActor static func run() -> ObjectPreflightReport
+}
+
+/// Lock-protected counters, any thread (`ObjectCaptureSignals.swift`), so an `ObjectCaptureSession`
+/// and a `PhotogrammetrySession` never live at the same time (RESEARCH 3.3 gotcha 10): neither when
+/// a finished capture hands over to the pipeline, nor when a new capture starts while
+/// `ProcessingRunner.suspendAll` is still cancelling a reconstruction (it only flags the step, and
+/// `PhotogrammetrySession.cancel()` is asynchronous, gotcha 9).
+enum ObjectCaptureActivity {
+    /// Sessions ObjectScanModel holds: +1 right after `ObjectCaptureSession()`, -1 when `teardown`
+    /// releases it.
+    static var captureSessions: Int { get }
+    /// Sessions alive in PhotogrammetryStep: +1 right before `PhotogrammetrySession(input:configuration:)`,
+    /// -1 after the output loop ended and the session reference was dropped (every exit path).
+    static var reconstructionSessions: Int { get }
+    static func captureStarted()
+    static func captureReleased()
+    static func reconstructionStarted()
+    static func reconstructionEnded()
+    /// Polls every 0.25 s until `reconstructionSessions == 0` or `timeout` seconds passed; true when
+    /// idle. AppShell awaits it before any capture cover starts its flow (3.43e).
+    static func waitForNoReconstruction(timeout: Double) async -> Bool
+}
+
+/// Pure mappings, nonisolated (the self-test builds these enum values; no session is created).
+enum ObjectCaptureSignals {
+    static func stage(_ state: ObjectCaptureSession.CaptureState) -> ObjectCaptureStage
+    /// `ObjectCaptureSession.Error` cases one to one; anything else `.other(localizedDescription)`.
+    static func failure(_ error: any Error) -> ObjectScanFailure
+    /// Stable log names ("movingTooFast", ...), distinct for the nine cases.
+    static func name(of feedback: ObjectCaptureSession.Feedback) -> String
+    static func isNormal(_ tracking: ObjectCaptureSession.Tracking) -> Bool
+    static func containsNotFlippable(_ feedback: Set<ObjectCaptureSession.Feedback>) -> Bool
+    static func containsOverCapturing(_ feedback: Set<ObjectCaptureSession.Feedback>) -> Bool
+}
+
+// MARK: Onboarding (ObjectOnboarding.swift): three passes, as Apple recommends
+
+enum ObjectOnboardingState: Equatable, Sendable {
+    case firstSegment                     // first lap at chest height
+    case reviewFirst                      // lap 1 done: flip, or scan lower
+    case flipObject                       // after beginNewScanPassAfterFlip: new box, second lap
+    case captureFromLowerAngle            // second lap, lower
+    case reviewSecond(flipped: Bool)      // lap 2 done
+    case flipObjectAgain                  // third lap after a second flip
+    case captureFromHigherAngle           // third lap, higher, capture the top
+    case done                             // all laps done: only Done remains
+}
+enum ObjectOnboardingEvent: Equatable, Sendable { case passCompleted, chooseFlip, chooseNoFlip, finishTapped }
+enum ObjectPassCommand: Equatable, Sendable { case none, beginNewScanPass, beginNewScanPassAfterFlip, finish }
+
+enum ObjectOnboarding {
+    static let recommendedPasses = 3
+    /// Pure transition plus the session call to make. passCompleted moves a lap state to its
+    /// review (the third lap to `.done`); in a review, chooseFlip gives
+    /// `.beginNewScanPassAfterFlip` and chooseNoFlip `.beginNewScanPass`; finishTapped gives
+    /// `.finish` from any review or `.done`; every other pair is ignored (`.none`, same state).
+    static func next(_ state: ObjectOnboardingState, _ event: ObjectOnboardingEvent) -> (state: ObjectOnboardingState, command: ObjectPassCommand)
+    /// Pass number of a state, 1...3 (for the log and the review title).
+    static func pass(of state: ObjectOnboardingState) -> Int
+    /// The instruction shown over the camera for a state (Copy.ObjectCapture).
+    static func instruction(for state: ObjectOnboardingState) -> String
+    /// False once `.objectNotFlippable` was seen during the scan (RESEARCH 3.3 gotcha 15); the
+    /// review then leads with the no-flip choice and shows `Copy.ObjectCapture.flipWarning`.
+    static func flipRecommended(sawNotFlippable: Bool) -> Bool
+    static func canFinish(shots: Int) -> Bool           // shots >= ObjectScanFolders.minimumImages
+}
+
+// MARK: Folders and sealing (ObjectScanFolders.swift)
+
+enum ObjectScanFolders {
+    static let imagesFolderName = "Images"
+    static let checkpointFolderName = "Checkpoint"
+    /// Apple's sample refuses fewer than 10 images (RESEARCH 3.3 recommended 4).
+    static let minimumImages = 10
+    static let imageExtensions: Set<String> = ["heic", "jpg", "jpeg", "png"]
+    static func imagesURL(in folder: RawScanFolder) -> URL
+    static func checkpointURL(in folder: RawScanFolder) -> URL
+    /// Creates `Images/` and `Checkpoint/` in a new InProgress folder; throws
+    /// `MapperError.ioFailed` when either exists and is not empty (the session would fail).
+    static func prepare(_ folder: RawScanFolder) throws -> (images: URL, checkpoint: URL)
+    static func isEmptyDirectory(_ url: URL) -> Bool
+    static func imageCount(in images: URL) -> Int
+    /// After the session is released and the writer closed: moves `Checkpoint/` to
+    /// `PhotogrammetryStore.checkpointURL` (replacing an older one; created with
+    /// `ensureDirectory(_:inside: package.root)`), removes the four empty RawScanFolder
+    /// subfolders InProgressScans made (mesh, keyframes, depth, photos; only when empty), then
+    /// `InProgressScans.seal(_:into: package.rawObjectURL(objectID), package:root:)`.
+    @discardableResult
+    static func seal(_ folder: RawScanFolder, objectID: UUID, package: ProjectPackage, root: URL? = nil) throws -> SealFile
+    /// AppShell's RecoveryService (5d): an unsealed object scan can be built when it holds at
+    /// least `minimumImages` images.
+    static func canRecover(_ folder: RawScanFolder) -> Bool
+}
+
+// MARK: Capture model (ObjectScanModel.swift)
+
+/// Main actor. Owns at most one `ObjectCaptureSession` (RESEARCH 3.3; REUSE 2.5). Stored Tasks
+/// iterate `stateUpdates`, `feedbackUpdates`, `cameraTrackingUpdates`,
+/// `userCompletedScanPassUpdates`, `numberOfShotsTakenUpdates` and `isPausedUpdates` with
+/// `for await`, capturing `[weak self]`; `teardown()` cancels them.
+@MainActor final class ObjectScanModel: ObservableObject {
+    @Published private(set) var phase: ObjectScanPhase
+    @Published private(set) var stage: ObjectCaptureStage
+    @Published private(set) var onboarding: ObjectOnboardingState
+    @Published private(set) var shotCount: Int
+    /// `maximumNumberOfInputImages`, never a constant (RESEARCH 3.3 recommended 1).
+    @Published private(set) var shotLimit: Int
+    @Published private(set) var trackingNormal: Bool
+    @Published private(set) var isPaused: Bool
+    /// `.overCapturing` present: the shot counter turns red.
+    @Published private(set) var overCapturing: Bool
+    @Published private(set) var flipRecommended: Bool
+    /// `startDetecting()` returned false: the hint `Copy.ObjectCapture.notFoundHint` shows.
+    @Published private(set) var detectionFailed: Bool
+    /// Done tapped with fewer than `minimumImages` shots.
+    @Published var showsTooFewPhotos: Bool
+    let target: ObjectScanTarget
+    /// Guidance banner source: `GuidanceSignals.guidance(for:)` of the live feedback, presented
+    /// through an announcer whose defaults have `SettingsKey.guidanceHaptics` false, so VoiceOver
+    /// still speaks but Mapper adds no haptics during capture (the session plays its own).
+    let announcer: GuidanceAnnouncer
+    /// The live session (for `ObjectCaptureView`); nil before `start` and after completion.
+    private(set) var session: ObjectCaptureSession?
+    /// Main. Called once after sealing.
+    var onComplete: ((ObjectScanResult) -> Void)?
+    /// Main. Called once after a cancel or a discard (the InProgress folder is gone).
+    var onEnded: (() -> Void)?
+    /// UserDefaults suite of the quiet announcer.
+    static let quietGuidanceSuite = "mapper.objectCapture.guidance"
+    init(target: ObjectScanTarget)
+    /// Main. `ObjectCapturePreflight.run()` (throws `.unsupportedDevice`, `.lowStorage(freeBytes:)`
+    /// or `.deviceTooHot` for its three blocking issues), `InProgressScans.create` with
+    /// `InProgressScanInfo(scanID: objectID, projectID:, sessionID: nil, roomID: objectID, kind: .object,
+    /// mode: .object, startedAt:)` (no ARKit session; the object id in `roomID` as for large objects),
+    /// `ObjectScanFolders.prepare`, then `ObjectCaptureSession()` (`ObjectCaptureActivity.captureStarted()`) and
+    /// `start(imagesDirectory:configuration:)` with `checkpointDirectory` set and
+    /// `isOverCaptureEnabled = false`. Logs the limits. Throws before creating a session when a
+    /// check fails and removes the folder it made.
+    func start() throws
+    func continueTapped()                  // .ready: startDetecting(); false sets detectionFailed
+    func resetBox()                        // .detecting: resetDetection()
+    func startCapture()                    // .detecting: startCapturing()
+    /// Review choices and Done go through `ObjectOnboarding.next` and run its command
+    /// (`beginNewScanPass`, `beginNewScanPassAfterFlip` or `finish`).
+    func choose(_ event: ObjectOnboardingEvent)
+    /// Done button: `finish()` when `.capturing` and `canFinish(shots:)`, else `showsTooFewPhotos`.
+    func finish()
+    /// `pause()` / `resume()` for sheets, alerts and scene phase changes (RESEARCH 3.3 gotcha 5).
+    func pauseForOverlay()
+    func resumeFromOverlay()
+    /// The user confirmed Discard: `cancel()`, wait for `.failed(.cancelled)`, release the session,
+    /// close the writer, `InProgressScans.discard(scanID:)`, phase `.cancelled`, `onEnded`.
+    func cancel()
+    /// After `.failed` with enough images: seal what exists (same path as completion).
+    func useCapturedPhotos()
+    /// After `.failed`: discard as `cancel()` does.
+    func discardAfterFailure()
+    /// Idempotent: cancels the update tasks, releases the session (`ObjectCaptureActivity.captureReleased()`
+    /// once). Called on every terminal phase.
+    func teardown()
+}
+
+/// ZStack of `ObjectCaptureView(session:)` with `.id(session.id)` and Mapper's controls
+/// (Cancel with the `Copy.Scanning.cancelConfirm*` dialog, instruction, shot counter, Continue,
+/// Reset Box, Start Capture, Done), the guidance banner, and the review sheet (its content is
+/// `ObjectCapturePointCloudView(session:).showShotLocations()` plus the review text and choices).
+/// Controls hide while `!trackingNormal || isPaused` (RESEARCH 3.10 gotcha 14). Capture-time
+/// alerts (too few photos, failure with Use These Photos or Discard) are shown here.
+/// `ObjectCaptureView` is in the hierarchy only while `model.session` is non-nil: after completion
+/// the saving text replaces it, so the view's own reference to the session goes with it.
+struct ObjectScanScreen: View { init(model: ObjectScanModel) }
+
+// MARK: Reconstruction (PhotogrammetryStore.swift, PhotogrammetryStep.swift)
+
+enum PhotogrammetryStage: String, Codable, CaseIterable, Sendable {
+    case preProcessing, imageAlignment, pointCloudGeneration, meshGeneration, textureMapping, optimization
+}
+
+/// Live reconstruction progress for ObjectUI (Mapper values only).
+struct PhotogrammetryProgress: Equatable, Sendable {
+    var objectID: UUID
+    var fraction: Double = 0
+    var stage: PhotogrammetryStage? = nil
+    var remainingSeconds: Double? = nil
+    var inputComplete = false
+    var downsampled = false
+    var stitchingIncomplete = false
+    var invalidSamples = 0
+    var skippedSamples = 0
+    init(objectID: UUID)
+}
+
+/// Mapper's copy of the outputs that change progress (pure reducer input).
+enum PhotogrammetryEvent: Equatable, Sendable {
+    case inputComplete, progress(Double), stage(PhotogrammetryStage?, remaining: Double?)
+    case invalidSample, skippedSample, downsampled, stitchingIncomplete
+    case modelWritten, boundsReceived, requestFailed(String), completed, cancelled
+}
+
+enum PhotogrammetryOutputs {
+    static func stage(_ stage: PhotogrammetrySession.Output.ProcessingStage) -> PhotogrammetryStage?
+    /// Every `Output` case mapped, `@unknown default` gives nil (logged).
+    static func event(_ output: PhotogrammetrySession.Output) -> PhotogrammetryEvent?
+    static func reduce(_ progress: PhotogrammetryProgress, _ event: PhotogrammetryEvent) -> PhotogrammetryProgress
+}
+
+/// `derived/objects/<id>/reconstruction.json`.
+struct PhotogrammetryInfo: Codable, Equatable, Sendable {
+    var objectID: UUID
+    var imageCount: Int
+    /// The `.bounds` result, meters, when it arrived.
+    var boundsMin: Vec3?
+    var boundsMax: Vec3?
+    var seconds: Double
+    var invalidSamples: Int
+    var skippedSamples: Int
+    var downsampled: Bool
+    var stitchingIncomplete: Bool
+    var maximumNumberOfInputImages: Int
+    var maximumInputImageDimension: Int
+    var thermalAtStart: String
+    var thermalAtEnd: String
+    var inputHash: String
+    var finishedAt: Date
+    /// boundsMax - boundsMin, nil without bounds.
+    var boundsExtents: SIMD3<Float>? { get }
+}
+
+enum PhotogrammetryStore {
+    static let modelFileName = "model.usdz"
+    static let partialModelFileName = "model-partial.usdz"
+    static let infoFileName = "reconstruction.json"
+    static let checkpointFolderName = "checkpoint"
+    static func folder(_ package: ProjectPackage, object: UUID) -> URL          // derived/objects/<id>/
+    static func modelURL(_ package: ProjectPackage, object: UUID) -> URL        // model.usdz
+    static func checkpointURL(_ package: ProjectPackage, object: UUID) -> URL   // checkpoint/
+    static func infoURL(_ package: ProjectPackage, object: UUID) -> URL         // reconstruction.json
+    static func imagesURL(_ package: ProjectPackage, object: UUID) -> URL       // raw/objects/<id>/Images/
+    static func modelURLIfPresent(_ package: ProjectPackage, object: UUID) -> URL?
+    static func loadInfo(_ package: ProjectPackage, object: UUID) -> PhotogrammetryInfo?
+}
+
+/// Main actor, observed by ObjectUI's processing view.
+@MainActor final class PhotogrammetryMonitor: ObservableObject {
+    static let shared: PhotogrammetryMonitor
+    @Published private(set) var progress: [UUID: PhotogrammetryProgress]
+    func update(_ value: PhotogrammetryProgress)
+    func clear(_ objectID: UUID)
+    /// Any thread: `DispatchQueue.main.async { MainActor.assumeIsolated { shared.update(value) } }`,
+    /// throttled by the caller to 4 per second.
+    nonisolated static func post(_ value: PhotogrammetryProgress)
+}
+
+/// id .reconstructObject, subject = object id; required in the object plan. Budget 1 GB,
+/// reduced 500 MB: both variants make the same request (Apple manages photogrammetry memory
+/// and downsamples by itself); the reduced one only lets a relaunch after a jetsam kill run
+/// once more on the kept checkpoint before the runner gives up (3.15).
+final class PhotogrammetryStep: ProcessingStep { init(object: ObjectRecord) }
 ```
-**Apple APIs** (RESEARCH 3.3): `@MainActor class ObjectCaptureSession`, `static var isSupported`, `start(imagesDirectory:configuration:)` with `Configuration.checkpointDirectory` and `isOverCaptureEnabled = false`, `startDetecting() -> Bool`, `startCapturing()`, `beginNewScanPass()`, `beginNewScanPassAfterFlip()`, `finish()`, `cancel()`, `pause()`, `resume()`, `stateUpdates`, `feedbackUpdates`, `userCompletedScanPassUpdates`, `numberOfShotsTakenUpdates`, `maximumNumberOfInputImages`; `ObjectCaptureView(session:cameraFeedOverlay:)`; `PhotogrammetrySession(input:configuration:)`, `process(requests: [.modelFile(url: modelURL), .bounds])` (default detail `.reduced`), `outputs` iterated until `.processingComplete` or `.processingCancelled` with `@unknown default`.
-**Must NOT do.** Never name a Detail other than `.reduced`; never request `.modelEntity`; release the capture session before creating the PhotogrammetrySession; never reuse a session after `.completed` or `.failed`; never tear down `ObjectCaptureView` repeatedly (pause instead); never add our haptics during capture.
-**Self-test.** At least 12 checks: onboarding transitions for flippable and non-flippable objects; feedback mapping through `GuidanceSignals.guidance(for:)`; folder creation empties; preflight threshold.
-**SPEC owned.** "OBJECT SCANNING" ("Guide the user around the object", "Move around the object slowly", "Capture the top", "Attempt to separate the target object from its background" (object masking), "Use camera images for textures", textured mesh); "SCANNING MODES" OBJECT.
+
+**Rules.**
+
+*Capture flow* (REUSE 2.1, ARCHITECTURE 4.4). `.ready`: Continue calls `startDetecting()`; a false result shows `notFoundHint` and counts a detection failure. `.detecting`: Reset Box (`resetDetection()`) and Start Capture (`startCapturing()`). `.capturing`: the shot counter shows `shotCount` of `shotLimit`, red while overcapturing; when `userCompletedScanPass` becomes true the onboarding state moves to its review and the review sheet opens with `pauseForOverlay()`; its choices call `choose(_:)`, and closing it calls `resumeFromOverlay()`. The `ObjectCaptureView` stays mounted for the whole scan (D17, RESEARCH 3.10 gotcha 13); the screen pauses on `scenePhase` `.background` and resumes on `.active`. Done calls `finish()`; `.finishing` shows `Copy.ObjectCapture.saving`. At `.completed`: the session and its tasks are released first (RESEARCH 3.3 gotcha 10), `objectlog.json` is written through a `RawScanWriter` on the InProgress folder, `await writer.flush()`, `writer.close()`, then `ObjectScanFolders.seal` runs in `Task.detached` and the phase becomes `.done(result)` and `onComplete` fires. A `.failed(error)` that is not the user's own cancel shows the failure alert; with at least 10 images it offers Use These Photos. The model never writes the manifest (ObjectUI does).
+
+*Reconstruction* (RESEARCH 3.3 recommended 6, ARCHITECTURE 5.10). Input hash: the seal of `raw/objects/<id>/` and `"reconstruct-rules=1"`. Run: guard `PhotogrammetrySession.isSupported` else `MapperError.objectCaptureFailed`; wait while `ObjectCaptureActivity.captureSessions > 0` (poll 0.25 s, `ctx.checkCancelled()` each time, at most 60 s, then throw `MapperError.cancelled` so the job stays queued for the next launch; logged), because a capture session and a photogrammetry session must never overlap (gotcha 10); `ObjectCaptureActivity.reconstructionStarted()` right before the session is created and `reconstructionEnded()` on every exit path after the loop ended and the session was released; `var configuration = PhotogrammetrySession.Configuration()`, `checkpointDirectory` = `PhotogrammetryStore.checkpointURL` (created inside the package when missing; the capture's checkpoint is reused when present), `isObjectMaskingEnabled = true` (set explicitly: object mode, SPEC "separate the target object from its background"); `let session = try PhotogrammetrySession(input: PhotogrammetryStore.imagesURL(...), configuration: configuration)`; `try session.process(requests: [.modelFile(url: partialURL), .bounds])` with the default detail (never name a Detail case); then `for try await output in session.outputs`, mapping each output through `PhotogrammetryOutputs.event`, reducing progress, calling `ctx.progress(fraction * 0.95)` and `PhotogrammetryMonitor.post` at most 4 times a second, and breaking out at `.processingComplete` or `.processingCancelled` (the sequence never ends by itself, gotcha 8). `ctx.isCancelled` is checked on every output and by a 1 s watcher; on cancel `session.cancel()` is called and the loop waits for `.processingCancelled` (gotcha 9), then throws `MapperError.cancelled`. A `requestError` for the model request throws `MapperError.objectCaptureFailed(description)`; one for `.bounds` is only logged. Exception: when the capture's checkpoint was reused (it was written next to `Images/` inside InProgress and moved at sealing, and whether the session accepts a moved checkpoint is not documented), a model `requestError` or a throwing `process(requests:)` first empties the checkpoint folder and runs the requests once more from scratch on a new session (logged "checkpoint retry"); only a second failure throws. On success `model-partial.usdz` replaces `model.usdz` (`FileManager.replaceItemAt`, not in RESEARCH, iOS 4), reconstruction.json is written, and `ManifestWriter.update` sets the record's `modelFile = "model.usdz"` and `reconstructionPending = false`. The checkpoint is kept (build 6 ObjectCrop re-runs from it; it is derived and counts under derived storage). Logged: image count, limits, wall time, thermal at start and end, available memory, invalid and skipped samples, downsampling, stitching.
+
+**Uses.** Core: `ProjectPackage` (`rawObjectURL`, `derivedObjectURL`, `root`), `RawScanFolder`, `ObjectRecord`, `ProjectStore` (`freeBytes`, `objectCapturePreflightBytes`, `ensureDirectory(_:inside:)`, `writeData`, `writeJSON`, `readJSON`, `encoder`), `SealFile`, `InputHasher`, `ProcessingStep`, `StepContext`, `MapperError` (`unsupportedDevice`, `lowStorage(freeBytes:)`, `deviceTooHot`, `objectCaptureFailed`, `cancelled`), `ThermalLevel.init(_:)`, `Vec3`. Store: `InProgressScans` (`create`, `seal(_:into:package:root:)`, `discard(scanID:)`), `InProgressScanInfo` (kind `.object`), `RawScanWriter` (`writeFile`, `flush() async`, `close()`), `ManifestWriter.update`. GuidanceUI: `GuidanceSignals.guidance(for:)`, `GuidanceBanner(kind:)`, `GuidanceAnnouncer(defaults:)`, `SettingsKey.guidanceHaptics`. Pipeline: `ProcessingGuards.availableMemory()`. Support: `Copy.ObjectCapture` (new), `Copy.Scanning.cancel`, `done`, `cancelConfirmTitle`, `cancelConfirmBody`, `cancelConfirmDiscard`, `cancelConfirmKeep`, `Copy.Errors.objectUnsupported`, `storageFullTitle`, `storageFullBody(_:)`, `trackingFailed`, `generic`, `ok`, `Copy.A11y`, `GuidanceKind.objectLooksComplete`, `LogStore` (category "objectcapture").
+
+**Apple APIs** (RESEARCH 3.3, 3.10; all iOS 17.0 unless noted):
+```swift
+@MainActor class ObjectCaptureSession                         // Identifiable, Observable, Sendable
+@MainActor init()
+@MainActor static var isSupported: Bool { get }
+@MainActor func start(imagesDirectory: URL, configuration: ObjectCaptureSession.Configuration = Configuration())
+@MainActor func startDetecting() -> Bool
+@discardableResult @MainActor func resetDetection() -> Bool
+@MainActor func startCapturing()
+@MainActor func finish()
+@MainActor func cancel()
+@MainActor func pause() / @MainActor func resume()
+@MainActor func beginNewScanPass() / @MainActor func beginNewScanPassAfterFlip()
+@MainActor var stateUpdates: ObjectCaptureSession.Updates<ObjectCaptureSession.CaptureState> { get }
+@MainActor var feedbackUpdates: ObjectCaptureSession.Updates<Set<ObjectCaptureSession.Feedback>> { get }
+@MainActor var cameraTrackingUpdates: ObjectCaptureSession.Updates<ObjectCaptureSession.Tracking> { get }
+@MainActor var userCompletedScanPassUpdates: ObjectCaptureSession.Updates<Bool> { get }
+@MainActor var numberOfShotsTaken: Int { get }                // + numberOfShotsTakenUpdates
+@MainActor var isPaused: Bool { get }                         // + isPausedUpdates
+@MainActor var maximumNumberOfInputImages: Int { get }
+@MainActor var isAutoCaptureEnabled: Bool { get set }         // iOS 18.0, logged, left on
+@MainActor var shouldPlayHaptics: Bool { get set }            // iOS 18.0, logged, left on
+struct ObjectCaptureSession.Configuration { init(); var checkpointDirectory: URL?; var isOverCaptureEnabled: Bool }
+enum ObjectCaptureSession.CaptureState { case initializing, ready, detecting, capturing, finishing, completed; case failed(any Error) }
+enum ObjectCaptureSession.Error { case cancelled; case directoryNotEmpty(URL); case insufficientStorage(requiredBytes: Int64); case sensorFailed; case trackingFailed }
+enum ObjectCaptureSession.Feedback { case environmentLowLight, environmentTooDark, movingTooFast, objectNotDetected /* 17.4 */,
+                                     objectNotFlippable, objectTooClose, objectTooFar, outOfFieldOfView, overCapturing }
+enum ObjectCaptureSession.Tracking { case normal; case notAvailable; case limited(reason: ObjectCaptureSession.Tracking.Reason) }
+@MainActor @preconcurrency struct ObjectCaptureView<Overlay> where Overlay : View
+nonisolated init(session: ObjectCaptureSession) where Overlay == EmptyView
+@MainActor struct ObjectCapturePointCloudView
+@MainActor init(session: ObjectCaptureSession)
+@MainActor func showShotLocations(_ value: Bool = true) -> ObjectCapturePointCloudView   // iOS 18.0
+class PhotogrammetrySession
+static var isSupported: Bool { get }
+convenience init(input: URL, configuration: PhotogrammetrySession.Configuration = Configuration()) throws
+var outputs: PhotogrammetrySession.Outputs { get }            // AsyncSequence, never ends
+func process(requests: [PhotogrammetrySession.Request]) throws
+func cancel()                                                  // asynchronous
+static let limits: PhotogrammetrySession.Limits               // maximumNumberOfInputImages, maximumInputImageDimension
+struct PhotogrammetrySession.Configuration { init(); var isObjectMaskingEnabled: Bool; var checkpointDirectory: URL? }
+case modelFile(url: URL, detail: PhotogrammetrySession.Request.Detail = .reduced, geometry: PhotogrammetrySession.Request.Geometry? = nil)
+case bounds
+enum PhotogrammetrySession.Result { case modelFile(URL); case modelEntity(ModelEntity); case bounds(BoundingBox); ... }
+enum PhotogrammetrySession.Output { case inputComplete; case requestProgress(_, fractionComplete: Double);
+    case requestProgressInfo(_, PhotogrammetrySession.Output.ProgressInfo); case requestComplete(_, _); case requestError(_, any Error);
+    case processingComplete; case processingCancelled; case invalidSample(id: Int, reason: String); case skippedSample(id: Int);
+    case automaticDownsampling; case stitchingIncomplete }
+struct PhotogrammetrySession.Output.ProgressInfo { let estimatedRemainingTime: TimeInterval?; let processingStage: PhotogrammetrySession.Output.ProcessingStage? }
+enum PhotogrammetrySession.Output.ProcessingStage { case preProcessing, imageAlignment, pointCloudGeneration, meshGeneration, textureMapping, optimization }
+```
+Not in RESEARCH (all long-standing): `UserDefaults(suiteName:)` (iOS 7), `FileManager.replaceItemAt(_:withItemAt:backupItemName:options:)` (iOS 4), `MainActor.assumeIsolated` (iOS 17.0), SwiftUI `.sheet(isPresented:)`, `.confirmationDialog`, `.alert`, `@Environment(\.scenePhase)` (iOS 14 to 15), `.persistentSystemOverlays(.hidden)` (RESEARCH 3.10). Every switch over these enums has `@unknown default`.
+
+**Must NOT do.** Never name any `PhotogrammetrySession.Request.Detail` case (use the default argument); never request `.modelEntity`, `.poses` or `.pointCloud`; never create the `PhotogrammetrySession` while an `ObjectCaptureSession` exists (`ObjectCaptureActivity.captureSessions`), and never create an `ObjectCaptureSession` while a reconstruction is counted; never call `start` twice on one session or reuse a session after `.completed` or `.failed`; never start with a non-empty images or checkpoint folder; never tear down and recreate `ObjectCaptureView` between passes (pause instead); never add Mapper haptics during capture (the announcer is quiet, the session plays its own); never create an `ARSession` or `ARSessionHub` (Object Capture owns the camera); never hard-code the image limit; never enable over-capture; never write into `raw/objects/<id>/` after sealing; never delete the checkpoint after reconstruction (build 6 needs it); never write the manifest from the capture model.
+
+**Copy strings.** Existing: `Copy.Scanning.cancel`, `done`, `cancelConfirmTitle`, `cancelConfirmBody`, `cancelConfirmDiscard`, `cancelConfirmKeep`; `Copy.Errors.objectUnsupported`, `storageFullTitle`, `storageFullBody(_:)`, `trackingFailed`, `generic`, `ok`; `GuidanceKind.objectLooksComplete.message.text` ("All sides captured. Tap Done when you're ready") in the `.done` state; guidance texts through `GuidanceKind`. New in `Copy+ObjectCapture.swift` (`extension Copy { enum ObjectCapture }`):
+- `continueButton = "Continue"`, `startCapture = "Start Capture"`, `resetBox = "Reset Box"`
+- `aimHint = "Aim at your object, then tap Continue"`
+- `notFoundHint = "Can't find your object. Step back so it fits on screen"`
+- `boxHint = "Drag the box edges to fit your object"`
+- `orbitHint = "Keep moving around your object"`
+- `lowerHint = "Hold your iPhone lower and walk around again"`
+- `higherHint = "Hold your iPhone higher and capture the top"`
+- `flippedHint = "Walk around the object again"`
+- `static func reviewTitle(_ laps: Int) -> String { "\(laps) of 3 laps done" }`
+- `reviewFirstBody = "Turn the object on its side to capture the bottom, or walk around again from lower down."`
+- `reviewSecondFlippedBody = "Turn the object onto another side for the last lap, or finish now."`
+- `reviewSecondBody = "Walk around once more from higher up, or finish now."`
+- `flipObject = "Flip Object"`, `flipAgain = "Flip Again"`, `scanLower = "Scan Lower"`, `scanHigher = "Scan Higher"`, `flipAnyway = "Flip Anyway"`
+- `flipWarning = "This object may not line up after flipping. Walking around it again works better."`
+- `static func shotCount(taken: Int, limit: Int) -> String { "\(taken) of \(limit) photos" }`
+- `tooFewPhotos = (title: "Keep going", body: "Walk around the object a bit more. Mapper needs at least 10 photos to build a model.")`
+- `saving = "Saving your photos..."`
+- `failed = (title: "Object scan stopped", body: "Something went wrong with the camera. You can build a model from the photos taken so far.")`
+- `usePhotos = "Use These Photos"`
+- `a11yCaptureView = "Object scan view"`, `static func a11yShotCount(taken: Int, limit: Int) -> String { "\(taken) of \(limit) photos taken" }`
+
+**Self-test.** `ObjectCaptureSelfTest.run()`, at least 30 checks, no session created: `stage` for all six plain `CaptureState` cases and a `.failed`; `failure` for the five `ObjectCaptureSession.Error` cases (building the enum values) and for an unrelated `NSError` (`.other`); `name(of:)` distinct for all nine feedback cases; `GuidanceSignals.guidance(for: [.movingTooFast, .objectTooFar])` is `.moveSlower` and `[.overCapturing]` gives nil; `containsNotFlippable` and `containsOverCapturing`; onboarding: flip path firstSegment, passCompleted, reviewFirst, chooseFlip (command `.beginNewScanPassAfterFlip`), passCompleted, reviewSecond(flipped: true), chooseFlip, passCompleted, done; no-flip path through captureFromLowerAngle and captureFromHigherAngle with `.beginNewScanPass`; finishTapped in reviewFirst gives `.finish`; passCompleted in `.done` is ignored; `pass(of:)` is 1, 2, 3; `flipRecommended(sawNotFlippable: true)` is false; `canFinish` false at 9 and true at 10; `instruction(for:)` non-empty for every state; preflight blocks unsupported, 2.9 GB free and critical heat, warns at serious heat, passes at 3.1 GB; `ObjectScanFolders.prepare` makes two empty folders in a temp InProgress root and throws when `Images/` holds a file; `imageCount` counts .heic and .jpg and ignores .txt; `seal` with a temp InProgress root and a temp package moves `Checkpoint/` to the derived checkpoint, removes the empty subfolders, seals `Images/` and `objectlog.json` and lists them in SEAL.json; `canRecover` false at 9 images and true at 10; `PhotogrammetryOutputs.stage` for all six stages; `event(.inputComplete)`, `event(.processingComplete)`, `event(.automaticDownsampling)`, `event(.requestProgress(.bounds, fractionComplete: 0.4))`; `reduce` of progress, stage and counters; `PhotogrammetryInfo` and `ObjectCaptureLog` Codable round trips; `boundsExtents`; the quiet announcer defaults read `guidanceHaptics` false; `ObjectCaptureActivity` counts up and down and `waitForNoReconstruction(timeout: 0.5)` returns false while a reconstruction is counted and true at once when none is.
+
+**Acceptance checks.** Every file naming Object Capture or photogrammetry types imports SwiftUI and RealityKit; the model is `@MainActor` and every session call is on main; no `.reduced`, `.medium`, `.full`, `.raw`, `.preview` or `.custom` token appears in the module; update tasks are cancelled on teardown (two scans in a row log two "object session released" lines); objectlog.json is written before sealing and nothing after SEAL.json; the step's output loop always ends; the limits line (`maximumNumberOfInputImages`, `PhotogrammetrySession.limits`) appears in the log of every scan.
+
+**SPEC owned.** "OBJECT SCANNING": guide the user around the object (Apple's guided capture with Mapper's instructions), "Move around the object slowly", "Capture the top" (`higherHint`), attempt to separate the object from its background (`isObjectMaskingEnabled`, box selection), camera images for textures (photogrammetry textures); "SCANNING MODES" OBJECT (small and medium); "CORE DESIGN PRINCIPLE" Representation B "photogrammetry where appropriate"; "LOCAL-FIRST ARCHITECTURE" ("Prefer on-device processing").
+
+**TEST_PLAN ids.** OBJ-01 (guidance, capture states, image count, processing time logged), OBJ-04 (guidance during capture), OBJ-06 (small object, "Too close" and "Too far"), OBJ-07 (capture side), OBJ-09 (mode object), MODE-03 (Object starts), PERF-04 (processing time), PERF-26 (object InProgress recovery with AppShell 5d), smoke #9.
 
 ### 3.34 ObjectModel (wave 5a)
 
-**Purpose.** Object results: load the photogrammetry USDZ with `MDLAsset` into `TriangleMesh`, width, height and depth from the bounds, surface area, volume only when watertight (reason otherwise), untextured variant, the `ExportScene` adapter, the `objectMetrics` step; for large objects, `ObjectIsolation.isolate` on the room mesh cropped to the user box.
-**Files.** `ios/Sources/ObjectModel/ObjectModelLoader.swift`, `ObjectDimensions.swift`, `ObjectModelStore.swift`, `ObjectMetricsStep.swift`, `ObjectModelSelfTest.swift`.
-**API.**
+**Purpose.** Object results (Representation E) after capture: read the Object Capture USDZ with ModelIO into a Mapper `MeshWithAttributes` (UV-seam duplicates welded so a closed model tests watertight), measure it (gravity-aligned box: width, height, depth; surface area; volume only when watertight, with the reason otherwise), guard against a unit mismatch against the photogrammetry `.bounds` result, the untextured mesh file, confidence values for every dimension (one documented rule per size class), the large-object path (MeshProcessing's `ObjectIsolation` on the consolidated LiDAR mesh inside the user's crop box, an edit), the untextured export scene, and the `objectMetrics` step that writes `dims.json` and `mesh.mchk`.
+
+**Build and wave.** Build 5, wave 5a. Core (with CR-1), Geometry, MeshProcessing, MeshModel (`MeshModelStore` for the large-object mesh and the chunk conversion), Export (`ExportScene`), Store (`EditStore`), Support; ModelIO, and RealityKit in the fallback loader only. About 900 lines excluding the self-test. The reconstruction outputs of ObjectCapture (same wave) arrive through two injected closures (section 3.1 rule), never by importing ObjectCapture.
+
+**Files.** `ios/Sources/ObjectModel/ObjectModelLoader.swift`, `ObjectModelEntityLoader.swift` (RealityKit fallback), `ObjectDimensions.swift`, `ObjectModelStore.swift`, `ObjectMetricsStep.swift`, `ObjectModelExport.swift`, `ObjectModelSelfTest.swift`.
+
+**Public Swift API.** Pure and nonisolated except the loader and the step (file IO, any queue off main).
 ```swift
-struct ObjectDimensionsRecord: Codable, Equatable, Sendable { var width, height, depth: Float; var surfaceArea: Float; var volume: Float?; var volumeUnavailableReason: String?; var box: OrientedBoxRecord }
-enum ObjectModelLoader { static func mesh(fromUSDZ url: URL) throws -> MeshWithAttributes }   // MDLAsset childObjects(of: MDLMesh.self)
-enum ObjectDimensions { static func measure(_ mesh: MeshWithAttributes) -> ObjectDimensionsRecord; static func isolate(_ roomMesh: MeshWithAttributes, box: OrientedBox) -> ObjectDimensionsRecord? }
-final class ObjectMetricsStep: ProcessingStep { init(object: ObjectRecord) }   // id .objectMetrics
+/// Why an object has no volume. Raw values are persisted in dims.json.
+enum ObjectVolumeReason: String, Codable, CaseIterable, Sendable {
+    /// Open edges (the base was not seen, or thin parts left holes).
+    case notWatertight
+    /// Closed but encloses no measurable volume.
+    case degenerate
+}
+
+/// `derived/objects/<id>/dims.json`.
+struct ObjectDimensionsRecord: Codable, Equatable, Sendable {
+    var objectID: UUID
+    var source: ObjectSize
+    /// Box sides, meters: width is the longer horizontal side (box axis 0), height is vertical
+    /// (axis 1, world up), depth the shorter horizontal side (axis 2).
+    var width: Float
+    var height: Float
+    var depth: Float
+    /// Square meters.
+    var surfaceArea: Float
+    /// Cubic meters, only when the mesh is watertight.
+    var volume: Float?
+    /// Nil exactly when `volume` is set.
+    var volumeUnavailableReason: ObjectVolumeReason?
+    var box: OrientedBoxRecord
+    var isWatertight: Bool
+    var triangleCount: Int
+    /// 1 unless the unit check rescaled the model (logged).
+    var scaleCorrection: Float
+    /// `.measured`; `.estimated` for a large object whose isolated mesh is open (a side was
+    /// not seen, TEST_PLAN OBJ-05).
+    var provenance: Provenance
+    var inputHash: String
+    var measuredAt: Date
+}
+
+/// The record's numbers as MeasureCore values (MeasureDisplay formats them).
+struct ObjectMeasuredValues: Equatable, Sendable {
+    var width: MeasuredValue
+    var height: MeasuredValue
+    var depth: MeasuredValue
+    var surfaceArea: MeasuredValue
+    var volume: MeasuredValue?
+}
+
+enum ObjectModelError: Error, Equatable {
+    case cannotImport(String)     // MDLAsset cannot read the file
+    case noTriangles              // no triangle submesh
+}
+
+/// Reads the Object Capture USDZ (RESEARCH 3.3 "Reading the finished model"). Any queue off main.
+enum ObjectModelLoader {
+    /// Positions closer than this are one vertex (UV seams duplicate them), meters.
+    static let weldTolerance: Float = 1e-5
+    /// `MDLAsset.canImportFileExtension("usdz")` (logged once).
+    static var canReadUSDZ: Bool { get }
+    /// `MDLAsset(url:)`, every `childObjects(of: MDLMesh.self)`: positions through
+    /// `vertexAttributeData(forAttributeNamed: MDLVertexAttributePosition, as: .float3)`
+    /// honoring its `stride`, transformed by `MDLTransform.globalTransform(with:atTime: 0)`;
+    /// triangle submeshes only (`geometryType == .triangles`, 16- or 32-bit indices; others
+    /// skipped and logged); welded with `TriangleMesh.welded(tolerance: weldTolerance)`.
+    /// Throws `ObjectModelError`.
+    static func mesh(fromUSDZ url: URL) throws -> MeshWithAttributes
+    /// Pure helper: indices from a raw index buffer, offset by `vertexBase`; nil when
+    /// `bytesPerIndex` is not 2 or 4 or `count` is not a multiple of 3.
+    static func triangleIndices(_ bytes: UnsafeRawBufferPointer, count: Int, bytesPerIndex: Int, vertexBase: UInt32) -> [UInt32]?
+}
+
+/// `ObjectModelEntityLoader.swift`, the only file importing RealityKit. Whether ModelIO reads Object
+/// Capture's USDZ on iOS 18.3.2 is an open device question (2.2), and the small and medium plan has no
+/// other way to measure the object, so a ModelIO failure must not fail the required step.
+extension ObjectModelLoader {
+    /// Fallback when `canReadUSDZ` is false or `mesh(fromUSDZ:)` throws `.cannotImport`:
+    /// `try await Entity(contentsOf: url)`, then for every descendant with a `ModelComponent`, its
+    /// `mesh.contents` instances (`contents.models[instance.model]`, each part's `positions` and
+    /// `triangleIndices`) through `instance.transform` and the entity's `transformMatrix(relativeTo: nil)`,
+    /// welded like the ModelIO path. Main actor by API (a 50k-triangle model takes milliseconds);
+    /// returns a value, keeps no entity; throws `ObjectModelError.noTriangles` when nothing is found.
+    @MainActor static func meshFromEntity(at url: URL) async throws -> MeshWithAttributes
+}
+
+enum ObjectDimensions {
+    /// Confidence rule for objects (1 sigma = max(floor, relative x length)); 2 sigma then
+    /// matches TEST_PLAN OBJ-01's "1.5 cm or 3 percent" for Object Capture and "2 cm or 4
+    /// percent" for the LiDAR mesh of large objects. Tuned with the tape protocol.
+    static let smallMediumSigmaFloor: Float = 0.0075
+    static let smallMediumSigmaRelative: Float = 0.015
+    static let largeSigmaFloor: Float = 0.01
+    static let largeSigmaRelative: Float = 0.02
+    /// A reported extent ratio outside 0.8...1.25 is a unit mismatch.
+    static let scaleTolerance: ClosedRange<Float> = 0.8...1.25
+    /// Small and medium: `ObjectIsolation.measure(_:support: nil)` on the welded mesh (box, sides,
+    /// surface area, volume when watertight); nil when the mesh is empty.
+    static func measure(_ mesh: MeshWithAttributes, objectID: UUID, source: ObjectSize,
+                        scaleCorrection: Float, inputHash: String, now: Date) -> ObjectDimensionsRecord?
+    /// Large: `ObjectIsolation.isolate(_:box:options:)` of the consolidated mesh with the crop box
+    /// (support plane removed); the isolated mesh is returned for mesh.mchk. Provenance
+    /// `.estimated` when the isolated mesh is open.
+    static func isolate(_ roomMesh: MeshWithAttributes, box: OrientedBox, objectID: UUID,
+                        inputHash: String, now: Date) -> (record: ObjectDimensionsRecord, mesh: MeshWithAttributes)?
+    /// 1 when `reported` is nil or the ratio of the largest extents is inside `scaleTolerance`;
+    /// otherwise the nearest power of ten that brings it inside (0.01, 0.1, 10, 100), else 1.
+    static func scaleCorrection(meshExtents: SIMD3<Float>, reportedExtents: SIMD3<Float>?) -> Float
+    static func sigma(length: Float, source: ObjectSize) -> Double
+    /// Lengths with `sigma(length:source:)`; surface area and volume with a relative sigma of
+    /// 2 x the size's relative length sigma (area and volume grow with two and three sides);
+    /// provenance from the record.
+    static func measuredValues(_ record: ObjectDimensionsRecord) -> ObjectMeasuredValues
+}
+
+enum ObjectModelStore {
+    static func dimensionsURL(_ package: ProjectPackage, object: UUID) -> URL   // derived/objects/<id>/dims.json
+    static func meshURL(_ package: ProjectPackage, object: UUID) -> URL         // derived/objects/<id>/mesh.mchk
+    static func loadDimensions(_ package: ProjectPackage, object: UUID) -> ObjectDimensionsRecord?
+    static func saveDimensions(_ record: ObjectDimensionsRecord, to package: ProjectPackage) throws
+    /// The untextured object mesh (MeshModel `MeshModelStore.mesh(from:)` of the decoded chunk).
+    static func loadMesh(_ package: ProjectPackage, object: UUID) throws -> MeshWithAttributes?
+    /// `MeshModelStore.chunk(from:id:)` then Core `MeshChunkFile.encode`, written atomically.
+    static func saveMesh(_ mesh: MeshWithAttributes, package: ProjectPackage, object: UUID) throws
+    /// The box of the last `cropObject(object:box:)` in `log.flattenedActive` (CR-1) whose `object.uuid == objectID`
+    /// (`OrientedBoxRecord.orientedBox`); LargeObject writes it, ObjectCrop edits it in build 6.
+    static func cropBox(for objectID: UUID, in log: EditLog) -> OrientedBox?
+    /// Stable text of that edit for input hashes ("-" when none).
+    static func cropDigest(for objectID: UUID, in log: EditLog) -> String
+}
+
+enum ObjectExportAdapter {
+    /// The untextured mesh as one `ExportMesh` with normals and a neutral gray material.
+    static func scene(_ mesh: MeshWithAttributes, name: String) -> ExportScene
+}
+
+/// id .objectMetrics, subject = object id; required in both object plans; budget 300 MB.
+/// `modelFile` (AppShell passes `PhotogrammetryStore.modelURLIfPresent`) and `reportedExtents`
+/// (`PhotogrammetryStore.loadInfo(...)?.boundsExtents`) come from ObjectCapture, the same wave.
+final class ObjectMetricsStep: ProcessingStep {
+    static let rulesVersion = "objectMetrics-rules=1"
+    init(object: ObjectRecord,
+         modelFile: @escaping (ProjectPackage, UUID) -> URL?,
+         reportedExtents: @escaping (ProjectPackage, UUID) -> SIMD3<Float>?)
+}
 ```
-**Apple APIs.** `MDLAsset(url:)`, `boundingBox`, `childObjects(of:)`, `MDLMesh` vertex and submesh buffers (RESEARCH 3.3 "Reading the finished model").
-**Must NOT do.** Never report volume for a non-watertight mesh; never use SceneKit loaders; never use `MDLAsset.export` for USD.
-**Self-test.** At least 10 checks with synthetic meshes (box volume, open box reason, gravity-aligned dimensions, isolation of a box on a floor).
-**SPEC owned.** "OBJECT SCANNING" (untextured mesh, bounding box, width, height, depth, "estimated volume where mathematically valid"); "MEASUREMENT SYSTEM" (object width, height, depth, surface area, estimated volume).
+
+**Rules.** Small and medium (`object.size == .smallMedium`): input hash = the `reconstructObject` stamp hash of the object ("-" when none) plus `rulesVersion`; the model file must exist (else `MapperError.processingFailed(step: .objectMetrics, reason:)`); `ObjectModelLoader.mesh(fromUSDZ:)`, or `await ObjectModelLoader.meshFromEntity(at:)` when ModelIO cannot import the file (logged with the path taken; only when both fail does the step fail), `scaleCorrection` against `reportedExtents` (positions scaled when not 1), `ObjectDimensions.measure`, then `saveMesh` and `saveDimensions`. Large (`.large`): input hash = the object's `consolidateMesh` stamp hash plus `cropDigest` plus `rulesVersion`; `MeshModelStore.loadMeasured(package, room: object.id)` (LargeObject's ConsolidateMeshStep uses the object id as its subject) and `cropBox` (missing: `processingFailed`, "no crop box"); `ObjectDimensions.isolate`; save both files. Every result is logged (sides, watertight, volume or reason, triangles, scale correction). Volume comes only from a closed mesh (Geometry's `isWatertight` then `signedVolume`); a bounding-box volume is never reported as the object's volume (TEST_PLAN OBJ-03).
+
+**Uses.** Core: `ObjectRecord`, `ObjectSize`, `OrientedBoxRecord`, `Provenance`, `MeasuredValue`, `EditLog.flattenedActive` (CR-1), `EditOperation.cropObject`, `MeshChunkFile.encode`, `MeshChunkFile.decode`, `ProjectPackage.derivedObjectURL`, `ProjectStore` (`ensureDirectory(_:inside:)`, `writeData`, `writeJSON`, `readJSON`), `DerivedIndex`, `InputHasher`, `ProcessingStep`, `StepContext`, `MapperError`. Geometry: `TriangleMesh` (`welded(tolerance:)`, `isWatertight`, `signedVolume`, `surfaceArea`, `boundingBox`, `transformed(by:)`), `OrientedBox`, `AABB3`. MeshProcessing: `MeshWithAttributes`, `ObjectIsolation` (`measure(_:support:)`, `isolate(_:box:options:)`, nested `IsolatedObject` and `VolumeUnavailableReason`, mapped one to one to `ObjectVolumeReason`). MeshModel: `MeshModelStore` (`loadMeasured`, `chunk(from:id:)`, `mesh(from:)`). Export: `ExportMesh`, `ExportMaterial`, `ExportScene`. Store: `EditStore.load`. Support: `LogStore` (category "objectmodel").
+
+**Apple APIs** (RESEARCH 3.3 "Reading the finished model"): `init(url URL: URL)` (MDLAsset, iOS 9.0), `var boundingBox: MDLAxisAlignedBoundingBox { get }` (logged next to the mesh bounds), `func childObjects(of objectClass: AnyClass) -> [MDLObject]`. Not in RESEARCH (ModelIO, iOS 9 or 10): `class func canImportFileExtension(_:) -> Bool`, `MDLMesh.vertexCount`, `MDLMesh.vertexAttributeData(forAttributeNamed:as:) -> MDLVertexAttributeData?` with `dataStart` and `stride`, `MDLVertexAttributePosition`, `MDLVertexFormat.float3`, `MDLMesh.submeshes`, `MDLSubmesh.indexBuffer`, `indexCount`, `indexType` (`MDLIndexBitDepth.uInt16`, `.uInt32`), `geometryType` (`MDLGeometryType.triangles`), `MDLMeshBuffer.map()` and `MDLMeshBufferMap.bytes`, `MDLTransform.globalTransform(with:atTime:)` (iOS 10). Fallback loader: `@MainActor @preconcurrency convenience init(contentsOf url: URL, withName resourceName: String? = nil) async throws` (RealityKit `Entity`, iOS 18.0, RESEARCH 3.3); not in RESEARCH (RealityKit, iOS 15 or earlier, checked against Apple's documentation JSON): `ModelComponent.mesh`, `@MainActor var contents: MeshResource.Contents { get }`, `Contents.models` and `.instances`, `MeshResource.Instance.model` and `.transform`, `MeshResource.Model.parts`, `MeshResource.Part.positions` (MeshBufferContainer) and `triangleIndices`, `MeshBuffer.elements`, `@MainActor func transformMatrix(relativeTo referenceEntity: Entity?) -> float4x4` (HasTransform, iOS 13).
+
+**Must NOT do.** Never report a volume for a mesh that is not watertight after welding; never use SceneKit loaders; never use `MDLAsset.export` (no USD writing here); never load the USDZ with ModelIO on main (only the RealityKit fallback runs on the main actor, and only after ModelIO failed); never read the Object Capture folders except the model file the closure gives; never write outside `derived/objects/<id>/`; never keep more than one object mesh in memory in the step.
+
+**Copy strings.** None (ObjectUI shows the text).
+
+**Self-test.** `ObjectModelSelfTest.run()`, at least 20 checks: a unit cube gives width, height and depth 1, surface area 6, volume 1 within 1e-3 and `isWatertight`; the same cube with one face removed gives volume nil and `.notWatertight`; a cube whose faces have their own duplicated corner vertices (UV seams) is watertight after the loader's weld (pure weld path); a 0.6 x 0.3 x 0.4 box turned 30 degrees about +Y gives width 0.6 and depth 0.4 within 1e-3 and width >= depth; `isolate` of a 0.5 m box on a 3 x 3 m floor mesh gives 0.5 within 0.01 and removes the floor; `scaleCorrection` gives 0.01 for a 100 times too large mesh, 1 within 20 percent, 1 with no report; `sigma` of 0.3 m small is 0.0075, of 2 m small is 0.03, of 2 m large is 0.04; `measuredValues` of a 1 m small object is not low confidence (Core rule); volume value nil when the record has none; `triangleIndices` for 16-bit and 32-bit buffers with a vertex base and nil for 5 indices; `cropBox` returns the last active crop, finds one inside a `batch` and ignores an undone one; `cropDigest` changes with the crop; dims.json and mesh.mchk round trips in a temp package; `ObjectExportAdapter.scene` validates; USDZ round trip: `USDZWriter.data(for:)` of a box written to a temp `.usdz` reads back through `mesh(fromUSDZ:)` with 12 triangles and the same bounds within 1e-4 (checked only when `canReadUSDZ`, otherwise one failure line says ModelIO cannot read USDZ).
+
+**Acceptance checks.** ModelIO is imported only in `ObjectModelLoader.swift` and RealityKit only in `ObjectModelEntityLoader.swift`; the log of every small or medium object says which loader produced the mesh; the loader honors `stride` and never assumes 12 bytes; dims.json and mesh.mchk are written with `ensureDirectory(_:inside:)` and `createParents: false`; the step's hash reads upstream stamps from `derived/index.json` (3.1 input hash rule).
+
+**SPEC owned.** "OBJECT SCANNING" outputs: untextured mesh, bounding box, width, height, depth, "estimated volume where mathematically valid"; "MEASUREMENT SYSTEM": object width, height, depth, surface area, estimated volume; "MEASUREMENT CONFIDENCE" for objects (the sigma rule); "CORE DESIGN PRINCIPLE" Representation E (isolated object model).
+
+**TEST_PLAN ids.** OBJ-01 (dimensions), OBJ-02 (volume within 5 percent for the box), OBJ-03 (no volume for an open chair), OBJ-05 (depth estimated when the back is open, large path), OBJ-09 (no room data), smoke #9.
+
+### 3.34a Viewer3D revision: loadModel (wave 5a0)
+
+**Purpose.** Show the Object Capture USDZ (textured, PBR materials) in Mapper's own viewer next to ordinary parts (the untextured mesh, the box), make it pickable and frame it.
+
+**Build and wave.** Build 5, wave 5a0 (branch `impl/viewer3d-models`). Viewer3D only; RealityKit. Merges before wave 5a starts, so MeasureTool (5a) compiles against the revised viewer; its only new caller is ObjectUI (5b).
+
+**Files.** Edits `ios/Sources/Viewer3D/ViewerModel.swift` (stored model state; `load`, `unload`, `setVisible`, `frameAll`, `updateViewSize`, `dollyCamera` and the memory-warning eviction learn about models), adds `ViewerModelFiles.swift` (the extension below and `ViewerBoundsMath`), extends `Viewer3DSelfTest.swift`.
+
+**Public Swift API.**
+```swift
+enum ViewerModelError: Error, Equatable {
+    case missingFile
+    /// A newer `load`, `unload` or `removeModels` replaced the content while the file loaded;
+    /// the entity was discarded.
+    case superseded
+}
+
+@MainActor extension ViewerModel {
+    /// Adds a USDZ model file under `layer` (its own parent entity per layer, enabled with the
+    /// layer) with `try await Entity(contentsOf: url)`, sets the entity's transform to
+    /// `transform` (ObjectUI passes the uniform scale correction), and returns its world bounds
+    /// (`visualBounds(recursive: true, relativeTo: nil)`). When `pickMesh` is given (the same
+    /// geometry in world coordinates, already placed like the entity after `transform`, for
+    /// example ObjectModel's scale-corrected mesh.mchk), a `MeshBVH` of it is built off main and
+    /// hits report `pickTag` while `layer` is visible. The camera frames
+    /// the union of the content and model bounds unless the user moved it. Call after `load(_:)`
+    /// returned; `load`, `unload` and `removeModels` remove models.
+    @discardableResult
+    func loadModel(_ url: URL, layer: ViewerLayer = .realistic, transform: simd_float4x4 = matrix_identity_float4x4,
+                   pickMesh: TriangleMesh? = nil, pickTag: ViewerPickTag? = .rawMesh) async throws -> AABB3
+    func removeModels()
+    /// Union of the loaded models' world bounds; `AABB3.empty` when none.
+    var modelBounds: AABB3 { get }
+}
+
+/// Pure bounds helpers (any queue).
+enum ViewerBoundsMath {
+    static func union(_ a: AABB3, _ b: AABB3) -> AABB3                          // empty boxes ignored
+    static func transformed(_ box: AABB3, by matrix: simd_float4x4) -> AABB3      // bounds of the 8 corners
+}
+extension ViewerPicking {
+    /// Pure: the pick entry of a model's world-space mesh (off main).
+    static func entry(for mesh: TriangleMesh, partID: String, pickTag: ViewerPickTag?, layer: ViewerLayer) -> ViewerPickEntry
+}
+```
+Picking searches the content's entries and the model entries (`ViewerPicking.nearestHit` over both lists); model entities are never evicted on a memory warning (Object Capture output is under 50k triangles; RESEARCH 3.3 table) and their parents follow `setVisible`.
+
+**Apple APIs** (RESEARCH 3.3 table and 3.5): `@MainActor @preconcurrency convenience init(contentsOf url: URL, withName resourceName: String? = nil) async throws` (RealityKit `Entity`, iOS 18.0); `@MainActor @preconcurrency func visualBounds(recursive: Bool = true, relativeTo referenceEntity: Entity?, excludeInactive: Bool = false) -> BoundingBox` (iOS 13.0); `var extents: SIMD3<Float> { get }` (BoundingBox). Not in RESEARCH (iOS 13): `BoundingBox.min` and `.max`, `Entity.transform` set with `Transform(matrix:)` (already used by the viewer), `addChild(_:)`, `removeFromParent()`.
+
+**Must NOT do.** No SceneKit, no `ModelEntity.load`, no `.modelEntity` photogrammetry request; never flip UVs or touch the loaded materials; never keep a model entity after `load`, `unload` or `removeModels`; never block main while building the pick BVH.
+
+**Self-test.** At least 6 new checks in `Viewer3DSelfTest`: `union` ignores an empty box; `union` of two boxes; `transformed` of a unit box by a 90 degree yaw keeps its size, by a uniform scale of 2 doubles it; `ViewerPicking.entry(for:partID:pickTag:layer:)` of a quad is hit by `ViewerPicking.nearestHit` with its pick tag while its layer is visible and not when the layer is hidden; framing math of the union contains both boxes (`ViewerOrbitMath.framing`).
+
+**Acceptance checks.** `loadModel` is awaited only on the main actor; a `load` issued while a model loads makes `loadModel` throw `.superseded` and leaves no entity; the log line of a model load gives file size, entity bounds, load time and whether a pick mesh was given.
+
+**SPEC owned.** "OBJECT SCANNING" textured mesh display; "IMAGE / TEXTURE CAPTURE" (the object's photo textures shown as captured). **TEST_PLAN ids.** OBJ-02 (switch textured and untextured), OBJ-01 (the result shows the object).
 
 ### 3.35 MeasureTool (wave 5a)
 
-**Purpose.** In-viewer measuring on the finished model: point-to-point, wall length, height, area polygon, angle; snapping through `SnapSet` then the raw mesh hit (`ViewerModel.hitTest`), selection haptic on snap, live labels via `ViewerModel.project`, confidence via `ConfidenceAdapter.distance` with evidence from the quality grid, the measurement list, save and delete through `EditStore.saveMeasurements`.
-**Files.** `ios/Sources/MeasureTool/MeasureToolModel.swift`, `MeasureToolOverlay.swift`, `MeasureToolList.swift`, `MeasureToolSelfTest.swift`, `Copy+MeasureTool.swift`.
-**API.** `@MainActor final class MeasureToolModel: ObservableObject { init(projectID: UUID, viewer: ViewerModel, snaps: SnapSet, evidence: RoomEvidence); @Published var kind: MeasurementKind; func tap(_ hit: ViewerHit?); func undoPoint(); func clear(); func save(name: String) throws; @Published private(set) var records: [MeasurementRecord] }`, `struct MeasureToolOverlay: View`, `struct MeasureToolList: View`, pure `enum MeasureMath { static func angle(_:_:_:) -> Float; static func polygonArea(_ points: [SIMD3<Float>]) -> Float }`.
-**Must NOT do.** Never write measurements into raw; never skip the confidence text.
-**Self-test.** At least 10 checks on `MeasureMath` and the snap-to-SnapKind mapping.
-**SPEC owned.** "MEASUREMENT SYSTEM" (point-to-point distance, angle, surface area, "Users must be able to manually place measurement points", snapping to corner, wall, edge, floor, ceiling, door, window, object edge); "MEASUREMENT CONFIDENCE" in the tool.
+**Purpose.** Measuring inside the finished model (SPEC MEASUREMENT SYSTEM: point-to-point distance, wall length, wall height, ceiling height, angle, surface area, "Users must be able to manually place measurement points", snapping to corner, wall, edge, floor, ceiling, door, window, object edge; SPEC MEASUREMENT CONFIDENCE on every value). Five tools on the result screen's 3D views (Realistic, 3D Clean, Raw Scan):
+
+- Distance: two points.
+- Height: the vertical distance between two points (tap the floor, then the ceiling, TEST_PLAN MEAS-03).
+- Wall: tap a wall; its length and height come from the edited clean model with RoomPlan confidence.
+- Area: three or more points on any surface, closed by tapping the first point again or Finish Area.
+- Angle: three points, the middle one the corner (MEAS-07).
+
+Every tapped point snaps through MeasureCore's `SnapSet` built from the edited clean model (corner, then edge, then plane, each tagged with its SPEC target) and otherwise to the nearest vertex of the tapped scan triangle, with a selection haptic and a "Snapped to door" tag; snapping can be switched off to place points freely (MEAS-08). Each endpoint gets Coverage evidence from the room's quality evidence (the snapped wall's camera distance and observation count), and values carry an honest plus-or-minus through `ConfidenceAdapter` and `MeasureDisplay` only. Points of the draft and of saved measurements can be dragged to adjust them (MEAS-01, MEAS-10). Finished measurements are saved at once in `edits/measurements.json` through `EditStore` (raw is never touched), listed with rename and delete, and drawn as SwiftUI overlays positioned with `ViewerModel.project` (no viewer content is added). MeasureTool is a component: Results (3.43b) hosts the overlay above its `ViewerContainer`, routes taps to it and shows its bar and list.
+
+**Build and wave.** Build 5, wave 5a (branch `impl/measuretool`). Core (with CR-1, 3.37a: `CleanFloor.mergedOutlines`), Geometry, Coverage, MeasureCore, Viewer3D (as revised in 5a0, 3.34a), RoomModel (`CleanModelStore.loadEdited`; as revised in 5a0, 3.37b), Quality (`QualityStore.load`), Store (`EditStore`, `ProjectLibrary`), Units, Support; SwiftUI, Combine. About 1350 lines excluding the self-test.
+
+**Files.** `ios/Sources/MeasureTool/MeasureToolModel.swift` (state, loading, saving), `MeasureToolModel+Points.swift` (tap, drag, completion, undo), `MeasureMath.swift` (pure geometry and sigmas), `MeasureToolSnaps.swift` (pure: context, point resolution, room lookup, evidence, values, records), `MeasureToolPresentation.swift` (pure texts and rows), `MeasureToolOverlay.swift` (lines, labels, drag handles), `MeasureToolBar.swift` (tool picker, hint, live value, buttons), `MeasureToolList.swift`, `MeasureToolSelfTest.swift`, `ios/Sources/Support/Copy+MeasureTool.swift`.
+
+**Public Swift API.** Pure types and functions are nonisolated and safe on any queue; the model and views are main actor.
+```swift
+/// The five tools, in picker order.
+enum MeasureToolKind: String, CaseIterable, Identifiable, Sendable {
+    case distance, height, wall, area, angle
+    var id: String { rawValue }
+    /// Points that complete a measurement: distance 2, height 2, wall 1 (the tap on the wall),
+    /// area 3 or more (closed by the user), angle 3.
+    var minimumPoints: Int { get }
+    /// The Core kind of the (first) record it makes: .distance, .height, .wallLength, .area, .angle.
+    var measurementKind: MeasurementKind { get }
+}
+
+/// One placed point, world meters (the frame of the viewer content: the structure frame for House
+/// projects, 3.43b).
+struct MeasureToolPoint: Equatable, Sendable {
+    var position: SIMD3<Float>
+    /// Stored in `MeasurementRecord.snaps`.
+    var snap: SnapKind
+    /// What a SnapSet snap attached to (drives the "Snapped to" tag); nil for mesh snaps and free points.
+    var feature: SnapSetFeature?
+    /// The wall, opening, object or room it attached to, when known.
+    var element: ElementID?
+}
+
+/// The measurement being placed.
+struct MeasureToolDraft: Equatable, Sendable {
+    var kind: MeasureToolKind
+    var points: [MeasureToolPoint]
+    /// Live value once there are enough points to show one (area from 3 points, the others when
+    /// complete); nil before.
+    var value: MeasuredValue?
+    static func empty(_ kind: MeasureToolKind) -> MeasureToolDraft
+}
+
+/// A point that can be dragged on screen.
+enum MeasureToolHandle: Hashable, Sendable {
+    case draft(index: Int)
+    case record(id: UUID, index: Int)
+}
+
+/// Pure geometry and uncertainty of the tools.
+enum MeasureMath {
+    /// Angle ABC at B, radians in 0...pi; 0 when an arm is shorter than 1 mm.
+    static func angle(_ a: SIMD3<Float>, _ b: SIMD3<Float>, _ c: SIMD3<Float>) -> Float
+    /// Area of a closed polygon in 3D: half the length of the Newell sum of p_i x p_(i+1). Exact for
+    /// planar polygons, the area projected on the best-fit plane otherwise; 0 below 3 points.
+    static func polygonArea(_ points: [SIMD3<Float>]) -> Float
+    /// Unit normal of the Newell sum; nil below 3 points or for a degenerate polygon.
+    static func polygonNormal(_ points: [SIMD3<Float>]) -> SIMD3<Float>?
+    /// Label anchor of an area: the vertex mean (never outside a convex polygon).
+    static func polygonCenter(_ points: [SIMD3<Float>]) -> SIMD3<Float>
+    /// |b.y - a.y|.
+    static func verticalDistance(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Float
+    /// 1 sigma of a polygon area, square meters: sqrt(sum_i (s_i |p_(i+1) - p_(i-1)| / 2)^2 + (2 d A)^2),
+    /// s_i the point sigmas (meters), d the drift rate (a fraction of length, so an area grows by 2 d).
+    static func areaSigma(_ points: [SIMD3<Float>], pointSigmas: [Float], driftRate: Float) -> Float
+    /// 1 sigma of the angle at B, radians, a first-order bound:
+    /// sqrt((sA / |BA|)^2 + (sC / |BC|)^2 + sB^2 (1 / |BA|^2 + 1 / |BC|^2)).
+    static func angleSigma(_ a: SIMD3<Float>, _ b: SIMD3<Float>, _ c: SIMD3<Float>,
+                           sigmaA: Float, sigmaB: Float, sigmaC: Float) -> Float
+}
+
+/// Everything placing a point needs, built off main from the edited clean model and the quality
+/// evidence of its rooms. Never mutated after it is built.
+struct MeasureToolContext {
+    var model: CleanModel
+    var snaps: SnapSet
+    /// `QualityEvaluation.evidence` per `RoomRecord.id` (`CleanRoom.recordID`).
+    var roomEvidence: [UUID: RoomEvidence]
+    /// Every room's `WallEvidence` by wall id, so walls keep their evidence after a merge (CR-1).
+    var wallEvidence: [ElementID: WallEvidence]
+    static let empty: MeasureToolContext
+}
+/// SnapSet holds tuple arrays and has no Sendable conformance; the context is an immutable value.
+extension MeasureToolContext: @unchecked Sendable {}
+
+enum MeasureToolSnaps {
+    /// Mesh vertex snap radius, meters.
+    static let meshVertexRadius: Float = 0.02
+    /// A tap this close on screen to the first area point closes the area, points.
+    static let closeRadiusPoints: CGFloat = 24
+    /// Most points of one area.
+    static let maximumAreaPoints = 50
+    /// The context: `SnapSet.build(from:includeObjects: true)` of every room (movable objects removed
+    /// from a copy of the room first when `excludeMovable`), plus, for each `floor.mergedOutlines` entry
+    /// (CR-1), a set built from a copy of the room whose floor outline is that part and whose walls,
+    /// openings and objects are empty (its floor and ceiling planes), all joined with `combined(_:)`;
+    /// `wallEvidence` from every room's evidence.
+    static func context(model: CleanModel, evidence: [UUID: RoomEvidence], excludeMovable: Bool) -> MeasureToolContext
+    /// The candidates of several sets in order, with every parallel array kept in step. A set whose
+    /// optional arrays are shorter than its candidates is padded (element nil; feature `.corner`,
+    /// `.edge` or `.wall`; region nil).
+    static func combined(_ sets: [SnapSet]) -> SnapSet
+    /// A tapped point. With snapping on: `context.snaps.hit(hit.position)` when its kind is not `.none`;
+    /// else for a `.rawMesh` pick tag the nearest corner of triangle `hit.triangle` of the part
+    /// `hit.partID` in `parts` within `meshVertexRadius` (`.meshVertex`), else `.meshSurface`; for an
+    /// `.element(id)` pick tag (3D Clean surfaces are RoomPlan surfaces) `.plane` with that element.
+    /// With snapping off: `.meshSurface` or `.plane` at `hit.position`, no feature.
+    static func resolve(_ hit: ViewerHit, parts: [ViewerPart], context: MeasureToolContext,
+                        snapping: Bool) -> MeasureToolPoint
+    /// The room whose floor outline or merged outline contains the point in plan (`PlanAxes`), among
+    /// rooms whose floor elevation is at most 0.5 m above the point; else the room with the nearest
+    /// outline centroid; nil without rooms.
+    static func room(containing point: SIMD3<Float>, in model: CleanModel) -> CleanRoom?
+    /// Coverage evidence of one endpoint through `ConfidenceAdapter.evidence(distance:observations:room:snap:)`:
+    /// the WallEvidence of the snapped wall (an opening uses its host wall), else the point's room
+    /// `typicalWall`, else the ConfidenceAdapter defaults; room evidence of the point's room
+    /// (`RoomEvidence.unknown` without); snap `ConfidenceAdapter.measurementSnapKind(point.snap)`.
+    static func evidence(for point: MeasureToolPoint, context: MeasureToolContext) -> MeasurementEvidence
+    /// The value of a draft, nil with too few points. Distance: `ConfidenceAdapter.distance(start:end:length:)`.
+    /// Height: the same with `length` = `MeasureMath.verticalDistance`. Area: `MeasureMath.polygonArea`
+    /// with `areaSigma` of the point sigmas `MeasurementConfidence.pointAccuracy(_:)` and
+    /// `MeasurementConfidence.driftRate(trackingNormalFraction:)` of the lowest endpoint fraction.
+    /// Angle: `MeasureMath.angle` with `angleSigma`. Area and angle sigmas are raised to
+    /// `ConfidenceAdapter.lowConfidenceSigmaFactor * MeasuredValue.lowConfidenceRelative * value` when any
+    /// endpoint `MeasurementConfidence.isWeak(_:)`, so Core's rule (CR-2) flags them. Provenance `.measured`.
+    static func value(_ draft: MeasureToolDraft, context: MeasureToolContext) -> MeasuredValue?
+    /// The wall a Wall-tool tap refers to: an `.element` pick tag of a wall, the host wall of a picked
+    /// opening, or a SnapSet hit whose feature is `.wall`; nil otherwise.
+    static func wall(for hit: ViewerHit, context: MeasureToolContext) -> CleanWall?
+    /// Wall-tool records: `.wallLength` (points: base start and end; value
+    /// `ConfidenceAdapter.roomPlanLength(MeasureRoomSizes.wallLength(wall), wall:, room:, provenance: wall.provenance)`)
+    /// and `.height` (points: base start and start + height; value of `wall.height` the same way);
+    /// snaps `.edge`, source `.viewer`, empty names, roomID of the wall's room.
+    static func wallRecords(_ wall: CleanWall, context: MeasureToolContext, now: Date) -> [MeasurementRecord]
+    /// The record of a complete distance, height, area or angle draft: points, snaps, `value`, source
+    /// `.viewer`, empty name, roomID of the first point's room; nil when incomplete.
+    static func record(for draft: MeasureToolDraft, context: MeasureToolContext, id: UUID, now: Date) -> MeasurementRecord?
+    /// A saved record with point `index` moved and its value recomputed (same id, name and createdAt).
+    /// `.wallLength` records are returned unchanged (they follow the wall, not the finger).
+    static func moving(_ record: MeasurementRecord, index: Int, to point: MeasureToolPoint,
+                       context: MeasureToolContext) -> MeasurementRecord
+}
+
+/// One row of the measurement list.
+struct MeasureToolRow: Identifiable, Equatable, Sendable {
+    var id: UUID
+    /// The record's name, else the kind title numbered per kind in createdAt order ("Distance 2").
+    var title: String
+    var valueText: String          // MeasureDisplay.valueText
+    var accuracyText: String?      // MeasureDisplay.accuracyText
+    var isLowConfidence: Bool      // MeasureDisplay.isLowConfidence(_:kind:)
+    var accessibility: String      // MeasureDisplay.accessibilityText(label: title, value:, kind:, prefs:)
+}
+
+enum MeasureToolPresentation {
+    /// Picker titles: Copy.Measure.distance, Copy.Viewer.height, Copy.WallMenu.title, Copy.MeasureTool.area,
+    /// Copy.Measure.angle.
+    static func title(of tool: MeasureToolKind) -> String
+    /// Row titles by Core kind: distance Copy.Measure.distance, wallLength Copy.Measure.wallLength,
+    /// height Copy.Viewer.height, area Copy.Measure.surfaceArea, perimeter Copy.Measure.perimeter,
+    /// angle Copy.Measure.angle, volume Copy.Measure.volume (exhaustive switch).
+    static func kindTitle(_ kind: MeasurementKind) -> String
+    static func rows(_ records: [MeasurementRecord], prefs: UnitPreferences) -> [MeasureToolRow]
+    /// The hint for the next tap (Copy.MeasureTool tapFirst, tapSecond, tapWall, areaFirst, areaNext,
+    /// areaClose, angleFirst, angleCorner, angleSecond).
+    static func hint(_ tool: MeasureToolKind, placed: Int) -> String
+    /// `SnapSetFeature.snappedText` of the point's feature; nil without a feature.
+    static func snapText(_ point: MeasureToolPoint) -> String?
+    /// On-model label lines: `MeasureDisplay.valueText` and `accuracyText`.
+    static func label(_ value: MeasuredValue, kind: MeasurementKind, prefs: UnitPreferences) -> (value: String, accuracy: String?)
+    /// Log line (category "measure"): kind, every point in millimeters, snaps, value and sigma (MEAS-01, MEAS-08).
+    static func logLine(_ record: MeasurementRecord, event: String) -> String
+}
+
+/// Main actor. The measuring state of one project on one result screen.
+@MainActor final class MeasureToolModel: ObservableObject {
+    /// Changing the tool clears the draft.
+    @Published var tool: MeasureToolKind
+    /// Copy.Measure.snapToggle; on by default.
+    @Published var snappingEnabled: Bool
+    @Published private(set) var draft: MeasureToolDraft
+    /// Saved measurements of the project (all sources), createdAt order.
+    @Published private(set) var records: [MeasurementRecord]
+    @Published private(set) var rows: [MeasureToolRow]
+    @Published private(set) var hint: String
+    /// Latest "Snapped to ..." text, cleared after 1.5 s.
+    @Published private(set) var snapText: String?
+    /// False until the first context is built.
+    @Published private(set) var isReady: Bool
+    @Published private(set) var prefs: UnitPreferences
+    @Published var showsList: Bool
+    @Published var showsDeleteAllConfirmation: Bool
+    /// `Copy.Errors.saveFailed.body` after a failed write; the screen shows it and clears it.
+    @Published var errorText: String?
+    let projectID: UUID
+    let viewer: ViewerModel
+    init(projectID: UUID, viewer: ViewerModel)
+    /// Off main: package, `CleanModelStore.loadEdited` (a failure leaves an empty context: points snap
+    /// to the scan only, logged), `QualityStore.load(_:room:)` of every distinct `CleanRoom.recordID`,
+    /// `EditStore.loadMeasurements`, `UnitPreferences.load()`; then the context. Also subscribes to
+    /// `.mapperEditsDidChange` for this project (plan edits move walls): the context is rebuilt, and
+    /// the records are reloaded when no write of this model is pending.
+    func load() async
+    /// Hide Furniture on the result screen: movable objects stop being snap targets (context rebuilt off main).
+    func setExcludesMovableObjects(_ exclude: Bool) async
+    /// A tap routed by Results while measuring (see Rules).
+    func tap(_ hit: ViewerHit?)
+    /// Area tool: completes the draft when it has at least 3 points.
+    func finishArea()
+    /// Removes the last draft point; with an empty draft, reopens the measurement completed last in
+    /// this session (removing its saved record; both records of a Wall tap).
+    func undoPoint()
+    func clearDraft()
+    /// Re-places a handle under `screenPoint` (`viewer.hitTest`, then `MeasureToolSnaps.resolve`);
+    /// a miss keeps the point.
+    func drag(_ handle: MeasureToolHandle, to screenPoint: CGPoint)
+    /// A moved record is saved and logged ("measurement edited").
+    func endDrag(_ handle: MeasureToolHandle)
+    func rename(_ id: UUID, to name: String)
+    func delete(_ id: UUID)
+    /// After `Copy.MeasureTool.deleteAllTitle` was confirmed.
+    func deleteAll()
+    /// `viewer.project(world)`; the overlay calls it again whenever `viewer.cameraRevision` changes.
+    func screenPoint(_ world: SIMD3<Float>) -> CGPoint?
+}
+
+/// Lines, area fills and labels (value and accuracy) of the draft and every saved record, and drag
+/// handles (44 pt circles, VoiceOver `Copy.MeasureTool.pointLabel(n)` with `pointHint`). Observes the
+/// model and `model.viewer` and redraws on `cameraRevision`. The line and label layer has
+/// `.allowsHitTesting(false)`; only the handles take touches, so orbit, pan and tap reach the viewer.
+struct MeasureToolOverlay: View { init(model: MeasureToolModel) }
+/// Bottom bar: segmented tool picker, hint, live value with accuracy (or Copy.Measure.lowConfidence),
+/// snap tag, snapping toggle, Undo (`Copy.Measure.undoPoint`), Finish Area (area with 3 or more points),
+/// the list button (`Copy.Results.dimensionsTitle`), and Done (`Copy.Scanning.done`, calls `onDone`).
+struct MeasureToolBar: View { init(model: MeasureToolModel, onDone: @escaping () -> Void) }
+/// The measurement list, also the main content of Results' Quick Measure screen (3.43b): rows with
+/// value and accuracy, swipe to delete, a rename alert, Delete All with confirmation when `onDeleteAll`
+/// is set, a Done button when `onClose` is set (sheet use), `Copy.Measure.disclaimer` as the footer,
+/// `Copy.Empty.noMeasurements` when empty.
+struct MeasureToolList: View {
+    init(rows: [MeasureToolRow], onRename: @escaping (UUID, String) -> Void, onDelete: @escaping (UUID) -> Void,
+         onDeleteAll: (() -> Void)?, onClose: (() -> Void)?)
+}
+```
+Changes from the earlier short sketch of this section (ARCHITECTURE.md may still show it; this section wins): the model loads its own snaps and evidence (`init(projectID:viewer:)` instead of passing a `SnapSet` and one `RoomEvidence`, because a project has several rooms), `kind` is now `tool: MeasureToolKind`, and a completed measurement is saved at once (no `save(name:)`; names are given by Rename).
+
+**Rules.**
+
+*Tap.* A nil hit sets the hint `Copy.MeasureTool.noSurface` and places nothing. Otherwise the point is `MeasureToolSnaps.resolve(hit, parts: viewer.content.parts, context:, snapping: snappingEnabled)`. A point with a feature fires `Haptics.selection()` and shows `snapText` (MEAS-08). Distance and height complete at 2 points, angle at 3. Area: a tap whose point projects (`screenPoint`) within `closeRadiusPoints` of the first point's projection, with 3 or more points placed, completes the area; otherwise the point is appended (at most `maximumAreaPoints`). Wall: `MeasureToolSnaps.wall(for:context:)` gives `wallRecords`, or the hint `noWall`. After every change `draft.value = MeasureToolSnaps.value(draft, context:)` and the hint follows `MeasureToolPresentation.hint`.
+
+*Completion.* The record (or the two wall records) is appended to `records`, saved, logged with `logLine(_:event: "created")`, `Haptics.tap()` fires, and the draft is cleared (the tool stays). Saving is `EditStore.saveMeasurements(records, to: package)` on a private serial `DispatchQueue` (label "mapper.measuretool.io", QoS utility), so writes land in order and never block main; a failure is logged, sets `errorText` and reloads the records from disk.
+
+*Drag.* Handles exist for draft points and for points of saved distance, height, area and angle records (wall records have none). Each drag event re-resolves the point under the finger; the value updates live; `endDrag` saves a moved record.
+
+*Display.* The overlay draws every saved record and the draft while measuring (Results shows the overlay only in measure mode). Lines: distance and height as a segment (height from the lower point straight up to the upper point's height, then a thin dashed line to the upper point); area as a closed polygon with a translucent fill; angle as two arms with a small arc. Labels sit at the segment middle, the area center or next to the corner, showing `label(_:kind:prefs:)` in two lines. A label or line whose points project to nil (behind the camera) is skipped.
+
+*Confidence.* No sigma is computed outside `ConfidenceAdapter`, `MeasurementConfidence` and `MeasureMath`; no text outside `MeasureDisplay`. RoomPlan-derived wall values keep the 3 cm floor (`roomPlanLength`); free points use Coverage's evidence model; a mesh vertex snap uses `MeasurementSnapKind.vertex` and a free scan surface `.none` (never `.roomSurface`).
+
+**Uses.** Viewer3D: `ViewerModel` (`hitTest(_:)`, `project(_:)`, `cameraRevision`, `content`), `ViewerHit` (`position`, `partID`, `triangle`, `pickTag`), `ViewerPickTag`, `ViewerPart` (`id`, `positions`, `indices`). MeasureCore: `SnapSet` (`build(from:includeObjects:)`, `hit(_:)`, `empty`, `corners`, `cornerElements`, `cornerFeatures`, `edges`, `edgeElements`, `edgeFeatures`, `planes`, `planeElements`, `planeFeatures`, `planeRegions`), `SnapSetHit`, `SnapSetFeature` (`snappedText`), `ConfidenceAdapter` (`distance(start:end:length:)`, `roomPlanLength(_:wall:room:provenance:)`, `evidence(distance:observations:room:snap:)`, `measurementSnapKind(_:)`, `lowConfidenceSigmaFactor`), `RoomEvidence` (`wall(_:)`, `typicalWall`, `unknown`), `WallEvidence`, `MeasureDisplay` (`valueText`, `accuracyText`, `isLowConfidence(_:kind:)`, `accessibilityText(label:value:kind:prefs:)`), `MeasureRoomSizes.wallLength(_:)`. Coverage: `MeasurementEvidence`, `MeasurementSnapKind`, `MeasurementConfidence` (`pointAccuracy(_:)`, `driftRate(trackingNormalFraction:)`, `isWeak(_:)`). RoomModel: `CleanModelStore.loadEdited(_:)`. Quality: `QualityStore.load(_:room:)`, `QualityEvaluation.evidence`. Store: `EditStore` (`loadMeasurements`, `saveMeasurements(_:to:)`), `ProjectLibrary.shared.package(for:)`, `Notification.Name.mapperEditsDidChange`. Geometry: `Polygon2D` (`contains(point:)`, `centroid`). Core: `CleanModel`, `CleanRoom`, `CleanWall`, `CleanOpening`, `CleanFloor` (`mergedOutlines`, CR-1), `DetectedObject`, `MeasurementRecord`, `MeasurementKind`, `MeasuredValue` (`lowConfidenceRelative`), `SnapKind`, `MeasurementSource.viewer`, `ElementID`, `Vec3`, `PlanAxes.toPlan(_:)`. Units: `UnitPreferences.load(from:)`. Support: `Haptics.selection()`, `Haptics.tap()`, `LogStore` (category "measure"), Copy as listed below.
+
+**Apple APIs.** SwiftUI `Canvas` (RESEARCH 3.6: `struct Canvas<Symbols>`, iOS 15.0) for lines and fills; `DragGesture` with `init(minimumDistance: CGFloat = 10, coordinateSpace: some CoordinateSpaceProtocol = .local)` (RESEARCH 3.6, iOS 17.0; handles use `minimumDistance: 0`); `Picker` with `.pickerStyle(.segmented)` (RESEARCH 3.10); not in RESEARCH: `.swipeActions` and `.confirmationDialog` (iOS 15), `.alert(_:isPresented:actions:)` with a `TextField` inside (iOS 16), `NotificationCenter.default.publisher(for:object:)` (Combine, iOS 13), `DispatchQueue(label:qos:)` (iOS 8).
+
+**Must NOT do.** Never write raw data, the edit log or any file but `edits/measurements.json` (through `EditStore`). Never add parts to the viewer or call `viewer.load` (overlays only). Never show a value without the accuracy text, `Copy.Measure.lowConfidence` or `Copy.Measure.notMeasured` from `MeasureDisplay`, and never format a number outside Units. Never call a mesh vertex a corner (no snap tag for mesh snaps). Never measure a curved wall by its chord (`MeasureRoomSizes.wallLength`). Never block main on disk. No SceneKit, no `Scene.raycast`, no collision components. No hardcoded text.
+
+**Copy strings.** Existing: `Copy.Measure.title`, `distance`, `wallLength`, `surfaceArea`, `perimeter`, `angle`, `volume`, `undoPoint`, `snapToggle`, `snapTargets` and `snapped(to:)` (through `SnapSetFeature.snappedText`), `lowConfidence`, `notMeasured`, `accuracy(_:)` (through MeasureDisplay), `disclaimer`; `Copy.Viewer.height`; `Copy.WallMenu.title`; `Copy.Scanning.done`; `Copy.Results.dimensionsTitle`; `Copy.Empty.noMeasurements`; `Copy.Project.rename`, `delete`, `cancel`; `Copy.Errors.saveFailed`, `ok`; `Copy.A11y.measurement(_:value:)` (through MeasureDisplay). New in `Copy+MeasureTool.swift` (`extension Copy { enum MeasureTool }`):
+- `area = "Area"`
+- `tapFirst = "Tap where the measurement starts"`, `tapSecond = "Now tap where it ends"`
+- `tapWall = "Tap a wall"`, `noWall = "That isn't a wall. Tap a wall"`
+- `areaFirst = "Tap the first corner of the area"`, `areaNext = "Tap the next corner"`, `areaClose = "Tap the first point again, or tap Finish Area"`
+- `finishArea = "Finish Area"`
+- `angleFirst = "Tap a point on the first side"`, `angleCorner = "Tap the corner"`, `angleSecond = "Tap a point on the second side"`
+- `noSurface = "Tap on the model"`
+- `static func numbered(_ title: String, _ n: Int) -> String { "\(title) \(n)" }`
+- `renameTitle = "Rename Measurement"`, `namePlaceholder = "Measurement name"`
+- `deleteAll = "Delete All"`, `deleteAllTitle = "Delete all measurements?"`, `deleteAllBody = "Only the measurements you made in this model are removed. Your scan is not affected."`
+- `static func pointLabel(_ n: Int) -> String { "Point \(n)" }`, `pointHint = "Drag to move this point"`
+
+**Self-test.** `MeasureToolSelfTest.run()`, at least 28 checks, fixtures built by hand (a 4 x 5 x 2.5 m clean room with a door, a window and a sofa; a second 2 x 2 m part in `mergedOutlines`; synthetic `ViewerPart`s and `ViewerHit`s; no ARView):
+1. `angle` of (1,0,0), (0,0,0), (0,0,1) is pi / 2 within 1e-5; collinear points give pi; a 0.5 mm arm gives 0.
+2. `polygonArea` of a 2 x 3 m rectangle on the floor is 6 within 1e-5, the same rectangle tilted 30 degrees is 6, a right triangle with legs 1 m is 0.5, two points give 0.
+3. `polygonCenter` of the rectangle is its center; `polygonNormal` of the floor rectangle is (0, plus or minus 1, 0).
+4. `verticalDistance` of (0, 0.1, 0) and (1, 2.6, 3) is 2.5.
+5. `areaSigma` with zero sigmas and zero drift is 0; four sigmas of 0.01 on a 1 x 1 m square give 0.01 within 1e-5; a drift of 0.01 adds (0.02)^2 under the root.
+6. `angleSigma` is larger with 0.5 m arms than with 2 m arms.
+7. `combined` of the two room sets keeps every parallel array the same length as its candidate array.
+8. A point 3 cm from a floor corner resolves to `.corner` with feature `.corner`; 2 cm from a wall and 1 m from its edges to `.plane` with feature `.wall` and that wall's element.
+9. With `excludeMovable` a point 2 cm from a sofa box corner no longer snaps to a feature `.objectEdge`.
+10. A point 2 cm above the floor of the merged part resolves to `.plane` with feature `.floor`.
+11. A `.rawMesh` hit 1 cm from a triangle corner, far from the room, resolves to `.meshVertex` at that corner; 5 cm away to `.meshSurface`; with snapping off to `.meshSurface` at the hit position with no feature.
+12. An `.element(wall)` hit far from every snap candidate resolves to `.plane` with that element.
+13. `room(containing:)` picks the room whose outline holds the point; with two stacked rooms it picks the lower one for a point 0.1 m above the lower floor.
+14. `evidence`: a point snapped to wall W uses W's `medianDistance` and `observations`; a point snapped to the door uses its host wall's; a free point uses the room's `typicalWall`; without evidence the distance is 2.0 m and the observations 3.
+15. A 2.0 m distance with good evidence has a sigma above 0 and `MeasureDisplay.isLowConfidence(_:kind: .distance)` false; with tracking fraction 0.3 it is true.
+16. A height draft's value equals `verticalDistance` of its points.
+17. An area draft has a value at 3 points and none at 2.
+18. An angle whose corner evidence has 0 observations is low confidence (`isLowConfidence(kind: .angle)`).
+19. `wallRecords` of a 4 m by 2.5 m wall gives `.wallLength` 4 and `.height` 2.5, each with sigma at least 0.015.
+20. `wallRecords` of a curved wall uses the arc length (larger than the chord).
+21. `record(for:)` of a distance draft has 2 points, 2 snaps, source `.viewer` and the roomID of the first point's room.
+22. `moving` a distance record changes its value and keeps id, name and createdAt; moving a `.wallLength` record returns it unchanged.
+23. `rows` of two distances and one area, none named, titles "Distance 1", "Distance 2", "Surface area 1" (built with `Copy.MeasureTool.numbered` and `kindTitle`); a named record keeps its name.
+24. Every row of a measured record has an accuracy text that is `Copy.Measure.lowConfidence` or contains exactly one plus-minus sign.
+25. `hint` texts are non-empty and distinct for every tool and placed count used by the model.
+26. `snapText` of a point with feature `.door` equals `Copy.Measure.snapped(to: "door")`; a mesh point gives nil.
+27. `kindTitle` is non-empty for every `MeasurementKind.allCases`; `minimumPoints` and `measurementKind` match the table above.
+28. `EditStore.saveMeasurements` then `loadMeasurements` of three records made by this module round trip in a temporary package.
+29. `logLine` contains the kind raw value and each point in whole millimeters.
+
+**Acceptance checks.** Measuring never changes raw data or the edit log (PEDIT rule, smoke #8 raw check); every value on screen shows its accuracy text or the low-confidence text; snapping order is corner, edge, plane, then mesh vertex; the overlay passes every touch but the handles to the viewer; a completed measurement appears in the list at once and survives closing and reopening the project (MEAS-10); the log has one "created", "edited" or "deleted" line per change with points, value, sigma and snap targets; all text from Copy.
+
+**SPEC owned.** "MEASUREMENT SYSTEM": point-to-point distance, wall length, wall height, ceiling height (Height tool), angle, surface area (Area tool), "Users must be able to manually place measurement points", "Use snapping when appropriate" (corner, wall, edge, floor, ceiling, door, window, object edge), unit switching through MeasureDisplay; "MEASUREMENT CONFIDENCE" in the tool (plus-or-minus, "Low confidence, rescan this section", no survey-grade wording); "3D EDITING" Object: Measure and Wall: Measure (the Distance and Wall tools; the menus arrive in build 7); deliverables 5, 8 and 11.
+
+**TEST_PLAN ids.** MEAS-01, MEAS-02, MEAS-03, MEAS-06 (surface area), MEAS-07, MEAS-08, MEAS-09, MEAS-10, MEAS-11 (object box edges), CONF-01 to CONF-04, OFF-01 (measuring inside the model), smoke #7.
 
 ### 3.36 LiveMeasure (wave 5a)
 
-**Purpose.** Quick Measure: `ARView` `.ar` on its own hub with `ScanProfile(mode: .quickMeasure, settings: ScanSettings.defaults(for: .quickMeasure))` (planes on, D14), center reticle, Add Point, raycast snapping (existing points and plane corners within 10 cm or 24 pt, then `.existingPlaneGeometry`, then `.estimatedPlane`), live label, plus or minus from `ConfidenceAdapter.distance` with the center depth sample, and Save that creates a `quickMeasure` project with `raw/measure/quick.json`.
-**Files.** `ios/Sources/LiveMeasure/LiveMeasureModel.swift`, `LiveMeasureScreen.swift`, `LiveMeasureSnapping.swift`, `LiveMeasureSelfTest.swift`, `Copy+LiveMeasure.swift`.
-**Apple APIs.** `@MainActor @preconcurrency func raycast(from point: CGPoint, allowing target: ARRaycastQuery.Target, alignment: ARRaycastQuery.TargetAlignment) -> [ARRaycastResult]` (ARView, view points); `ARPlaneAnchor` `planeExtent`; `ARPlaneGeometry.boundaryVertices` via `geometry` (not in RESEARCH, iOS 11.3).
-**Self-test.** At least 8 checks on snapping order and the saved record.
-**SPEC owned.** "SCANNING MODES" QUICK MEASURE; "MEASUREMENT SYSTEM" (point-to-point in the live camera).
+**Purpose.** Quick Measure: measure distances in the live camera without scanning a room. An `ARView` in `.ar` mode on its own `ARSessionHub` with `ScanProfile(mode: .quickMeasure, settings: ScanSettings.defaults(for: .quickMeasure))` (plane detection on, the only mode where it is, D14), a fixed center reticle and a large Add Point button (RESEARCH 3.10 measurement tool), snapping in the RESEARCH 3.8 order (existing points, plane corners from `ARPlaneAnchor` extents and plane-plane-floor intersections, then `.existingPlaneGeometry`, then `.estimatedPlane`) within the smaller of 10 cm in the world and 24 pt on screen, a live length label, plus or minus from `ConfidenceAdapter.distance` with evidence from the center depth samples, and Save, which creates a `.quickMeasure` project holding `raw/measure/quick.json` and a thumbnail. Nothing is recorded before Save and no raw ARKit data is recorded at all.
+
+**Build and wave.** Build 5, wave 5a. Core, CaptureCore, MeasureCore, Store, GuidanceUI, Coverage (`MeasurementEvidence`, `MeasurementSnapKind`, `GuidanceEngine`), Geometry (`Plane`), Pipeline (`IdleTimerGuard`), ScanUI (`ScanFlowModel.defaultProjectName(mode:now:)` only), Units, Support; ARKit, RealityKit, SwiftUI, UIKit. It must not reference LiveMeshView (same wave): it has its own small container. About 1300 lines plus the self-test.
+
+**Files.** `ios/Sources/LiveMeasure/LiveMeasureModel.swift` (the `@MainActor` model: hub, points, reticle loop), `LiveMeasureModel+Save.swift` (project creation, file, thumbnail), `LiveMeasureProbe.swift` (hub recorder: plane anchors and center depth samples), `LiveMeasureSnapping.swift` (pure: plane corners, candidate choice, evidence, tags), `LiveMeasureStore.swift` (`QuickMeasureFile`, `QuickMeasureStore`), `LiveMeasureContainer.swift`, `LiveMeasureScreen.swift`, `LiveMeasureSelfTest.swift`, `ios/Sources/Support/Copy+LiveMeasure.swift`.
+
+**Public Swift API.**
+```swift
+enum LiveMeasurePlaneFacing: Equatable, Sendable { case horizontal, vertical }
+enum LiveMeasurePlaneKind: Equatable, Sendable { case wall, floor, ceiling, table, seat, door, window, unknown }
+/// An `ARPlaneAnchor` copied on the hub queue (the anchor itself is never kept).
+struct LiveMeasurePlane: Equatable, Sendable {
+    var id: UUID
+    /// Anchor to world.
+    var transform: simd_float4x4
+    /// Anchor-local center of the extent.
+    var center: SIMD3<Float>
+    /// `planeExtent.width` (local x) and `planeExtent.height` (local z), meters.
+    var width: Float
+    var length: Float
+    /// `planeExtent.rotationOnYAxis`, radians (applied by us, RESEARCH 3.1 gotcha 17).
+    var rotationOnYAxis: Float
+    var facing: LiveMeasurePlaneFacing
+    var kind: LiveMeasurePlaneKind
+}
+/// One center-of-view sample (10 Hz).
+struct LiveMeasureDepthSample: Equatable, Sendable {
+    var timestamp: Double
+    /// `ARFrameReading.centerDepth(of:)`: median depth of the 5 x 5 center pixels and their confidence 0...1.
+    var distance: Float?
+    var confidence: Float?
+    var trackingNormal: Bool
+    var cameraToWorld: simd_float4x4
+}
+
+/// Hub recorder of Quick Measure: copies plane anchors and 10 Hz center samples; records nothing.
+/// Callbacks on the hub queue; readers lock-protected, any thread.
+final class LiveMeasureProbe: ScanRecorder {
+    static let sampleInterval: TimeInterval = 0.1
+    /// Samples kept, seconds.
+    static let windowSeconds: Double = 5
+    init()
+    /// Unused (Quick Measure has no raw folder); resets the samples.
+    func beginRecording(into folder: RawScanFolder, profile: ScanProfile, startTimestamp: TimeInterval)
+    func hub(_ hub: ARSessionHub, didUpdate frame: ARFrame)
+    func hub(_ hub: ARSessionHub, didAdd anchors: [ARAnchor])
+    func hub(_ hub: ARSessionHub, didUpdate anchors: [ARAnchor])
+    func hub(_ hub: ARSessionHub, didRemove anchors: [ARAnchor])
+    /// Calls `completion` at once.
+    func finishRecording(completion: @escaping () -> Void)
+    var stats: RecorderStats { get }
+    func planes() -> [LiveMeasurePlane]
+    func recentSamples() -> [LiveMeasureDepthSample]
+    /// Main-queue callbacks carrying values only.
+    var onGuidance: ((GuidanceKind?) -> Void)?
+    var onRelocalization: (() -> Void)?
+    /// Installs the hub's `onStatus` (guidance through a `GuidanceEngine` confined to hub.queue, then
+    /// `LiveMeasureSnapping.filterGuidance`, then `onGuidance` on main) and `onCaptureEvent`
+    /// (`.relocalization` events to `onRelocalization` on main), both capturing `self` weakly. The
+    /// probe is a plain class, so these closures are formed outside any actor; the `@MainActor` model
+    /// never forms hub-queue closures itself. The first frame after install calls
+    /// `hub.markScanStart(timestamp:)`.
+    func install(on hub: ARSessionHub)
+    /// Clears the two hub closures. Idempotent.
+    func uninstall(from hub: ARSessionHub)
+    /// Hub queue. The value copy of one plane anchor (ARKit).
+    static func planeRecord(from anchor: ARPlaneAnchor) -> LiveMeasurePlane
+    /// Pure mapping; `.none(_)` and unknown cases give `.unknown`.
+    static func kind(_ classification: ARPlaneAnchor.Classification) -> LiveMeasurePlaneKind
+}
+
+/// Where a snapped point came from, in priority order.
+enum LiveMeasureSnapSource: Int, Comparable, Sendable {
+    case existingPoint = 0, planeCorner, planeGeometry, estimatedPlane
+    static func < (lhs: LiveMeasureSnapSource, rhs: LiveMeasureSnapSource) -> Bool
+}
+/// Tags shown as "Snapped to {target}"; raw values index `Copy.Measure.snapTargets`.
+enum LiveMeasureSnapTag: Int, CaseIterable, Sendable {
+    case corner = 0, wall, edge, floor, ceiling, door, window, objectEdge
+    /// `Copy.Measure.snapTargets[rawValue]`, bounds-checked (empty string when out of range).
+    var target: String { get }
+}
+struct LiveMeasureCandidate: Equatable {
+    var point: SIMD3<Float>
+    /// `arView.project(point)`, nil when behind the camera.
+    var screen: CGPoint?
+    var source: LiveMeasureSnapSource
+    var snap: SnapKind
+    var tag: LiveMeasureSnapTag?
+}
+struct LiveMeasureResolution: Equatable {
+    var point: SIMD3<Float>
+    var source: LiveMeasureSnapSource
+    var snap: SnapKind
+    var measurementSnap: MeasurementSnapKind
+    var tag: LiveMeasureSnapTag?
+    /// True for existing points and plane corners (a haptic and the "Snapped to" tag).
+    var isSnapped: Bool
+}
+
+/// Snapping, plane corners and evidence. Pure.
+enum LiveMeasureSnapping {
+    static let worldRadius: Float = 0.10
+    static let screenRadius: CGFloat = 24
+    /// A plane intersection counts as a corner within this distance of all three extents.
+    static let cornerExtentSlack: Float = 0.30
+    /// Corners farther than this from the camera are not offered.
+    static let maxCornerDistance: Float = 4
+    /// The 4 extent corners in world space: center plus the rotated half extents in the anchor's x-z plane, through `transform`.
+    static func extentCorners(_ plane: LiveMeasurePlane) -> [SIMD3<Float>]
+    /// Geometry `Plane` through the world extent center with the anchor's y axis as the normal.
+    static func worldPlane(_ plane: LiveMeasurePlane) -> Plane
+    /// `Plane.intersection(_:_:_:)` of every pair of vertical planes whose normals differ by more than
+    /// 45 degrees with every horizontal plane, kept within `cornerExtentSlack` of all three extents.
+    static func intersectionCorners(_ planes: [LiveMeasurePlane]) -> [SIMD3<Float>]
+    /// Corner candidates (extent corners of every plane, then intersections) within `maxCornerDistance` of `camera`.
+    static func cornerPoints(_ planes: [LiveMeasurePlane], camera: SIMD3<Float>) -> [SIMD3<Float>]
+    /// Existing points, then plane corners: the nearest on screen among those within `worldRadius` of the
+    /// ray hit (`hit.point`) and within `screenRadius` of `reticle` (when projected); else `hit` (plane
+    /// geometry); else `fallback` (estimated plane); else nil.
+    static func resolve(hit: LiveMeasureCandidate?, fallback: LiveMeasureCandidate?, candidates: [LiveMeasureCandidate],
+                        reticle: CGPoint) -> LiveMeasureResolution?
+    /// wall -> .wall, floor -> .floor, ceiling -> .ceiling, door -> .door, window -> .window,
+    /// table and seat -> .objectEdge, unknown -> nil.
+    static func tag(for kind: LiveMeasurePlaneKind) -> LiveMeasureSnapTag?
+    /// existingPoint keeps the snapped point's kind; planeCorner and planeGeometry -> .plane; estimatedPlane -> .none.
+    static func measurementSnap(for source: LiveMeasureSnapSource, inherited: MeasurementSnapKind?) -> MeasurementSnapKind
+    /// Evidence at commit time: distance from the latest camera to `point`; observations = recent
+    /// samples (last second) whose depth is within 2 cm of the latest, 1...9; confidence = their mean
+    /// when the latest depth is within 5 cm of that distance, else nil; tracking fraction over the window.
+    static func evidence(point: SIMD3<Float>, samples: [LiveMeasureDepthSample], snap: MeasurementSnapKind,
+                         now: Double) -> MeasurementEvidence
+    /// Tier 1 messages only (Quick Measure is not a coverage scan).
+    static func filterGuidance(_ output: GuidanceOutput) -> GuidanceOutput
+    /// The Mapper guidance input from a hub status (tracking, speeds, distance, light, depth confidence, heat).
+    static func guidanceInput(time: Double, status: HubStatus) -> GuidanceInput
+}
+
+struct LiveMeasurePoint {
+    var position: SIMD3<Float>
+    var snap: SnapKind
+    var evidence: MeasurementEvidence
+}
+struct LiveMeasureSegment: Identifiable {
+    let id: UUID
+    var start: LiveMeasurePoint
+    var end: LiveMeasurePoint
+    /// `ConfidenceAdapter.distance(start:end:length:)`.
+    var value: MeasuredValue
+    var createdAt: Date
+    /// kind .distance, the two points and snaps, source .live, name "", roomID nil.
+    func record() -> MeasurementRecord
+}
+enum LiveMeasurePhase: Equatable { case starting, measuring, saving, saved(UUID), failed(String) }
+
+@MainActor final class LiveMeasureModel: ObservableObject {
+    /// Reticle refresh rate, Hz.
+    static let reticleHz: Double = 15
+    @Published private(set) var phase: LiveMeasurePhase
+    @Published private(set) var segments: [LiveMeasureSegment]
+    @Published private(set) var pending: LiveMeasurePoint?
+    @Published private(set) var reticle: LiveMeasureResolution?
+    /// Pending point to reticle, while a point is pending.
+    @Published private(set) var liveValue: MeasuredValue?
+    /// Screen points of segment midpoints and endpoints for labels and lines (refreshed with the reticle).
+    @Published private(set) var screenPoints: [UUID: (start: CGPoint?, end: CGPoint?, middle: CGPoint?)]
+    @Published private(set) var guidance: GuidanceKind?
+    @Published var snappingEnabled: Bool
+    @Published var showsDiscardConfirmation: Bool
+    @Published var alert: String?
+    let hub: ARSessionHub
+    let prefs: UnitPreferences
+    /// Called with the new project id after Save.
+    var onComplete: ((UUID) -> Void)?
+    /// Called when the screen closes without saving.
+    var onDismiss: (() -> Void)?
+    init()
+    /// Main. The container's view (kept weakly); starts the reticle loop.
+    func attach(_ arView: ARView)
+    /// Main. `hub.install()`, `hub.attach(probe)`, `probe.install(on: hub)`, `hub.run()`, an IdleTimerGuard token.
+    func start()
+    func addPoint()
+    /// Removes the pending point, else reopens the last segment's end.
+    func undo()
+    func clearAll()
+    /// Creates the project and files (below); phase `.saved(id)` then `onComplete`.
+    func save()
+    /// Asks to discard unsaved segments, else closes.
+    func close()
+    func confirmDiscard()
+    /// Main, idempotent: loop stopped, `hub.pause()`, probe detached, hub closures nil, token released.
+    func teardown()
+    /// Value, accuracy and VoiceOver texts through MeasureDisplay.
+    func valueText(_ value: MeasuredValue) -> String
+    func accuracyText(_ value: MeasuredValue) -> String?
+}
+
+/// `raw/measure/quick.json` (`ProjectPackage.quickMeasureURL`).
+struct QuickMeasureFile: Codable, Equatable, Sendable {
+    static let currentVersion = 1
+    var version: Int
+    var createdAt: Date
+    var records: [MeasurementRecord]
+}
+enum QuickMeasureStore {
+    static let maxBytes: Int64 = 4 * 1024 * 1024
+    /// raw/measure/.
+    static func folder(_ package: ProjectPackage) -> URL
+    /// Makes raw/measure/ with `ProjectStore.ensureDirectory(_:inside: package.root)`, writes quick.json with
+    /// `ProjectStore.writeJSON(_:to:createParents: false)`, then seals the folder (`ProjectStore.sealRawFolder`).
+    /// Throws when the package is gone.
+    static func save(_ records: [MeasurementRecord], to package: ProjectPackage, now: Date) throws
+    /// Nil when absent or unreadable (logged); reads with `maxBytes`.
+    static func load(_ package: ProjectPackage) -> QuickMeasureFile?
+}
+
+/// ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false) on `model.hub.session`,
+/// `hub.install()` right after, coaching overlay (goal `.tracking`), then `model.attach(_:)`.
+struct LiveMeasureContainer: UIViewRepresentable {
+    init(model: LiveMeasureModel)
+}
+/// Reticle, segment lines and labels (value plus accuracy), live label, "Snapped to" tag, hint
+/// (aim or next), guidance banner, Undo, Add Point, Save, Clear All, Close; forced dark.
+struct LiveMeasureScreen: View { init(model: LiveMeasureModel) }
+```
+
+Reticle loop (main, `Task` with `Task.sleep(nanoseconds:)` at `reticleHz`): with the view attached and phase `.measuring`: the view center; `arView.raycast(from: center, allowing: .existingPlaneGeometry, alignment: .any).first` gives the plane-geometry candidate (tag from the hit's `anchor` when it is an `ARPlaneAnchor`, looked up by identifier in `probe.planes()`), `arView.raycast(from: center, allowing: .estimatedPlane, alignment: .any).first` the fallback; candidates are the committed and pending points and, refreshed every fifth tick, `cornerPoints(probe.planes(), camera:)`, each with `arView.project(_:)`; with snapping off only the two raycast hits count. `resolve` gives the reticle; a newly snapped candidate fires `Haptics.selection()`. The live value is the pending point to the reticle with evidence from `evidence(point:samples:snap:now:)`. Add Point commits the reticle (nothing without one), fires `Haptics.tap()`, and closes a segment when a point was pending (non-chained: the next point starts a new measurement; snapping to an existing point chains them by hand).
+
+Guidance: the probe's `onStatus` closure runs `guidanceInput(time:status:)` through a `GuidanceEngine` confined to hub.queue, then `filterGuidance`, then `onGuidance` on main. A `.relocalization` capture event while points exist sets `alert` to `Copy.LiveMeasure.relocalized`.
+
+Save (`LiveMeasureModel+Save.swift`, main, with the file work in a detached task): `ProjectLibrary.shared.create(kind: .quickMeasure, name: ScanFlowModel.defaultProjectName(mode: .quickMeasure, now: Date()))` ("Measurement Sep 28", named at creation as ScanUI names rooms); `QuickMeasureStore.save(segments.map { $0.record() }, to: package, now: Date())`; then, as soon as quick.json is sealed, `ProjectLibrary.shared.update(id) { $0.status = .ready }` (a Quick Measure project has nothing to process; a kill between create and this update leaves a `.capturing` project that AppShell's recovery sets `.ready` when quick.json exists and deletes when it does not, 3.43e); `arView.snapshot(saveToHDR: false)` to `jpegData(compressionQuality: 0.7)` written with `ProjectStore.writeData(_:to: package.thumbnailURL)` (best effort, logged); then `teardown()` and `onComplete(id)`. A failure deletes the new project (`ProjectLibrary.shared.delete`), shows `Copy.Errors.saveFailed` and keeps the segments on screen.
+
+**Uses.** CaptureCore: `ARSessionHub` (`init(profile:)`, `install()`, `run(options:)`, `pause()`, `attach(_:)`, `detach(_:)`, `markScanStart(timestamp:)`, `onStatus`, `onFrame`, `onCaptureEvent`, `queue`), `ScanRecorder`, `ScanProfile` (`wantsPlaneDetection`), `HubStatus`, `RecorderStats`, `ARFrameReading.centerDepth(of:)`, `TrackingMonitor.summary(_:)`. MeasureCore: `ConfidenceAdapter.distance(start:end:length:)`, `MeasureDisplay.valueText(_:kind:prefs:)`, `accuracyText(_:kind:prefs:)`, `accessibilityText(label:value:kind:prefs:)`, `isLowConfidence(_:kind:)`. Coverage: `MeasurementEvidence`, `MeasurementSnapKind`, `GuidanceEngine`, `GuidanceInput`, `GuidanceOutput`. GuidanceUI: `GuidanceSignals.tracking(_:)`, `GuidanceBanner`, `GuidanceAnnouncer`. Store: `ProjectLibrary` (`create(kind:name:)`, `update(_:_:)`, `delete(_:)`, `package(for:)`). Geometry: `Plane` (`init(point:normal:)`, `intersection(_:_:_:)`, `signedDistance(to:)`). Units: `UnitPreferences.load(from:)`. Pipeline: `IdleTimerGuard`. ScanUI: `ScanFlowModel.defaultProjectName(mode:now:)`. Core: `MeasurementRecord`, `MeasurementKind`, `MeasuredValue`, `SnapKind`, `MeasurementSource`, `Vec3`, `ScanMode`, `ScanSettings.defaults(for:)`, `ProjectPackage` (`quickMeasureURL`, `thumbnailURL`, `rawURL`), `ProjectStore` (`ensureDirectory(_:inside:)`, `writeJSON(_:to:protection:createParents:)`, `readJSON(_:from:maxBytes:)`, `writeData(_:to:protection:createParents:)`, `sealRawFolder(_:now:)`, `encoder`, `decoder`), `CaptureEvent`. Support: `Copy.Measure`, `Copy.Modes.quickMeasure`, `Copy.Errors.saveFailed`, `Copy.A11y` (`crosshair`, `crosshairHint`, `close`, `measurement(_:value:)`), `Haptics.selection()`, `Haptics.tap()`, `LogStore`.
+
+**Apple APIs** (RESEARCH 3.1, 3.5, 3.8, 3.10):
+```swift
+@MainActor @preconcurrency init(frame frameRect: CGRect, cameraMode: ARView.CameraMode, automaticallyConfigureSession: Bool)
+dynamic var session: ARSession { get set }
+@MainActor @preconcurrency func raycast(from point: CGPoint, allowing target: ARRaycastQuery.Target,
+                                        alignment: ARRaycastQuery.TargetAlignment) -> [ARRaycastResult]   // view points, nearest first
+// Target: existingPlaneGeometry, estimatedPlane. Alignment: any.
+// ARRaycastResult: worldTransform, anchor (nil for estimatedPlane unless an existing plane is hit)
+@MainActor @preconcurrency func project(_ point: SIMD3<Float>) -> CGPoint?
+@MainActor @preconcurrency func snapshot(saveToHDR: Bool, completion: @escaping (ARView.Image?) -> Void)
+var cameraTransform: Transform { get }                           // ARView
+// ARPlaneAnchor: alignment, center, geometry (not used), classification: ARPlaneAnchor.Classification (iOS 12.0)
+var planeExtent: ARPlaneExtent { get }                           // iOS 16.0 (width, height, rotationOnYAxis)
+class ARCoachingOverlayView                                      // iOS 13.0: goal, activatesAutomatically, setActive(_:animated:)
+var planeDetection: ARWorldTrackingConfiguration.PlaneDetection  // [.horizontal, .vertical] through ScanConfigurationFactory only
+```
+Not in RESEARCH (checked against Apple's documentation JSON): `ARPlaneAnchor.Classification` cases `wall`, `floor`, `ceiling`, `table`, `seat`, `door`, `window`, `none(_:)` (iOS 12.0; switch with `@unknown default`); `ARPlaneExtent` `var width: Float`, `var height: Float`, `var rotationOnYAxis: Float { get }` (iOS 16.0); `ARPlaneAnchor.Alignment` `.horizontal`, `.vertical` (iOS 11.0); `var session: ARSession?` and `goal` on `ARCoachingOverlayView` (iOS 13.0); `Transform.matrix` (RealityKit, iOS 13); `UIImage.jpegData(compressionQuality:)` (iOS 2); `Task.sleep(nanoseconds:)` (iOS 13).
+
+**Must NOT do.** Never record raw ARKit data (no MeshStore, keyframes, pose track or InProgress folder). Never turn on plane detection in any other mode (the profile's mode is `.quickMeasure` only here, D14). Never create the project before Save, never leave it in `.capturing`. Never keep an `ARPlaneAnchor` or `ARFrame`. Never use `ARFrame.hitTest(_:types:)` or `ARPlaneAnchor.extent` (deprecated), never pass view points to `ARFrame.raycastQuery` (it takes normalized points). Never raycast off main. Never show a plus-minus that did not come through `MeasureDisplay`, never format a length without Units. Never show tier 2 or 3 guidance here. Never write `isIdleTimerDisabled`. No hardcoded text.
+
+**Copy strings.** Existing: `Copy.Modes.quickMeasure` (title), `Copy.Measure.addPoint`, `undoPoint`, `clearAll`, `save`, `distance`, `aimHint`, `nextHint`, `snapToggle`, `snapTargets`, `snapped(to:)`, `accuracy(_:)` (through MeasureDisplay), `lowConfidence`, `disclaimer`; `Copy.Errors.saveFailed`; `Copy.A11y.crosshair`, `crosshairHint`, `close`, `measurement(_:value:)`; `Copy.Scanning.cancelConfirmKeep`. New (`extension Copy { enum LiveMeasure }` in `Copy+LiveMeasure.swift`): `noSurface = "Point at a surface"`, `findingSurfaces = "Move your iPhone slowly to find surfaces"`, `listTitle = "Measurements"`, `static func itemTitle(_ n: Int) -> String { "Distance \(n)" }`, `discardTitle = "Discard these measurements?"`, `discardBody = "They haven't been saved yet."`, `discardConfirm = "Discard"`, `saving = "Saving..."`, `relocalized = "Tracking was lost for a moment. Check your points, or clear them and measure again."`, `static func a11yLive(_ value: String) -> String { "Current distance, \(value)" }`.
+
+**Self-test.** `LiveMeasureSelfTest.run()`, at least 20 checks:
+1. `extentCorners` of a horizontal 1 x 2 m plane at the origin, rotation 0: corners (plus or minus 0.5, 0, plus or minus 1).
+2. Rotation pi / 2 swaps the extents; a translation of (0, 0.75, 0) lifts every corner.
+3. `intersectionCorners`: walls x = 0 and z = 0 (4 m extents) with a floor y = 0 give the corner (0, 0, 0).
+4. Two parallel walls give no corner; a corner 1 m outside an extent is dropped.
+5. `resolve`: an existing point 5 cm from the hit and a corner 3 cm from it: the existing point wins.
+6. A corner 12 cm away in the world is not snapped (falls back to the plane-geometry hit).
+7. A corner 8 cm away but 40 pt from the reticle on screen is not snapped.
+8. No hit and a fallback: source `.estimatedPlane`, snap `.none`, measurementSnap `.none`, not snapped.
+9. No hit and no fallback: nil.
+10. `tag(for: .wall)` target equals `Copy.Measure.snapTargets[1]`; corner equals index 0; unknown gives nil.
+11. `kind(_:)` for `.wall`, `.floor`, `.table` and `.none(.unknown)` (values built without ARKit running).
+12. `evidence`: ten samples at 1.00 to 1.01 m give observations 9 and a confidence; half the window not normal gives trackingNormalFraction 0.5.
+13. `evidence` without samples: observations 1, depthConfidence nil, distance equals the camera distance.
+14. A 1.0 m segment with good evidence gives a sigma above 0 and `MeasureDisplay.isLowConfidence` false; with tracking fraction 0.3 it is true.
+15. `record()`: kind `.distance`, 2 points, 2 snaps, source `.live`, roomID nil.
+16. `QuickMeasureFile` round trip through `ProjectStore.encoder` and `decoder`.
+17. `QuickMeasureStore.save` in a temporary package writes quick.json and SEAL.json listing it; `load` returns the records.
+18. `save` into a deleted package throws and creates nothing.
+19. `filterGuidance` keeps `.moveSlower` and drops `.moveCloser` and `.doorDetected`.
+20. `guidanceInput` copies the status fields and sets deviceHot at serious.
+21. `measurementSnap`: a point snapped to an existing point inherits `.plane`; a plane corner gives `.plane`.
+
+**Acceptance checks.** The model is the only owner of its hub; the hub is paused on every exit (PERF-14: the camera indicator goes off); the probe copies anchors inside the callback; raycasts and projections run on main only; the reticle loop stops on teardown; Save leaves no project in `.capturing` and quick.json is sealed; the log has one line per saved measurement with both points, the value and sigma (MODE-06 "Log").
+
+**SPEC owned.** "SCANNING MODES" QUICK MEASURE; "MEASUREMENT SYSTEM" (point-to-point distance in the live camera; "Users must be able to manually place measurement points"; snapping to corner, wall, floor, ceiling, door, window and edge live); "MEASUREMENT CONFIDENCE" (plus or minus and "Low confidence, rescan this section" on live measurements; no survey-grade wording).
+
+**TEST_PLAN ids.** MODE-06, MEAS-08 (live variant), MEAS-09, CONF-01, CONF-03, CONF-04, smoke list #6, PERF-14.
 
 ### 3.37 PlanEditor (wave 5a)
 
-**Purpose.** Floor plan editing through the EditLog (D3): selection on `PlanCanvasView` hits, move wall (two `moveWallEndpoint`), adjust wall length by typing (`LengthParser`), wall thickness, add and delete wall, add, move and resize doors and windows (CR-1, approved; the lead applies it to Core before wave 5a), add opening, flip door swing (a `.user` swing is drawn solid), rename room, merge and split rooms (CR-1), move, delete and recategorize fixtures and furniture (`moveObject`, `deleteElement`, `recategorizeObject`, SPEC "Editable detected objects"), add and delete measurement and dimension, text annotation, symbol, note, undo and redo (`EditStore.undo`/`redo`), Reset to Scan (appends nothing; clears the log after confirmation), snapping of endpoints to endpoints (50 mm), 0, 45, 90 degrees and a 100 mm or 1 in grid.
-**Files.** `ios/Sources/PlanEditor/PlanEditorModel.swift`, `PlanEditorOps.swift`, `PlanEditorToolbar.swift`, `PlanEditorSnapping.swift`, `PlanEditorSelfTest.swift`, `Copy+PlanEditor.swift`.
-**API.** `@MainActor final class PlanEditorModel: ObservableObject { init(projectID: UUID); @Published private(set) var plan: PlanModel; @Published var selection: ElementID?; func perform(_ action: PlanEditAction) throws; func undo() throws; func redo() throws; var canUndo: Bool; var canRedo: Bool }`, `enum PlanEditAction` (one case per SPEC edit, including `moveFixture(ElementID, center: Vec2, yaw: Float)`, `deleteFixture(ElementID)` and `recategorizeFixture(ElementID, ObjectCategory)`, mapped to `moveObject` (world transform from the plan center and yaw at the object's height), `deleteElement` and `recategorizeObject`), pure `enum PlanEditorOps { static func operations(for action: PlanEditAction, in level: PlanLevel) -> [EditOperation] }`.
-**Must NOT do.** Never write plan.json (the base stays derived); never touch raw.
-**Self-test.** At least 18 checks: every action maps to the expected operations and applies cleanly to a fixture plan through `PlanModel.apply` and `CleanModel.apply`, including the three fixture actions.
-**SPEC owned.** "FLOOR PLAN EDITING" (all listed operations; "Manual edits must not overwrite raw scan data"); "2D FLOOR PLAN" ("Allow manual editing"); deliverable 13 "Editable detected objects" (move, delete, change category on the plan).
+**Purpose.** Floor plan editing through the one EditLog (D3, SPEC FLOOR PLAN EDITING, "Manual edits must not overwrite raw scan data"): a full-screen editor opened from the Floor Plan tab (Results 3.43b) with Undo, Redo, Reset to Scan and Done Editing. Every user action becomes exactly one log entry (one operation, or one `batch` of operations, CR-1), so one Undo reverts the whole action, and the same entry is replayed by RoomModel on the clean model and by FloorPlan on the plan, so a wall moved on the plan also moves in 3D Clean and in the measurements. Actions:
+
+- Walls: Move Wall (drag the wall; walls joined at its ends stretch along their own lines so corners stay closed, and the shared face of the next room moves with it), drag a wall end (the corner moves with every wall joined there), Wall Length (tap the wall's length label or the command, type a length in feet and inches or metric through `LengthParser`), Wall Thickness (typed; the body grows outward, the room keeps its size), Add Wall (two taps with snapping), Delete Wall.
+- Doors, windows and openings: Add Door, Add Window, Add Opening (tap a wall), Move (drag along its wall, it cannot leave the wall), Resize (typed width and height), Flip Door Swing (four taps cycle hinge side and direction; a `.user` swing is drawn solid), Delete.
+- Rooms: Rename Room, Merge Rooms (tap the rooms to join), Split Room (draw a line across it), all through CR-1.
+- Measurements and notes: Add Measurement (two taps, a user dimension line), Delete Measurement, Add Text, Add Symbol (a short list of outlet, switch, light and similar symbols), Add Note, move (drag) and edit them, delete them.
+- Furniture and fixtures (SPEC deliverable 13 "Editable detected objects", review S14): move (drag), Turn (90 degrees), Change Category, Delete.
+- Snapping of drawn and dragged points: wall ends within 5 cm (or 12 points on screen, whichever is larger), wall centerlines, 0, 45 and 90 degrees from the level's main wall direction, and a 100 mm (metric) or 1 inch (imperial) grid aligned with that direction; a toggle turns snapping off.
+- Reset to Scan (after confirmation) removes every plan edit from the log and keeps the others (scale correction, room alignment, crops, labels and categories).
+
+**Build and wave.** Build 5, wave 5a (branch `impl/planeditor`). Core (with CR-1, 3.37a), Geometry (with `Polygon2D.clipped(leftOf:_:)`, CR-1), FloorPlan (with its 5a0 revision, 3.37c), RoomModel (with its 5a0 revision, 3.37b), Store (with `EditStore.reset(_:keeping:)`, CR-1), Units, Support; SwiftUI, CoreGraphics, Combine. About 1500 lines excluding the self-test; if it passes 1500, the prompt sheets move to `PlanEditorSheets.swift` in the same module.
+
+**Files.** `ios/Sources/PlanEditor/PlanEditorModel.swift` (state, loading, perform, undo, redo, reset, ordered writes), `PlanEditorModel+Input.swift` (tools, taps, drags, previews, prompts), `PlanEditorOps.swift` (pure: actions to operations, validation, joined walls, paired walls, orientation, swing cycle, fixture poses), `PlanEditorSnapping.swift` (pure), `PlanEditorPresentation.swift` (pure texts, inspector, operation descriptions, typed-length parsing), `PlanEditorCanvas.swift`, `PlanEditorScreen.swift` (bars, inspector, prompts), `PlanEditorSelfTest.swift`, `PlanEditorSelfTestFixtures.swift`, `ios/Sources/Support/Copy+PlanEditor.swift`.
+
+**Public Swift API.**
+```swift
+/// What a tap on the canvas does.
+enum PlanEditTool: Equatable, Sendable {
+    case select
+    case addWall
+    /// Add Door, Add Window, Add Opening: a tap on a wall places it there.
+    case addOpening(OpeningKind)
+    case addDimension
+    /// Add Text, Add Symbol, Add Note: a tap sets the point, then a prompt asks for the text or symbol.
+    case addAnnotation(AnnotationKind)
+    /// Two taps draw the cut line across this room.
+    case splitRoom(ElementID)
+    /// Taps toggle the rooms to join into this one; Merge Rooms commits.
+    case mergeRooms(into: ElementID)
+}
+
+/// One user edit. `PlanEditorOps` maps it to operations; ids of new elements are made by the model
+/// (`ElementID()`) before the action exists, so an action always maps to the same operations.
+enum PlanEditAction: Equatable, Sendable {
+    /// Move Wall: slide along the wall's left normal (into its room is positive), meters. Walls joined at
+    /// its ends end on the moved line (intersection with their own lines); an antiparallel paired wall
+    /// (the next room's face of a shared wall) moves by the same translation.
+    case moveWall(ElementID, by: Float)
+    /// Drag one wall end: every wall end joined there moves to `to`.
+    case moveWallEnd(ElementID, atStart: Bool, to: Vec2)
+    /// Wall Length: keeps `a`, moves `b` along the wall. When a non-parallel wall is joined at `b`, that
+    /// wall moves sideways instead (a `moveWall` of it), which puts `b` exactly `length` from `a` and
+    /// keeps the room closed (PEDIT-02).
+    case setWallLength(ElementID, length: Float)
+    case setWallThickness(ElementID, thickness: Float)
+    case addWall(ElementID, a: Vec2, b: Vec2)
+    case deleteWall(ElementID)
+    /// Centered `center` meters from the wall's `a`; width clamped to the wall.
+    case addOpening(ElementID, kind: OpeningKind, wall: ElementID, center: Float, width: Float)
+    /// Near edge `offset` meters from the wall's `a`, clamped so the opening stays on its wall.
+    case moveOpening(ElementID, offset: Float)
+    /// New width keeping the center; `height` (head minus sill) nil keeps both heights.
+    case resizeOpening(ElementID, width: Float, height: Float?)
+    case flipDoorSwing(ElementID)
+    case renameRoom(ElementID, name: String)
+    /// `rooms` are joined into `into` (which is not listed in `rooms`).
+    case mergeRooms([ElementID], into: ElementID)
+    /// The part of the room on the right of a -> b becomes `newRoom`.
+    case splitRoom(ElementID, a: Vec2, b: Vec2, newRoom: ElementID)
+    /// Add Measurement: a user dimension line offset `PlanEditorOps.userDimensionOffset` to the left.
+    case addDimension(ElementID, a: Vec2, b: Vec2)
+    /// Add Text, Add Symbol, Add Note, and moving or editing one: the same id replaces it.
+    case setAnnotation(PlanAnnotation)
+    case moveFixture(ElementID, center: Vec2, yaw: Float)
+    case deleteFixture(ElementID)
+    case recategorizeFixture(ElementID, ObjectCategory)
+    /// Delete a door, window, opening, measurement (dimension) or annotation.
+    case deleteElement(ElementID)
+}
+
+/// Why an action was refused (texts from `PlanEditorPresentation.message(for:prefs:)`).
+enum PlanEditorError: Error, Equatable, Sendable {
+    case notFound, tooShort, outOfRange, curvedWall, lockedWall, splitMissesRoom, nothingToMerge, notOnLevel
+}
+
+/// Inputs of the pure mapping.
+struct PlanEditorContext {
+    /// The edited plan and clean model (the clean model gives opening heights and object poses).
+    var plan: PlanModel
+    var clean: CleanModel?
+    /// `PlanLevel.id` of the level being edited.
+    var level: Int
+    /// Walls whose plan `a` is not the clean `start` (data written before the RoomModel revision,
+    /// 3.37b, until the upgrade pass rebuilds it, 3.43e); geometry edits refuse them.
+    var lockedWalls: Set<ElementID>
+}
+
+enum PlanEditorOps {
+    /// Wall ends closer than this are one corner (FloorPlan's `PlanModel.outlineFollowTolerance`).
+    static let jointTolerance: Float = 0.02
+    static let minimumWallLength: Float = 0.05
+    static let wallLengthRange: ClosedRange<Float> = 0.05...100
+    static let thicknessRange: ClosedRange<Float> = 0.02...1.0
+    static let openingWidthRange: ClosedRange<Float> = 0.2...6
+    static let openingHeightRange: ClosedRange<Float> = 0.2...4
+    static let defaultDoorWidth: Float = 0.81, defaultWindowWidth: Float = 0.9, defaultOpeningWidth: Float = 0.9
+    static let userDimensionOffset: Float = 0.3
+    /// Joined walls within this angle of parallel continue the moved wall (their end is translated, not intersected).
+    static let parallelLimitDegrees: Float = 10
+    /// A paired wall is antiparallel within this angle, its line within its thickness plus this gap, and
+    /// overlapping the moved wall by at least half of the shorter length.
+    static let pairedAngleDegrees: Float = 5, pairedGapSlack: Float = 0.05
+    /// Validated operations of one action; throws `PlanEditorError`.
+    static func operations(for action: PlanEditAction, context: PlanEditorContext) throws -> [EditOperation]
+    /// One log entry: the single operation, or `.batch(operations:)` for several.
+    static func operation(for action: PlanEditAction, context: PlanEditorContext) throws -> EditOperation
+    /// The ends of other walls on the level within `jointTolerance` of the given end.
+    static func joined(_ wall: ElementID, atStart: Bool, in level: PlanLevel) -> [(wall: ElementID, atStart: Bool)]
+    /// The other room's face of a shared wall, or nil.
+    static func pairedWall(of wall: PlanWall, in level: PlanLevel) -> PlanWall?
+    /// New ends of `wall` moved by `distance` along its left normal: each end is the intersection of the
+    /// moved line with the most non-parallel wall joined there, else the translated end.
+    static func movedEnds(_ wall: PlanWall, by distance: Float, in level: PlanLevel) -> (a: SIMD2<Float>, b: SIMD2<Float>)
+    /// A drawn wall ordered so the room containing its midpoint (else the nearest room) is on its left
+    /// when only one side is inside that room; kept as drawn when both or neither side is inside. This
+    /// matches the normal rule of `CleanModel.apply(.addWall)`, so the clean normal is the left normal.
+    static func oriented(a: SIMD2<Float>, b: SIMD2<Float>, in level: PlanLevel) -> (a: SIMD2<Float>, b: SIMD2<Float>)
+    /// Flip Door Swing cycle on (hingeAtStart, opensToNormalSide): (true, true) -> (true, false) ->
+    /// (false, false) -> (false, true) -> (true, true); source `.user`. A nil swing starts from
+    /// `PlanBuilder.defaultSwing(offset:width:wallLength:)`.
+    static func nextSwing(_ swing: DoorSwing?, offset: Float, width: Float, wallLength: Float) -> DoorSwing
+    /// moveFixture's world pose: the clean object's transform turned about world +Y by (yaw - its plan
+    /// yaw from `PlanBuilder.planPose(of:)`), its translation moved to `center` at its own height.
+    static func objectTransform(_ object: DetectedObject, center: Vec2, yaw: Float) -> Transform4
+    /// True for operations Reset to Scan removes: every case except relabelObject, recategorizeObject,
+    /// setScaleCorrection, setRoomAlignment and cropObject (label and category corrections, including
+    /// Results' Change Category, are not floor plan geometry and survive a reset); a batch when any of
+    /// its operations is.
+    static func isPlanEdit(_ op: EditOperation) -> Bool
+    /// Walls present in both models whose plan `a` is more than 1 cm from the clean `start` in plan.
+    static func lockedWalls(plan: PlanModel, clean: CleanModel?) -> Set<ElementID>
+}
+
+/// Snapping (RESEARCH 3.6 recommended 12), plan meters.
+enum PlanSnapKind: String, Equatable, Sendable { case endpoint, wall, angle, grid, none }
+struct PlanSnapResult: Equatable, Sendable { var point: SIMD2<Float>; var kind: PlanSnapKind }
+struct PlanSnapTargets: Equatable {
+    /// Wall ends and user dimension ends.
+    var endpoints: [SIMD2<Float>]
+    /// Straight wall lines (curved walls give only their ends).
+    var segments: [Segment2D]
+    /// Unit direction of the level's longest straight wall; (1, 0) without walls.
+    var axis: SIMD2<Float>
+}
+enum PlanEditorSnapping {
+    static let endpointRadius: Float = 0.05
+    static let angleStepDegrees: Float = 45
+    static let angleToleranceDegrees: Float = 4
+    static let metricGrid: Float = 0.1
+    static let imperialGrid: Float = 0.0254
+    /// Targets of a level, leaving out the walls in `excluding` (the wall being dragged and the ends
+    /// that move with it).
+    static func targets(level: PlanLevel, excluding: Set<ElementID>) -> PlanSnapTargets
+    static func referenceAxis(_ level: PlanLevel) -> SIMD2<Float>
+    /// metricGrid for metric preferences, imperialGrid for imperial.
+    static func gridStep(_ prefs: UnitPreferences) -> Float
+    /// Endpoint within `radius`; else the foot on a segment within `radius`; else, with an anchor, the
+    /// direction anchor -> p turned to the nearest multiple of 45 degrees from `axis` when within 4
+    /// degrees (its length rounded to the grid); else p rounded to the grid in the frame of `axis`
+    /// through plan (0, 0). `.none` (p unchanged) when `enabled` is false.
+    static func snap(_ p: SIMD2<Float>, anchor: SIMD2<Float>?, targets: PlanSnapTargets, radius: Float,
+                     grid: Float, enabled: Bool) -> PlanSnapResult
+    /// A scalar move (Move Wall) rounded to the grid step when enabled.
+    static func snapDistance(_ d: Float, grid: Float, enabled: Bool) -> Float
+}
+
+/// What the inspector shows for the selection.
+enum PlanEditorItem: Equatable {
+    case wall(PlanWall)
+    case opening(PlanOpening, wall: PlanWall)
+    case room(PlanRoom)
+    case fixture(PlanFixture)
+    case annotation(PlanAnnotation)
+    case dimension(PlanDimension)
+}
+/// Buttons of the inspector (for the selection) and of the add bar (nothing selected).
+enum PlanEditorCommand: String, CaseIterable, Identifiable, Sendable {
+    case wallLength, wallThickness, deleteWall, addDoor, addWindow, addOpening
+    case resizeOpening, flipDoorSwing, deleteOpening
+    case renameRoom, mergeRooms, splitRoom
+    case turnFixture, changeCategory, deleteFixture
+    case editAnnotation, deleteAnnotation, deleteMeasurement
+    case addWall, addMeasurement, addText, addSymbol, addNote
+    var id: String { rawValue }
+}
+/// A sheet or alert the model asks the screen to show.
+enum PlanEditorPrompt: Identifiable, Equatable {
+    case wallLength(ElementID, current: Float)
+    case wallThickness(ElementID, current: Float)
+    case openingSize(ElementID, width: Float, height: Float?)
+    case renameRoom(ElementID, current: String)
+    /// Text, note or symbol at `at`; `editing` is the annotation being changed.
+    case annotation(kind: AnnotationKind, at: Vec2, editing: ElementID?, current: String)
+    case category(ElementID, current: ObjectCategory)
+    case resetConfirmation
+    var id: String { get }
+}
+
+enum PlanEditorPresentation {
+    /// Titles: Copy.FloorPlan (wallLength, wallThickness, addWall, deleteWall, addDoor, addWindow,
+    /// addOpening, flipDoorSwing, renameRoom, mergeRooms, splitRoom, addMeasurement, deleteMeasurement,
+    /// addText, addSymbol, addNote); resizeOpening reads Copy.FloorPlan.resizeDoor, resizeWindow or
+    /// Copy.PlanEditor.resizeOpening by the selected opening's kind; Copy.PlanEditor.turn,
+    /// Copy.ObjectMenu.changeCategory, Copy.PlanEditor.editText; Copy.Project.delete for deleteOpening,
+    /// deleteFixture and deleteAnnotation.
+    static func title(_ command: PlanEditorCommand, item: PlanEditorItem?) -> String
+    static func hint(for tool: PlanEditTool, pending: Int) -> String?
+    static func message(for error: PlanEditorError, prefs: UnitPreferences) -> String
+    /// One line per operation kind for Results' orphaned-edit list (3.43b), exhaustive switch; a
+    /// batch reads as its first operation.
+    static func describe(_ op: EditOperation) -> String
+    /// Room title (`RoomTitles`), or "Wall 3", "Door 1", "Window 2", "Opening 1" numbered in level order
+    /// (Copy.MeasureCore wallTitle, doorTitle, windowTitle, openingTitle), the category name of a
+    /// fixture, the annotation text (its symbol for a symbol), or `Copy.PlanEditor.measurementItem`.
+    static func itemTitle(_ item: PlanEditorItem, level: PlanLevel, roomTitles: [ElementID: String]) -> String
+    /// `PlanLevel.name`, else `Copy.House.floorLabel(id + 1)`.
+    static func levelTitle(_ level: PlanLevel) -> String
+    /// Add Symbol choices, stored in `PlanAnnotation.symbol` as shown (FloorPlan draws the text).
+    static let symbols: [String]
+    /// `LengthParser.meters(from:prefs:)` accepted when finite and inside `range`; nil otherwise.
+    static func parseLength(_ text: String, prefs: UnitPreferences, range: ClosedRange<Float>) -> Float?
+    /// The starting text of a length field: `LengthFormat.primary`.
+    static func lengthText(_ meters: Float, prefs: UnitPreferences) -> String
+}
+
+/// Main actor. One editing session of one project.
+@MainActor final class PlanEditorModel: ObservableObject {
+    /// Layers shown while editing: `PlanToggles.standard` with the grid on.
+    static let toggles: PlanToggles
+    /// The edited plan (the drag preview while a drag runs) and the edited clean model.
+    @Published private(set) var plan: PlanModel
+    @Published private(set) var clean: CleanModel?
+    @Published private(set) var levelIndex: Int
+    @Published private(set) var drawing: PlanDrawingResult?
+    @Published var selection: ElementID?
+    @Published private(set) var tool: PlanEditTool
+    /// First points of Add Wall, Add Measurement and Split Room.
+    @Published private(set) var pendingPoints: [Vec2]
+    @Published private(set) var mergeSelection: [ElementID]
+    @Published private(set) var snapKind: PlanSnapKind?
+    @Published var snappingEnabled: Bool
+    @Published private(set) var canUndo: Bool
+    @Published private(set) var canRedo: Bool
+    @Published private(set) var isLoaded: Bool
+    @Published private(set) var loadFailed: Bool
+    @Published private(set) var prefs: UnitPreferences
+    @Published var prompt: PlanEditorPrompt?
+    /// A refused action or a failed write; shown in an alert, then cleared.
+    @Published var message: String?
+    let projectID: UUID
+    init(projectID: UUID)
+    /// Off main: `PlanModelStore.loadBase`, `CleanModelStore.loadBase` (optional), `EditStore.load`,
+    /// `UnitPreferences.load()`; keeps the bases and the log; edited plan = `log.applied(to: basePlan)`,
+    /// edited clean = `baseClean.applyingEdits(log)`; `lockedWalls`. A missing plan sets `loadFailed`.
+    func load() async
+    /// Maps, validates (applies to copies of both models; a false from either refuses the action),
+    /// appends to the local log, recomputes, and writes through `EditStore.append` on the write queue.
+    func perform(_ action: PlanEditAction) throws
+    func undo() throws
+    func redo() throws
+    /// After `.resetConfirmation`: `EditStore.reset(_:keeping: { !PlanEditorOps.isPlanEdit($0) })`.
+    func resetToScan() throws
+    func run(_ command: PlanEditorCommand)
+    func setTool(_ tool: PlanEditTool)
+    func cancelTool()
+    func selectLevel(_ index: Int)
+    /// Plan meters; `tolerance` is 12 points converted with the canvas viewport.
+    func tap(at point: SIMD2<Float>, tolerance: Float)
+    /// True when the point grabs the selection (the canvas then edits instead of panning).
+    func beginDrag(at point: SIMD2<Float>, tolerance: Float) -> Bool
+    func drag(to point: SIMD2<Float>, tolerance: Float)
+    func endDrag()
+    func commitMerge()
+    /// Text of a value, name or annotation prompt.
+    func submit(_ prompt: PlanEditorPrompt, text: String)
+    func submitSymbol(_ symbol: String, at: Vec2)
+    func submitCategory(_ category: ObjectCategory, for fixture: ElementID)
+    var selectedItem: PlanEditorItem? { get }
+    /// For the selection, or the add commands when nothing is selected.
+    var commands: [PlanEditorCommand] { get }
+    /// Drag handles of the selection, plan meters (wall ends, opening ends, fixture center, annotation anchor).
+    var handles: [SIMD2<Float>] { get }
+    var levelTitles: [String] { get }
+}
+
+/// Canvas: `PlanRenderer.draw` of `model.drawing` inside `GraphicsContext.withCGContext`, then
+/// `PlanRenderer.drawHighlight` of every hit of the selection (and of the merge selection), handles,
+/// pending points and the snap marker. Viewport: fitted to the plan bounds with the user's zoom and
+/// pan (as `PlanCanvasView`). One DragGesture: a drag starting on the selection edits
+/// (`beginDrag`), any other drag pans; MagnifyGesture zooms about its anchor; SpatialTapGesture calls
+/// `tap(at:tolerance:)`. Accessible as `Copy.A11y.floorPlan` with the hint `Copy.PlanEditor.canvasHint`.
+struct PlanEditorCanvas: View { init(model: PlanEditorModel) }
+/// Full screen. Top: Done Editing, the level menu (more than one level), Undo, Redo, More (snapping
+/// toggle, Reset to Scan, the Plan Items menu for VoiceOver). Middle: the canvas. Bottom: the hint or
+/// snap line, the inspector of the selection or the add bar, `Copy.FloorPlan.editsSafe`. Prompts as
+/// sheets (typed lengths, names, text, symbols, categories) and alerts (reset, messages).
+struct PlanEditorScreen: View { init(projectID: UUID, onDone: @escaping () -> Void) }
+```
+Changes from the earlier short sketch of this section (ARCHITECTURE.md may still show it; this section wins): `PlanEditorOps.operations(for:context:)` takes a `PlanEditorContext` instead of a `PlanLevel` (fixture moves and opening heights need the clean model), throws, and a multi-operation action is one `batch` entry; `canUndo` and `canRedo` are published.
+
+**Rules.**
+
+*Mapping* (`PlanEditorOps.operations`, all lengths in plan meters, the level from the context):
+- `moveWall(w, by: d)`: refuses curved, locked or missing walls and joints with a curved wall. Ops: `moveWallEndpoint(wall: w, atStart: true, to: movedEnds.a)` and `(atStart: false, to: movedEnds.b)`, one `moveWallEndpoint` for every joined end (to the same corner point), and for the paired wall `p` (when any) the same set for `p` moved by `-d` (antiparallel normals). Refuses (`.tooShort`) when any wall would end shorter than `minimumWallLength` or reverse direction (dot of old and new direction at most 0).
+- `moveWallEnd(w, atStart:, to:)`: `moveWallEndpoint` for `w` and for every joined end; same validation.
+- `setWallLength(w, length:)`: `length` in `wallLengthRange` (else `.outOfRange`). With a non-parallel wall `v` joined at `b`: the operations of `moveWall(v, by: dot(u * (length - current), leftNormal(v)))` (u the unit direction of `w`), which move `b` to `a + u * length`. Else `moveWallEndpoint(w, atStart: false, to: a + u * length)` plus the joined ends.
+- `setWallThickness`: in `thicknessRange`; `setWallThickness(wall:thickness:)`.
+- `addWall(id, a, b)`: length at least `minimumWallLength`; `oriented(a:b:in:)`; `addWall(wall: PlanWall(id:, a:, b:, thickness: CleanBuildOptions().interiorThickness, thicknessSource: .estimated, arc: nil, provenance: .user, occludedSpans: []), level:)`.
+- `deleteWall` and `deleteFixture` and `deleteElement`: `deleteElement(element:)`.
+- `addOpening(id, kind, wall, center, width)`: the wall must be on the level and straight; width clamped to `openingWidthRange` and to the wall length (a wall shorter than the minimum width refuses `.tooShort`); offset = clamp(center - width / 2, 0, length - width); a door or open door gets `PlanBuilder.defaultSwing(offset:width:wallLength:)` so both models store the same swing; `addOpening(opening: PlanOpening(id:, wallID:, kind:, offset:, width:, swing:), level:)`.
+- `moveOpening(o, offset)`: `moveOpening(opening:offset:)` with the offset clamped to [0, length - width].
+- `resizeOpening(o, width, height)`: width in `openingWidthRange`; sill and head from the edited clean opening (doors sill 0), with `height` when given: head = sill + height capped by the wall height (height in `openingHeightRange`); without a clean opening the defaults of `CleanModel.apply(.addOpening)` (door 0 to 2.03 m, window 0.9 to 2.1 m, opening 0 to 2.1 m); `resizeOpening(opening:width:sillHeight:headHeight:)`.
+- `flipDoorSwing(o)`: `setDoorSwing(door:swing: nextSwing(...))`.
+- `renameRoom`: trimmed text, `renameRoom(room:name:)` (empty restores the default title).
+- `mergeRooms(rooms, into)`: at least one room besides `into`, all on the level (else `.nothingToMerge`, `.notOnLevel`); `mergeRooms(rooms:into:)`.
+- `splitRoom(r, a, b, newRoom)`: both sides of the line must hold at least 0.01 square meters of the room's outline parts by `Polygon2D.clipped(leftOf:_:)` (else `.splitMissesRoom`); `splitRoom(room:line: [a, b], newRoom:)`.
+- `addDimension(id, a, b)`: length at least 0.05 m; `addDimension(dimension: PlanDimension(id:, a:, b:, offset: userDimensionOffset, isUser: true), level:)`.
+- `setAnnotation(annotation)`: `addAnnotation(annotation:level:)` (the same id replaces it in the plan).
+- `moveFixture(f, center, yaw)`: needs the clean object (else `.notFound`); `moveObject(object:transform: objectTransform(...))`. `recategorizeFixture`: `recategorizeObject(object:category:)`.
+
+*Perform.* `operation(for:context:)` throws: the model shows `message(for:prefs:)` and rethrows. The operation is applied to copies of the edited plan and clean model; a false from either refuses it (`.notFound`) and nothing is written. Otherwise the local log mirror appends it, the edited models are recomputed from the bases, the drawing is rebuilt, and `EditStore.append(op, to:)` runs on a private serial queue (label "mapper.planeditor.io", QoS userInitiated) so writes land in order (PERF-28). Undo, redo and reset go through the same queue with `EditStore.undo`, `redo` and `reset(_:keeping:)` after mirroring the change locally (`EditLog.undo()`, `redo()`, `reset(keeping:)`). A failed write sets `message` to `Copy.Errors.saveFailed.body` and reloads from disk (the disk log wins). Every action logs one line (category "planeditor") with the action, the operation kinds and element ids.
+
+*Taps.* Select tool: `PlanDrawing.hitTest(drawing.hits, at:tolerance:)`. A hit on a generated wall dimension (id `PlanBuilder.wallDimensionID(wall.id)`) selects that wall and opens `.wallLength` (PEDIT-02 "Tap a wall length label"); any other hit selects its element, empty space clears the selection. Add Wall and Add Measurement take two snapped taps (the second with the first as anchor), then perform and select the new element. Add Door, Window, Opening take one tap that must be within tolerance of a straight wall (wall hits only); the center is the tap projected on the wall; the default width is `defaultDoorWidth`, `defaultWindowWidth` or `defaultOpeningWidth`. Add Text, Symbol, Note take one tap, then the `.annotation` prompt. Split Room takes two taps (hint `Copy.FloorPlan.splitHint`, then `splitEndHint`). Merge Rooms toggles room hits in `mergeSelection` (hint `Copy.FloorPlan.mergeHint`), `commitMerge` performs. After an add, the tool returns to select with the new element selected.
+
+*Drags.* `beginDrag` grabs the selection: a straight wall's end handle (within 1.5 x tolerance) or body, an opening's span, a fixture footprint (`PlanSymbols.footprint`), an annotation's hit box. While dragging, the action for the current point (snapped with `PlanEditorSnapping`, the moving wall and its joined walls excluded from the targets; a body move snaps its distance with `snapDistance`) is mapped, applied to a copy of the plan and drawn as the preview; an invalid state keeps the last valid preview. `endDrag` performs the last valid action. A drag on nothing pans.
+
+*Prompts.* Typed lengths use `PlanEditorPresentation.parseLength` with the action's range; a rejected text keeps the sheet open with `Copy.PlanEditor.invalidLength` or the range message. Rename uses `Copy.House.nameRoomPlaceholder`; text and notes use `Copy.FloorPlan.textPlaceholder` and `notePlaceholder`; Add Symbol lists `symbols`; Change Category lists `ObjectCategory.allCases` by `Copy.FloorPlan.categoryName`.
+
+*Levels.* The level menu (House projects with several floors) shows `levelTitle`; actions use the current level's id.
+
+**Uses.** FloorPlan: `PlanModelStore` (`loadBase`), `PlanModel.apply(_:)` (with CR-1 cases, 3.37c), `PlanDrawing` (`make(level:toggles:prefs:roomTitles:name:)`, `hitTest(_:at:tolerance:)`), `PlanDrawingResult`, `PlanHit`, `PlanHitKind`, `PlanRenderer` (`draw(_:in:viewport:lineWidth:dark:)`, `drawHighlight(_:in:viewport:lineWidth:)`), `PlanViewport` (`fitting(min:max:in:margin:)`, `toScreen`, `toPlan`, `zoomed(by:about:)`, `panned(by:)`), `PlanToggles.standard`, `RoomTitles.titles(for:clean:)`, `PlanBuilder` (`defaultSwing(offset:width:wallLength:)`, `planPose(of:)`, `wallDimensionID(_:)`, `interiorPoint(of:)`), `PlanSymbols.footprint(_:)`, `Copy.FloorPlan.categoryName(_:)`. RoomModel: `CleanModelStore.loadBase`, `CleanModel.applyingEdits(_:)`, `CleanModel.apply(_:)`, `CleanBuildOptions`. Store: `EditStore` (`load`, `append(_:to:)`, `undo`, `redo`, `reset(_:keeping:)` CR-1), `ProjectLibrary.shared.package(for:)`. Geometry: `Polygon2D` (`contains(point:)`, `area`, `clipped(leftOf:_:)` CR-1), `Segment2D` (`closestPoint(to:)`, `distance(to:)`, `direction`, `angle(between:)`, `cross`). Core: `EditOperation` (with CR-1 cases), `EditLog` (`append`, `undo`, `redo`, `reset(keeping:)` CR-1, `applied(to:)`, `canUndo`, `canRedo`), `PlanModel`, `PlanLevel`, `PlanWall`, `PlanOpening`, `PlanRoom`, `PlanFixture`, `PlanAnnotation`, `AnnotationKind`, `PlanDimension`, `CleanModel`, `CleanOpening`, `DetectedObject`, `DoorSwing`, `OpeningKind`, `ObjectCategory`, `ElementID`, `Vec2`, `Transform4`, `PlanAxes`. Units: `LengthParser.meters(from:prefs:)`, `LengthFormat.primary(_:prefs:)`, `UnitPreferences.load(from:)`. Support: `Haptics.selection()` (a snap), `Haptics.tap()` (a committed edit), `LogStore` (category "planeditor"), Copy as below.
+
+**Apple APIs** (RESEARCH 3.6): `struct Canvas<Symbols>` and `func withCGContext(content: (CGContext) throws -> Void) rethrows`; `DragGesture(minimumDistance: 10, coordinateSpace: .local)` (`init(minimumDistance: CGFloat = 10, coordinateSpace: some CoordinateSpaceProtocol = .local)`, iOS 17.0, `@MainActor @preconcurrency`); `MagnifyGesture(minimumScaleDelta: 0.01)` (iOS 17.0); `SpatialTapGesture(count: 1, coordinateSpace: .local)` (iOS 17.0). Not in RESEARCH: `CGContext.addEllipse(in:)`, `fillPath()`, `setFillColor(_:)` for handles (iOS 2); `.sheet(item:)`, `.alert(_:isPresented:actions:message:)` with a `TextField` (iOS 15 and 16); `Menu` (iOS 14); `DispatchQueue(label:qos:)`.
+
+**Must NOT do.** Never write `plan.json`, `clean.json` or anything under `raw/` (the base stays derived; PEDIT rule "open RAW MESH and check it did not change"). Never write more than one log entry per user action. Never edit a locked wall or move a curved wall. Never use `MagnificationGesture`, `RotationGesture` or the `CoordinateSpace`-typed gesture initializers. Never flip y outside `PlanViewport`. Never format a length without Units or parse one without `LengthParser`. Never block main on disk. No hardcoded text.
+
+**Copy strings.** Existing: every `Copy.FloorPlan` action, hint and dialog string (moveWall, wallLength, wallThickness, addWall, deleteWall, addDoor, moveDoor, resizeDoor, flipDoorSwing, addWindow, moveWindow, resizeWindow, addOpening, renameRoom, mergeRooms, splitRoom, addMeasurement, deleteMeasurement, addText, addSymbol, addNote, undo, redo, doneEditing, resetToScan, splitHint, mergeHint, resetTitle, resetBody, resetConfirm, editsSafe, notePlaceholder, textPlaceholder), `Copy.FloorPlan.categoryName(_:)`, `Copy.ObjectMenu.changeCategory`, `Copy.House.nameRoomPlaceholder`, `floorLabel(_:)`, `Copy.MeasureCore.wallTitle(_:)`, `doorTitle(_:)`, `windowTitle(_:)`, `openingTitle(_:)`, `Copy.Viewer.width`, `height`, `Copy.Measure.save`, `Copy.Project.delete`, `cancel`, `Copy.Errors.saveFailed`, `ok`, `Copy.Empty.noFloorPlan`, `Copy.A11y.floorPlan`. New in `Copy+PlanEditor.swift` (`extension Copy { enum PlanEditor }`):
+- `selectHint = "Tap a wall, door, window, room or label to change it"`
+- `wallStartHint = "Tap where the wall starts"`, `wallEndHint = "Tap where the wall ends"`
+- `openingHint = "Tap a wall to place it"`, `tapWall = "Tap on a wall"`
+- `dimensionStartHint = "Tap the first point"`, `dimensionEndHint = "Tap the second point"`
+- `annotationHint = "Tap where it goes"`, `splitEndHint = "Now tap the other side of the room"`
+- `turn = "Turn"`, `editText = "Edit Text"`, `resizeOpening = "Resize Opening"`, `measurementItem = "Measurement"`, `snapping = "Snap to walls and grid"`, `elements = "Plan Items"`
+- `canvasHint = "Drag to move, pinch to zoom. Drag a selected item to change it"`
+- `invalidLength = "Type a length, for example 12' 6\" or 3.8 m."`
+- `static func tooShort(_ length: String) -> String { "Walls must be at least \(length) long." }`
+- `static func outOfRange(_ low: String, _ high: String) -> String { "Use a value from \(low) to \(high)." }`
+- `curvedWall = "Curved walls can't be moved or resized."`
+- `lockedWall = "The floor plan is being updated. Try again in a moment."`
+- `splitMisses = "Draw the line all the way across the room."`
+- `nothingToMerge = "Tap at least one more room to join."`, `notOnLevel = "Rooms on different floors can't be joined."`
+- `notFound = "That part of the plan changed. Try again."`
+- `symbolOutlet = "Outlet"`, `symbolSwitch = "Switch"`, `symbolLight = "Light"`, `symbolSmokeAlarm = "Smoke Alarm"`, `symbolWater = "Water"`, `symbolGas = "Gas"`, `symbolVent = "Vent"`, `symbolThermostat = "Thermostat"`
+- Operation descriptions for `describe(_:)`: `editRoomRenamed = "Room renamed"`, `editObjectRenamed = "Object renamed"`, `editCategoryChanged = "Category changed"`, `editHidden = "Hidden or shown"`, `editDeleted = "Deleted"`, `editObjectMoved = "Furniture moved"`, `editWallMoved = "Wall moved"`, `editWallAdded = "Wall added"`, `editOpeningAdded = "Door or window added"`, `editSwingChanged = "Door swing changed"`, `editThicknessChanged = "Wall thickness changed"`, `editLabelAdded = "Label added"`, `editMeasurementAdded = "Measurement added"`, `editScaleCorrected = "Size corrected"`, `editRoomLinedUp = "Room lined up"`, `editObjectCropped = "Object cropped"`, `editOpeningMoved = "Door or window moved"`, `editOpeningResized = "Door or window resized"`, `editRoomsMerged = "Rooms merged"`, `editRoomSplit = "Room split"`
+
+**Self-test.** `PlanEditorSelfTest.run()`, at least 35 checks, fixtures in `PlanEditorSelfTestFixtures.swift`: a clean model with room A (4 x 5 m, walls W1 to W4 counter-clockwise, a door on W1, a window on W2, a sofa) and room B (3 x 4 m) east of A with a 0.12 m gap (a shared wall pair), its plan from `PlanBuilder.build(from:floors:)`, and a context over both. Every mapped action is also applied to the plan with `PlanModel.apply` and to the clean model with `CleanModel.applyingEdits` (one-entry `EditLog`):
+1. `joined(W1, atStart: false)` is W2's start.
+2. `moveWall(W3, by: -0.3)` gives one `.batch` of 4 `moveWallEndpoint` operations (8 with a paired wall; W3 has none); room A's plan area grows by 1.2 within 1e-3 and W2's `b` equals W3's `a` (PEDIT-01 corners closed).
+3. The same entry on the clean model grows `metrics.floorArea` by 1.2 within 1e-3, and every plan wall's `a` equals the clean `start` in plan within 1e-4.
+4. `setWallLength(W1, length: 4.5)`: W1 is 4.5 within 1e-4 in both models and W2 keeps its direction.
+5. `setWallLength` of 0.01 m throws `.outOfRange`.
+6. `moveWallEnd` past the other end throws `.tooShort`.
+7. A curved wall throws `.curvedWall` for `moveWall`; a locked wall (in `lockedWalls`) throws `.lockedWall`.
+8. `setWallThickness(W1, 0.15)` sets 0.15 with source `.user` in both models.
+9. `oriented` reverses a wall drawn along the outside of A with A on its right and keeps a wall drawn across A's middle.
+10. `addWall` adds a wall with a generated dimension to the plan and a clean wall whose normal is the left perpendicular.
+11. `deleteWall(W1)` removes W1 and its door in both models.
+12. `addOpening` of a door centered 2.0 m along W1, width 0.81 m: offset 1.595 in both models, same `.estimated` swing in both.
+13. `moveOpening` to 3.9 m clamps to 3.19 m (length minus width) in both models.
+14. `resizeOpening` to 0.9 m keeps the center (offset shifts by -0.045) in both; `height: 2.1` on the door gives head 2.1 and sill 0 in the clean model.
+15. Four `flipDoorSwing` entries cycle back to the first swing; every result has source `.user`.
+16. `renameRoom` sets the name in both models; an empty name restores the default title through `RoomTitles`.
+17. `mergeRooms([B], into: A)`: one plan room with area 20 + 12 within 1e-3 (PEDIT-07) and one `mergedOutlines` entry; one clean room holding both rooms' walls with `metrics.floorArea` 32 within 1e-3.
+18. `splitRoom(A, a: (-1, 2), b: (5, 2), newRoom:)` on the 4 x 5 m room at plan y 0 to 5: areas 8 and 12 (sum 20 within 1e-3) in both models, the new room has the given id and an empty name.
+19. A split line outside the room throws `.splitMissesRoom`; `mergeRooms([], into: A)` throws `.nothingToMerge`.
+20. `addDimension` adds a user dimension (`isUser` true); `deleteElement` of it removes it.
+21. `setAnnotation` adds a text; the same id at a new point replaces it (one annotation); new text replaces it; `deleteElement` removes it.
+22. `moveFixture(sofa, center: (1, 1), yaw: 0.5)`: the plan fixture's center and yaw equal them within 1e-4 and the clean object's height is unchanged.
+23. `recategorizeFixture(sofa, .chair)` and `deleteFixture` apply in both models.
+24. `isPlanEdit` is true for `moveWallEndpoint` and a batch of them, false for `setScaleCorrection`, `setRoomAlignment`, `cropObject`, `relabelObject` and `recategorizeObject`, and false for a batch of `setRoomAlignment` edits (AlignRoomsModel's save).
+25. `operation(for:)` returns a single operation for `renameRoom` and a `.batch` for `moveWall`.
+26. An `EditLog` with the `moveWall` batch appended then undone gives back the base plan (one Undo reverts the action).
+27. Moving room A's shared wall moves room B's paired face by the same translation (gap 0.12 within 1e-4).
+28. Snapping: a point 3 cm from a wall end snaps `.endpoint`; 3 cm from a wall's middle snaps `.wall` to the foot; with an anchor, a direction 3 degrees off the axis snaps `.angle`; otherwise `.grid` to 0.1 m (metric) or 1 inch (imperial) in the axis frame; `enabled: false` gives `.none`.
+29. `referenceAxis` of a room rotated by 30 degrees is its longest wall's direction.
+30. `lockedWalls` finds a wall whose plan ends are swapped against the clean model and none for a consistent pair.
+31. `describe` gives non-empty, distinct texts for every `EditOperation` case (built by hand, including the CR-1 cases).
+32. `message(for:)` is non-empty for every error, and `.tooShort` contains `LengthFormat.primary(0.05, prefs:)`.
+33. `parseLength` accepts "3.8 m" and "12' 6\"" in their unit systems and rejects "abc", "-2 m" and a value outside the range.
+34. `nextSwing(nil, ...)` starts from `PlanBuilder.defaultSwing` and then follows the cycle.
+35. `objectTransform` keeps the object's box size (`DetectedObject.orientedBox.halfExtents`) and its world y.
+
+**Acceptance checks.** One Undo reverts one user action (a wall move with its neighbors); Reset to Scan returns the generated plan and keeps scale corrections and alignments; 3D Clean and the measurement panel follow plan edits after Done Editing; raw folders and `plan.json` are byte-identical before and after an editing session (PEDIT-09); corners stay closed after moves; doors cannot leave their wall; typed lengths accept both unit systems; five quick edits then a force quit keep all five (PERF-28); the log has one line per action.
+
+**SPEC owned.** "FLOOR PLAN EDITING": move wall, adjust wall length, change wall thickness, add wall, delete wall, add door, move door, resize door, add window, move window, resize window, add opening, rename room, merge rooms, split room, add measurement, delete measurement, add text annotation, add symbol, add notes, "Manual edits must not overwrite raw scan data"; "2D FLOOR PLAN" ("Allow manual editing", door swing confirmed by the user drawn solid); deliverable 13 "Editable detected objects" (move, turn, delete and change category on the plan); "3D EDITING" Wall: Adjust, Add opening, Add door, Add window (on the plan in build 5).
+
+**TEST_PLAN ids.** PEDIT-01 to PEDIT-09, PLAN-03 (toggles after edits), EXP-05 (annotations in the PDF), REC-02 (Change Category), PERF-13, PERF-28, OFF-01 (plan editing offline), smoke #8.
+
+### 3.37a Core change CR-1: plan editing operations (applied by the lead before wave 5a)
+
+**Purpose.** The approved CR-1 (lead decision 1): the edit operations the plan editor needs that the build 4 `EditOperation` lacks, plus the smallest supporting additions, applied by the lead in one commit so `integration` stays green: Core (`EditOperation` cases and `targets`, a `batch` case so one user action is one undo step, `flattened`, `EditLog.flattenedActive`, `EditLog.reset(keeping:)`, `mergedOutlines` on `CleanFloor` and `PlanRoom`, the documented wall orientation and `WallArc` conventions), Geometry (`Polygon2D.clipped(leftOf:_:)`, so RoomModel and FloorPlan split rooms with the same arithmetic), Store (`EditStore.reset(_:keeping:)`), and temporary stub cases in the two `EditApplicable` conformances, which the 5a0 revisions (3.37b, 3.37c) replace.
+
+**Build and wave.** Pre-5a, applied by the lead together with CR-7 (3.30a) and CR-8 (3.31c) in one commit, compiled green, before wave 5a0. Core, Geometry and Store keep their dependencies.
+
+**Files.** `ios/Sources/Core/EditLog.swift`, `CleanModel.swift`, `FloorPlanModel.swift`, `CoreSelfTest.swift`; `ios/Sources/Geometry/Polygon2D.swift`, `GeometrySelfTest.swift`; `ios/Sources/Store/StoreEdits.swift`, `StoreSelfTest.swift`; stub cases only in `ios/Sources/RoomModel/CleanModel+Edits.swift` and `ios/Sources/FloorPlan/PlanModel+Edits.swift`. Before committing, the lead greps the target for every `switch` over `EditOperation` (today: CoreSelfTest, RoomModel, FloorPlan) and gives each the new cases.
+
+**Public Swift API.**
+```swift
+enum EditOperation: Codable, Equatable, Sendable {
+    // ... the 16 build 4 cases unchanged ...
+    /// Move a door, window or opening along its wall: near edge `offset` meters from the wall's start
+    /// (`CleanWall.start`, which is `PlanWall.a`), clamped by each model to [0, length - width].
+    case moveOpening(opening: ElementID, offset: Float)
+    /// Resize a door, window or opening: new width keeping its center, then clamped to the wall; sill and
+    /// head heights above the floor (the clean model uses them; the plan has no heights).
+    case resizeOpening(opening: ElementID, width: Float, sillHeight: Float, headHeight: Float)
+    /// Join `rooms` into `into`: their outlines become `mergedOutlines` of `into`, their walls, openings
+    /// and objects move to `into`, and they are removed. `into` is not listed in `rooms`.
+    case mergeRooms(rooms: [ElementID], into: ElementID)
+    /// Split `room` along the infinite line through the first and last point of `line` (plan meters;
+    /// build 5 writes exactly two points): the part left of first -> last stays `room`, the part on the
+    /// right becomes the new room `newRoom`.
+    case splitRoom(room: ElementID, line: [Vec2], newRoom: ElementID)
+    /// Several operations applied as one, in order, all or nothing: one user action, one undo step.
+    case batch(operations: [EditOperation])
+
+    /// (extended) moveOpening and resizeOpening: [opening]; mergeRooms: [into] + rooms without
+    /// duplicates; splitRoom: [room, newRoom] (newRoom is the new element, as for additions); batch:
+    /// the targets of its operations in order without duplicates.
+    var targets: [ElementID] { get }
+    /// `[self]` for every case but `.batch`, which gives its operations flattened recursively.
+    var flattened: [EditOperation] { get }
+}
+
+extension EditLog {
+    /// The active operations with every batch flattened, in order. Readers that look for one kind of
+    /// operation (scale corrections, room alignments, crops) use this, never `active`.
+    var flattenedActive: [EditOperation] { get }
+    /// Keeps the active operations (top level) for which `keep` is true, in order, and drops the rest
+    /// and the redo tail; `cursor` becomes the kept count; `revision` increases by 1. Returns false and
+    /// changes nothing when every active operation is kept and there is no redo tail.
+    @discardableResult
+    mutating func reset(keeping keep: (EditOperation) -> Bool) -> Bool
+}
+
+struct CleanFloor: Codable, Equatable, Sendable {
+    // ... outline, elevation, occludedArea, provenance unchanged ...
+    /// Outlines of rooms merged into this one (CR-1 `mergeRooms`) or pieces of a split, plan meters,
+    /// counter-clockwise. Nil for every room RoomModel builds, so build 4 JSON is unchanged (the
+    /// synthesized coder skips a nil optional and decodes a missing key as nil).
+    var mergedOutlines: [[Vec2]]? = nil
+}
+struct PlanRoom: Codable, Equatable, Identifiable, Sendable {
+    // ... id, name, outline, labelAt, area unchanged; `area` is the total of all parts ...
+    /// As `CleanFloor.mergedOutlines`.
+    var mergedOutlines: [[Vec2]]? = nil
+}
+
+/// Arc of a curved wall (RoomPlan `Surface.Curve`, angles in radians). Convention (build 4 RoomModel,
+/// written down by CR-1): `center` is a world point at the wall's base height; `startAngle < endAngle`,
+/// both measured counter-clockwise from plan +x (`PlanAxes`) around the center's plan point; the wall
+/// covers the angles from `startAngle` to `endAngle`, and its `start` and `end` lie on the arc in either
+/// order, so reversing a wall (swapping start and end) leaves its arc unchanged.
+struct WallArc: Codable, Equatable, Sendable { /* fields unchanged */ }
+
+/// (CleanWall doc comment, added) Orientation invariant from build 5 (RoomModel 3.37b): the room is on
+/// the left of `start` -> `end` in plan coordinates and `normal` is that left perpendicular, for loop
+/// and stray walls alike. FloorPlan copies start -> end to `PlanWall.a` -> `b` unchanged, so
+/// `moveWallEndpoint(atStart:)`, `offsetAlongWall` / `PlanOpening.offset` and `DoorSwing.hingeAtStart`
+/// mean the same end in both models.
+
+// Geometry, Polygon2D.swift
+extension Polygon2D {
+    /// The part of the ring on the left of the directed line through `a` and `b` (points on the line
+    /// count as inside): Sutherland-Hodgman against one half-plane. For a concave ring cut into several
+    /// pieces the result is one ring whose pieces are joined along the line by zero-width edges; its
+    /// area is still the area of the pieces. Empty when nothing is on the left or `a == b`.
+    func clipped(leftOf a: SIMD2<Float>, _ b: SIMD2<Float>) -> Polygon2D
+}
+
+// Store, StoreEdits.swift
+extension EditStore {
+    /// `EditLog.reset(keeping:)` under the edits lock, written like `append` (not written when
+    /// nothing changed); posts `.mapperEditsDidChange` after a write. Throws without writing when an
+    /// existing log cannot be read.
+    @discardableResult
+    static func reset(_ package: ProjectPackage, keeping keep: (EditOperation) -> Bool) throws -> EditLog
+}
+```
+`batch` is a recursive case through an array, which needs no `indirect`; the synthesized `Codable` encodes it as `{"batch":{"operations":[...]}}`. Stubs until 3.37b and 3.37c land: `case .moveOpening, .resizeOpening, .mergeRooms, .splitRoom, .batch: return true` in both `apply(_:)` switches, and `CleanModel.applyingEdits` keeps reading `log.active` until 3.37b switches it to `flattenedActive`.
+
+**Must NOT do.** No other Core change; no change to the build 4 cases, their coding keys or `targets`; `mergedOutlines` never becomes non-optional (old projects must decode); no behavior in the stubs.
+
+**Self-test.** `CoreSelfTest` gains at least 10 checks: each new case round trips through `ProjectStore.encoder` and `decoder`, including a batch nested in a batch; `targets` of each new case (mergeRooms without duplicates, splitRoom lists both); `flattened` of a nested batch; `flattenedActive` of a log whose last batch was undone excludes it; `reset(keeping:)` keeps the chosen operations in order, drops the redo tail, raises `revision` and returns false when nothing changes; a `CleanFloor` and a `PlanRoom` encoded with nil `mergedOutlines` have no such key, and build 4 JSON without it decodes with nil. `GeometrySelfTest` gains at least 4: a 4 x 5 m rectangle clipped by the line y = 2 gives areas 12 (left of +x) and 8 (right, clipping with the reversed line); a line missing the rectangle gives the whole ring on one side and an empty ring on the other; an L-shape cut by a line crossing it twice keeps the correct total area; `a == b` gives an empty ring. `StoreSelfTest` gains at least 2: `EditStore.reset` in a temporary package keeps the chosen operations and raises the revision; a reset that changes nothing does not write.
+
+**Acceptance checks.** `integration` compiles green with the stubs; build 4 projects open unchanged (smoke #2); no module other than RoomModel and FloorPlan needs a change for the new cases.
+
+**SPEC owned.** "FLOOR PLAN EDITING" (move and resize doors and windows, merge and split rooms) as data; "Manual edits must not overwrite raw scan data" (edits stay overlays).
+
+**TEST_PLAN ids.** PEDIT-05, PEDIT-06, PEDIT-07, PEDIT-09.
+
+### 3.37b RoomModel revision: wall orientation and the CR-1 operations (wave 5a0)
+
+**Purpose.** Two changes to the clean model. First, the FloorPlan change request: walls outside the room loop (stubs, partitions, and every wall of a room whose loop does not close) are reversed (start and end swapped) so the room is on their left, instead of keeping their direction and flipping the normal; with it every clean wall satisfies the CR-1 orientation invariant and FloorPlan no longer reverses walls, so `atStart`, opening offsets and hinge sides mean the same end in the clean model and the plan. Second, `CleanModel.apply` implements the CR-1 operations (move and resize openings, merge and split rooms, batches), metrics and the clean mesh count merged outlines, and edit readers flatten batches.
+
+**Build and wave.** Build 5, wave 5a0 (branch `impl/roommodel-b5`), after CR-1 is on `integration` and before any wave 5a module starts (PlanEditor's and MeasureTool's self-tests apply these operations; Structure builds rooms with `CleanModelBuilder`). Dependencies as build 4. About 350 lines of changes.
+
+**Files.** `ios/Sources/RoomModel/CleanModelBuilder.swift` (cleanWall), `CleanModel+Edits.swift`, new `CleanModel+RoomEdits.swift` (merge, split, opening moves, batch; keeps `CleanModel+Edits.swift` under about 450 lines), `RoomMetricsCalculator.swift`, `CleanMeshBuilder.swift`, `RoomModelSteps.swift` (rules version), `RoomModelSelfTest.swift`, `RoomModelSelfTestEdits.swift`, new `RoomModelSelfTestB5.swift`. `CleanModel.refresh(_:)` loses its `private` so the new file can call it.
+
+**Public Swift API.** Unchanged signatures; new behavior:
+```swift
+extension CleanModelBuilder {
+    /// (changed) A wall outside the loop whose left perpendicular points away from `reference` is
+    /// reversed (`WallSegment.reversed`: start and end swapped, arc unchanged); the normal is always the
+    /// left perpendicular of start -> end. Loop walls are unchanged (counter-clockwise, room on the left).
+    static func cleanWall(_ segment: WallSegment, inLoop: Bool, reference: SIMD2<Float>, geometry: Provenance,
+                          options: CleanBuildOptions) -> CleanWall
+}
+final class CleanModelStep: ProcessingStep {
+    /// (changed value) Every clean.json made before this revision is rebuilt when its project is next
+    /// processed (AppShell's upgrade pass, 3.43e, enqueues ready projects once).
+    static let rulesVersion = "cleanModel-rules=2"
+}
+extension CleanModel {
+    /// (extended) CR-1 operations, see the rules below.
+    mutating func apply(_ op: EditOperation) -> Bool
+    /// (changed) Scale corrections are read from `log.flattenedActive`.
+    func applyingEdits(_ log: EditLog) -> (model: CleanModel, orphaned: [EditOperation])
+}
+extension RoomMetricsCalculator {
+    /// (changed) Floor area and perimeter are sums over `floor.outline` and every `floor.mergedOutlines`
+    /// part; length and width come from `Rectangle2D.minimumArea` of the points of all parts; volume is
+    /// the total area times the ceiling height.
+    static func metrics(for room: CleanRoom) -> RoomMetrics
+}
+extension CleanMeshBuilder {
+    /// (changed) Floor and ceiling parts also triangulate every merged outline.
+    static func parts(for model: CleanModel, includeCeiling: Bool, includeHidden: Bool) -> [CleanMeshPart]
+}
+```
+
+**Rules for the new operations.** Each returns false only when a target is missing, and then changes nothing; geometry changes call the existing `refresh(_:)` of the room (occlusion and unscaled metrics); `applyingEdits` recomputes everything at the end as before.
+- `moveOpening(opening, offset)`: missing opening false; an opening without a wall returns true unchanged; else `offsetAlongWall = clamp(offset, 0, max(0, wall.length - width))`, provenance `.user`.
+- `resizeOpening(opening, width, sill, head)`: missing opening false; width clamped to [0.05, wall length] keeping the center (then the offset clamped as above); heights applied when finite with 0 <= sill < head: head capped by the wall height, sill forced to 0 for `door` and `openDoor`; invalid heights keep the old ones (logged); provenance `.user`.
+- `mergeRooms(rooms, into)`: false when `into` or any listed room is missing. Each listed room on the same floor as `into` (others are skipped and logged) gives its walls, openings and objects to `into`, its outline and merged outlines to `into.floor.mergedOutlines`, and is removed; `into` keeps its name, section label, floor elevation and ceiling (a ceiling difference above 5 cm is logged).
+- `splitRoom(room, line, newRoom)`: false when `room` is missing; true unchanged when `newRoom` already exists (a replay), when `line` has fewer than two points or they coincide, or when either side of the line holds less than 0.01 square meters (logged). Parts are `floor.outline` plus the merged outlines, each cut with `Polygon2D.clipped(leftOf: first, last)` for `room` and `clipped(leftOf: last, first)` for the new room; a side's largest piece becomes its `outline`, the others its `mergedOutlines` (nil when none). Walls go to the side of their plan midpoint (on the line: `room`), openings follow their wall (no wall: `room`), objects follow their center. The new room is `CleanRoom(id: newRoom, recordID: room.recordID, name: "", sectionLabel: nil, floorIndex:, ...)` with the same floor elevation, floor provenance and ceiling, inserted right after `room`.
+- `batch(operations)`: applied in order to a copy; the first false returns false and leaves the model unchanged; else the copy replaces the model and true.
+- `moveWallEndpoint` (extended): vertices of `mergedOutlines` at the old end (within 1 mm) move too.
+- Builder: `cleanWall` for `!inLoop` uses `segment.reversed` when `simd_dot(leftNormal, reference - middle) < 0`, then the left normal. Openings are attached after the walls are built, so their offsets and default swings are measured from the new start; occlusion spans follow.
+
+**Uses.** As build 4, plus Core `EditOperation` (CR-1 cases, `flattened`), `EditLog.flattenedActive`, `CleanFloor.mergedOutlines`; Geometry `Polygon2D.clipped(leftOf:_:)`.
+
+**Must NOT do.** Never reverse a loop wall; never change a wall's arc when reversing it; never read `log.active` for scale corrections (batches hide them); never fill a merged room's gap between outlines with floor (the parts stay separate); never give the new room of a split a RoomPlan identifier.
+
+**Self-test.** At least 16 new checks (`RoomModelSelfTestB5.swift`): a stray wall whose left side faces away from the room comes out reversed with the left normal; on every fixture (rectangle, L, stub, flipped `columns.0`, curved, loop not closed) each wall's normal is the left perpendicular of start -> end within 1e-4; a curved stray wall keeps its arc when reversed; an opening on a reversed stray wall has its offset from the new start; `moveOpening` clamps and sets `.user`; `resizeOpening` keeps the center, forces a door's sill to 0, caps the head at the wall height, and ignores head <= sill; `mergeRooms` of a 4 x 5 m and a 3 x 4 m room gives one room with both rooms' walls, one merged outline, floor area 32 and perimeter 18 + 14 within 1e-3; `mergeRooms` with a missing room returns false and changes nothing; `splitRoom` of the 4 x 5 m room at y = 2 gives rooms of 12 and 8 square meters with walls and objects on their sides and the new room's `recordID` equal to the old one; a split line missing the room and a replayed split return true unchanged; a batch applies all its operations; a batch with one missing target returns false and leaves the model equal to before; a scale correction inside a batch is applied by `applyingEdits`; length and width of a merged room come from all its points; `CleanMeshBuilder` floor parts of a merged room have the total area within 1e-3; `moveWallEndpoint` moves a matching merged-outline vertex; `CleanModelStep.rulesVersion` is "cleanModel-rules=2". The build 4 check "flipped wall still in loop order" stays; any build 4 check that expected a stray wall's normal to be flipped is replaced.
+
+**Acceptance checks.** Every clean wall satisfies the orientation invariant (logged count of reversed stray walls per room); a plan edit shows in 3D Clean and in the measurement panel (PEDIT-06 "show in 3D CLEAN too"); old projects are rebuilt once by the upgrade pass and still open while they wait (smoke #2).
+
+**SPEC owned.** "FLOOR PLAN EDITING" (move, resize, merge and split reach the clean model and the measurements); "CORE DESIGN PRINCIPLE" Representation C stays consistent with Representation D.
+
+**TEST_PLAN ids.** PEDIT-01, PEDIT-05, PEDIT-06, PEDIT-07, MEAS-05 (merged and split room sizes), smoke #2.
+
+### 3.37c FloorPlan revision: CR-1 operations, merged rooms, no reversed walls (wave 5a0)
+
+**Purpose.** The plan side of CR-1: `PlanModel.apply` implements the new operations (move and resize openings, merge and split rooms, batches); `PlanBuilder` copies every clean wall start -> end to `PlanWall` a -> b (it no longer reverses walls, relying on the RoomModel revision's invariant), so edits address the same wall end in both models; merged rooms draw one tag and hit-test on all their parts; and room edges that no wall covers (a split line, the outline of a room whose loop did not close) are drawn as a thin dashed boundary on a new layer, shown with the room names.
+
+**Build and wave.** Build 5, wave 5a0 (branch `impl/floorplan-b5`), in parallel with 3.37b, after CR-1. Dependencies as build 4. About 300 lines of changes.
+
+**Files.** `ios/Sources/FloorPlan/PlanBuilder.swift`, `PlanModel+Edits.swift`, new `PlanModel+RoomEdits.swift` (merge, split, opening moves, batch), `PlanDrawing.swift` (layer, toggles, room hits, boundaries), `FloorPlanSteps.swift` (hash), `FloorPlanSelfTest.swift`, new `FloorPlanSelfTest+B5.swift`. The private lookups of `PlanModel+Edits.swift` (`levelIndex(_:)`, `updateRoom`, `updateOpening`, `updateWall`) lose their `private` so the new file can use them.
+
+**Public Swift API.**
+```swift
+extension PlanBuilder {
+    /// (changed) Walls are copied with a = start and b = end; opening offsets and swings unchanged.
+    /// A clean wall whose normal points to the right of start -> end (data older than 3.37b) is kept as
+    /// is and counted in one log line per build; it is not reversed.
+    static func build(from model: CleanModel, floors: [FloorRecord]) -> PlanModel
+    /// Sum of the polygon areas of `outline` and every merged outline.
+    static func totalArea(_ room: PlanRoom) -> Float
+}
+extension PlanModel {
+    /// (extended) CR-1 operations, see the rules below.
+    mutating func apply(_ op: EditOperation) -> Bool
+}
+extension PlanLayers {
+    /// Room edges not covered by a wall, drawn dashed; hidden with the room names.
+    static let roomBoundaries = "A-AREA-BNDY"
+}
+extension PlanDrawing {
+    /// An outline edge counts as covered when its midpoint lies within this distance of a wall segment
+    /// of the level (or of its body, the wall offset to its right by its thickness), meters.
+    static let boundaryWallSlack: Float = 0.08
+}
+final class FloorPlanStep: ProcessingStep {
+    /// (new) Added to the input hash extra.
+    static let rulesVersion = "planBuilder-rules=2"
+}
+```
+
+**Rules.**
+- `moveOpening(opening, offset)`: missing opening false; `offset` clamped to [0, wall length - width] on its wall.
+- `resizeOpening(opening, width, _, _)`: missing opening false; width clamped to [0.05, wall length] keeping the center, then the offset clamped; heights ignored (the plan has none).
+- `mergeRooms(rooms, into)`: false when any room is missing; listed rooms on another level are skipped (logged); each merged room's outline and merged outlines join `into.mergedOutlines`, it is removed, and `into.area = totalArea(into)`; `labelAt` unchanged.
+- `splitRoom(room, line, newRoom)`: as in 3.37b (same `Polygon2D.clipped` calls, same thresholds, same replay rules); the kept room's outline and merged outlines are its left pieces, `area = totalArea`, `labelAt = PlanBuilder.interiorPoint(of:)` of its outline; the new `PlanRoom(id: newRoom, name: "", ...)` goes right after it on the same level.
+- `batch`: all or nothing on a copy, as in 3.37b.
+- `moveWallEndpoint` (extended): merged-outline vertices within `outlineFollowTolerance` move too, and the room area is `totalArea`.
+- `PlanDrawing.make`: a room adds one `.room` hit per part (outline and each merged outline, same element); its tag is drawn once at `labelAt`. For every part edge whose midpoint is farther than `boundaryWallSlack` from every wall segment and wall body of the level, a dashed line (`PlanSketch.dashedLine`) on `PlanLayers.roomBoundaries`. `PlanLayers.all()`, `drawingOrder` (after `roomNames`), `color(of:)` (the room name color) and `PlanToggles.hiddenLayers` (hidden when `roomNames` is off) include the new layer.
+- `FloorPlanStep.inputHash` adds `rulesVersion`, so plans older than this revision are rebuilt with their clean model.
+
+**Uses.** As build 4, plus Core CR-1 (`EditOperation` cases, `PlanRoom.mergedOutlines`), Geometry `Polygon2D.clipped(leftOf:_:)`.
+
+**Must NOT do.** Never reverse a wall in `PlanBuilder`; never draw a boundary line on a wall; never bake a default title into a split room's name; never add DXF-only layers (the new layer is an ordinary `Plan2D.Layer` every writer already handles).
+
+**Self-test.** At least 16 new checks (`FloorPlanSelfTest+B5.swift`): for a revised clean model every plan wall's `a` equals the clean start in plan; a clean wall with a right-side normal keeps a = start (not reversed); the build 4 check that expected such a wall to be reversed, with its mirrored spans and hinge, is replaced by this one; `moveOpening` and `resizeOpening` clamp and keep the center; `mergeRooms` of two rooms leaves one room with area equal to the sum, one merged outline, and `PlanDrawing.hitTest` inside the second part returns the merged room; a merge with a missing room returns false; `splitRoom` gives two rooms whose areas sum to the original and whose `labelAt` lies inside each outline; a replayed split is unchanged; a batch is all or nothing; `moveWallEndpoint` moves merged-outline vertices and updates the area; a split room draws at least one `A-AREA-BNDY` entity along the cut and a rectangle room with walls on every edge draws none; `roomNames` off removes the boundary layer and nothing else; `PlanLayers.all()` names are unique and include the new layer; `FloorPlanStep.inputHash` changes with `rulesVersion`.
+
+**Acceptance checks.** Plans of edited projects draw merged and split rooms with one tag each and the split line dashed; exports (PDF, SVG, DXF, PNG) carry the new layer like any other; a build 4 plan is rebuilt once by the upgrade pass (3.43e).
+
+**SPEC owned.** "FLOOR PLAN EDITING" (move and resize doors and windows, merge and split rooms on the plan); "2D FLOOR PLAN" (room names and room outlines after edits).
+
+**TEST_PLAN ids.** PEDIT-05, PEDIT-06, PEDIT-07, PLAN-02, PLAN-05, EXP-05, EXP-07.
 
 ### 3.38 CoverageOverlay (wave 5b)
 
-**Purpose.** The live colored mesh: one `LowLevelMesh` per anchor with four parts (green, yellow, red, gray `UnlitMaterial`, `blending = .transparent(opacity: 0.45)`), rebuilt from a dirty set at most every 0.33 s on main, skipped outside the frustum, paused at thermal serious; plus the SwiftUI minimap view for room mode (Canvas of `MinimapSnapshot`) and the coverage legend.
-**Files.** `ios/Sources/CoverageOverlay/CoverageOverlayRenderer.swift`, `CoverageMinimapView.swift`, `CoverageLegendView.swift`, `CoverageOverlaySelfTest.swift`.
-**Apple APIs.** As Viewer3D's LowLevelMesh set (Descriptor capacity 1.5 x faces; recreate only when exceeded).
-**Must NOT do.** No `.showSceneUnderstanding` as the user-facing view; no CustomMaterial in the `.ar` view.
-**Self-test.** At least 8 checks on face sorting into state parts and capacity growth.
-**SPEC owned.** "LIVE SCANNING EXPERIENCE" (GREEN = scanned well, YELLOW = partially scanned, RED = missing information, GRAY = not scanned).
+**Purpose.** The visible side of live coverage (SPEC GREEN, YELLOW, RED, GRAY): the colored live mesh over the camera in mesh-only views (patch passes, large objects, space scans), one `LowLevelMesh` per ARKit anchor with four parts (green, yellow, red, gray `UnlitMaterial`, `blending = .transparent(opacity: 0.45)`), rebuilt from CoverageLive's changed anchors at most every 0.33 s on main, skipped outside the view, frozen from thermal `.serious`; plus the SwiftUI minimap (a `Canvas` of `MinimapSnapshot` with the camera marker) and the color legend, which Room mode shows over `RoomCaptureView` (ScanUI revision).
+
+**Build and wave.** Build 5, wave 5b. Core, CoverageLive, CaptureCore (`ThermalGovernor`), Coverage (`CoverageState`), Support; RealityKit, SwiftUI. It attaches to any `ARView` handed to it, so it does not need LiveMeshView. About 900 lines plus the self-test.
+
+**Files.** `ios/Sources/CoverageOverlay/CoverageOverlayPacking.swift` (pure: grouping, packing, parts, capacity, visibility, scheduling), `CoverageOverlayRenderer.swift` (main actor), `CoverageMinimapView.swift`, `CoverageLegendView.swift`, `CoverageOverlaySelfTest.swift`, `ios/Sources/Support/Copy+CoverageOverlay.swift`.
+
+**Public Swift API.**
+```swift
+/// Colors of the four states; alpha is the opacity.
+struct CoverageOverlayStyle: Equatable, Sendable {
+    var opacity: Float = 0.45
+    static let standard: CoverageOverlayStyle
+    /// Green (0.15, 0.80, 0.35), yellow (0.98, 0.80, 0.15), red (0.92, 0.25, 0.22), gray (0.60, 0.60, 0.62), alpha `opacity`.
+    func color(for state: CoverageState) -> SIMD4<Float>
+}
+
+/// One anchor packed for upload (built off main).
+struct CoverageOverlayBuffers {
+    var anchorID: UUID
+    var revision: UInt64
+    var transform: simd_float4x4
+    /// 32 bytes per vertex: position .float3 at 0, normal .float3 at 12 ((0, 1, 0) when unknown), uv0 .float2 at 24 (zero).
+    var vertexData: Data
+    var vertexCount: Int
+    /// Triangles grouped by state in `CoverageOverlayPacking.stateOrder`, each group in its original order.
+    var indices: [UInt32]
+    /// Index count per state, 4 entries in `stateOrder`.
+    var groupCounts: [Int]
+    /// Anchor-local bounds.
+    var boundsMin: SIMD3<Float>
+    var boundsMax: SIMD3<Float>
+}
+struct CoverageOverlayPart: Equatable, Sendable {
+    /// Bytes from the start of the index buffer (`LowLevelMesh.Part.indexOffset` is in bytes).
+    var byteOffset: Int
+    var indexCount: Int
+    /// Position of the state in `stateOrder` (the material index).
+    var materialIndex: Int
+}
+
+/// Pure packing and scheduling. Any queue.
+enum CoverageOverlayPacking {
+    static let stateOrder: [CoverageState] = [.green, .yellow, .red, .gray]
+    static let vertexStride = 32, positionOffset = 0, normalOffset = 12, uvOffset = 24
+    static let capacityFactor: Double = 1.5
+    /// Stable grouping of index triples by their triangle's state.
+    static func grouped(indices: [UInt32], states: [CoverageState]) -> (indices: [UInt32], counts: [Int])
+    /// Nil (logged) when `states.count != indices.count / 3` or an index is out of range.
+    static func pack(_ anchor: CoverageAnchorFaces) -> CoverageOverlayBuffers?
+    /// One part per non-empty group, byte offsets = preceding index counts x 4.
+    static func parts(groupCounts: [Int]) -> [CoverageOverlayPart]
+    /// `current` when it is enough, else ceil(needed x capacityFactor).
+    static func capacity(needed: Int, current: Int) -> Int
+    /// World bounds (`CoverageAnchorFaces.boundsMin`, `boundsMax`): their bounding sphere meets the cone of
+    /// `halfAngleDegrees` around the camera's forward (-Z column) within `maxDistance`; true when the camera is inside them.
+    static func isVisible(boundsMin: SIMD3<Float>, boundsMax: SIMD3<Float>, cameraToWorld: simd_float4x4,
+                          halfAngleDegrees: Float, maxDistance: Float) -> Bool
+    /// Up to `limit` visible anchors from `pending`, nearest bounds center first; the rest stay pending.
+    static func schedule(_ pending: [UUID: CoverageAnchorFaces], cameraToWorld: simd_float4x4, halfAngleDegrees: Float,
+                         maxDistance: Float, limit: Int) -> [UUID]
+}
+
+/// Draws CoverageLive's anchors into an ARView. Main actor.
+@MainActor final class CoverageOverlayRenderer {
+    struct Options: Equatable {
+        var refreshInterval: Double = 0.33
+        var maxAnchorsPerTick = 24
+        var halfAngleDegrees: Float = 60
+        var maxDistance: Float = 6
+        var style: CoverageOverlayStyle = .standard
+        init() {}
+    }
+    init(source: CoverageLiveRecorder, thermal: ThermalGovernor?, options: Options = Options())
+    /// Adds one `AnchorEntity(world:)` root to `arView.scene` and starts the refresh loop. A second
+    /// attach moves the root to the new view.
+    func attach(to arView: ARView)
+    /// Stops the loop and removes the root (entities and meshes released). Idempotent.
+    func detach()
+    /// User toggle (Show Colors / Hide Colors): the root's `isEnabled`.
+    var isVisible: Bool { get set }
+    /// True while `thermal.policy.overlayEnabled` is false (serious or critical): nothing is rebuilt.
+    private(set) var isFrozen: Bool
+    private(set) var anchorEntityCount: Int
+    /// Pure rule behind `isFrozen` (nonisolated so the self-test can call it off main).
+    nonisolated static func shouldFreeze(policy: ThermalPolicy) -> Bool
+}
+
+/// Top-down map: `MinimapSnapshot` cells (covered green, partial yellow, missing red, empty transparent
+/// over a dark translucent square that reads as gray, not scanned), walls as white lines, plan +y up,
+/// the camera as a small arrow at `camera` pointing along `heading` (CR-8). Fixed 120 pt square.
+struct CoverageMinimapView: View { init(snapshot: MinimapSnapshot?, coverageFraction: Float) }
+/// The four colors with `Copy.Scanning.legend*` texts under `Copy.Scanning.legendTitle`; one combined
+/// VoiceOver element reading `Copy.A11y.coverageLegend`.
+struct CoverageLegendView: View { init(compact: Bool = false) }
+/// Pure layout of the minimap (tested).
+enum CoverageMinimapLayout {
+    /// Scale and offset that fit `width x height` cells into `size` points, centered.
+    static func fit(width: Int, height: Int, in size: CGSize) -> (scale: CGFloat, offset: CGPoint)
+    /// The rectangle of cell (x, y); plan +y points up on screen, so row 0 is drawn at the bottom.
+    static func cellRect(x: Int, y: Int, height: Int, scale: CGFloat, offset: CGPoint) -> CGRect
+    /// Screen point of a plan position.
+    static func point(_ plan: Vec2, origin: Vec2, cellSize: Float, height: Int, scale: CGFloat, offset: CGPoint) -> CGPoint
+    /// nil for `.empty`, else the style color of covered, partial or missing.
+    static func color(for cell: MinimapCell, style: CoverageOverlayStyle) -> SIMD4<Float>?
+    /// Rounded percent for VoiceOver.
+    static func percent(_ fraction: Float) -> Int
+}
+```
+
+Refresh loop (main, a `Task` with `Task.sleep(nanoseconds:)` at `refreshInterval`): frozen or hidden skips the tick; `source.anchorFaces(changedSince: lastRevision)` merges into a pending dictionary (latest wins); the camera is `arView.cameraTransform.matrix`; `schedule` picks up to `maxAnchorsPerTick`; one `Task.detached(priority: .userInitiated)` packs them (at most one pack in flight); back on main each buffer goes to its anchor's `LowLevelMesh`: when the capacities hold, copy the bytes with `withUnsafeMutableBytes(bufferIndex: 0)` and `withUnsafeMutableIndices`, then `parts.replaceAll` with `parts(groupCounts:)` (each part's `bounds` is the anchor bounds), and set the entity's transform; otherwise create a `LowLevelMesh` with `capacity(needed:current:)` for vertices and indices (layout as Viewer3D: position, normal, uv0, stride 32, `UInt32` indices), `try MeshResource(from:)` (the synchronous overload, main actor) and a new `ModelEntity(mesh:materials:)` with the four materials in `stateOrder`, replacing the old entity under the root. Every material is `UnlitMaterial(color:)` with `blending = .transparent(opacity: .init(floatLiteral: opacity))` and `faceCulling = .none` (LiDAR winding is inconsistent). The `MeshResource` keeps a reference to the `LowLevelMesh` and shows in-place changes without being rebuilt (RESEARCH 3.5).
+
+**Uses.** CoverageLive: `CoverageLiveRecorder` (`anchorFaces(changedSince:)`), `CoverageAnchorFaces`. CaptureCore: `ThermalGovernor` (`policy`), `ThermalPolicy.overlayEnabled`. Coverage: `CoverageState`. Core: `MinimapSnapshot` (with CR-8), `MinimapCell`, `Vec2`. Support: `Copy.Scanning` (`legendTitle`, `legendGreen`, `legendYellow`, `legendRed`, `legendGray`), `Copy.A11y.coverageLegend`, `LogStore`.
+
+**Apple APIs** (RESEARCH 3.5, 3.6):
+```swift
+@MainActor init(descriptor: LowLevelMesh.Descriptor) throws
+// Descriptor(vertexCapacity:vertexAttributes:vertexLayouts:indexCapacity:indexType: .uint32)
+// Attribute(semantic: .position/.normal/.uv0, format: .float3/.float2, layoutIndex: 0, offset:)
+// Layout(bufferIndex: 0, bufferOffset: 0, bufferStride: 32)
+// Part(indexOffset:indexCount:topology: .triangle, materialIndex:bounds:)
+var parts: LowLevelMesh.PartsCollection { get set }                         // replaceAll(_:)
+@MainActor func withUnsafeMutableBytes(bufferIndex: Int, _ callback: (UnsafeMutableRawBufferPointer) -> Void)
+@MainActor func withUnsafeMutableIndices(_ callback: (UnsafeMutableRawBufferPointer) -> Void)
+@MainActor @preconcurrency convenience init(from mesh: LowLevelMesh) throws   // MeshResource, sync overload
+var blending: UnlitMaterial.Blending                                         // .transparent(opacity:)
+var faceCulling: UnlitMaterial.FaceCulling { get set }                       // .none, iOS 18.0
+@MainActor @preconcurrency var isEnabled: Bool { get set }                   // Entity
+var cameraTransform: Transform { get }                                       // ARView
+struct Canvas<Symbols> where Symbols : View                                  // SwiftUI, iOS 15.0
+```
+Not in RESEARCH: `LowLevelMesh.Part.indexOffset` is "the offset, in bytes, of the first index" (Apple documentation JSON, iOS 18.0); `ModelEntity(mesh:materials:)`, `AnchorEntity(world:)`, `Scene.addAnchor(_:)`, `Scene.removeAnchor(_:)`, `Entity.addChild(_:)`, `removeFromParent()`, `Entity.transform`, `Transform(matrix:)`, `Transform.matrix` (RealityKit, iOS 13, as Viewer3D uses them); `Task.sleep(nanoseconds:)` (iOS 13).
+
+**Must NOT do.** No `.showSceneUnderstanding` as the user-facing view; no CustomMaterial or ShaderGraphMaterial in the `.ar` view (RESEARCH 3.5: CustomMaterial crashed with AR compositing); no `.occlusion` scene understanding. Never regenerate meshes per frame (at most every 0.33 s, changed anchors only); never write a `LowLevelMesh` off main; no `MeshResource.generateAsync`, no `Descriptor.allowsPrimitiveRestart`, no 6-argument Descriptor init, no `UnlitMaterial.baseColor`. Never decide a coverage state (states come from CoverageLive), never mutate CoverageLive. No hardcoded text.
+
+**Copy strings.** Existing: `Copy.Scanning.legendTitle`, `legendGreen`, `legendYellow`, `legendRed`, `legendGray`; `Copy.A11y.coverageLegend`. New (`extension Copy { enum CoverageOverlay }` in `Copy+CoverageOverlay.swift`): `minimapLabel = "Map of your scan"`, `static func minimapValue(_ percent: Int) -> String { "\(percent) percent scanned" }`, `showColors = "Show Colors"`, `hideColors = "Hide Colors"`.
+
+**Self-test.** `CoverageOverlaySelfTest.run()`, at least 16 checks:
+1. `grouped` of states gray, green, yellow, green, red gives triangles 1, 3, 2, 4, 0 and counts 6, 3, 3, 3.
+2. `grouped` keeps every index triple intact (same multiset of triples).
+3. `parts(groupCounts: [6, 0, 3, 3])` gives 3 parts: byte offsets 0, 24, 36, index counts 6, 3, 3, material indices 0, 2, 3.
+4. `pack` writes 32 bytes per vertex with the normal at byte 12 and zero uv at 24.
+5. `pack` uses (0, 1, 0) for a missing normal.
+6. `pack` with a states count mismatch returns nil.
+7. `pack` bounds equal the positions' bounds.
+8. `capacity`: needed 100 of 0 gives 150; needed 100 of 120 gives 120; needed 130 of 120 gives 195.
+9. `isVisible`: bounds 2 m ahead true; behind false; 10 m ahead false; camera inside true.
+10. `schedule` returns the nearest visible first, at most `limit`, never an invisible one.
+11. Style: four distinct colors, every alpha equal to `opacity`.
+12. `CoverageMinimapLayout.fit` of 10 x 20 cells into 120 x 120 pt gives scale 6 and centers horizontally.
+13. `cellRect(x: 0, y: 0, ...)` lies at the bottom row (plan +y up).
+14. `color(for:)` is nil for `.empty` and the style colors for the others.
+15. `percent(0.943)` is 94.
+16. `CoverageOverlayRenderer.shouldFreeze(policy:)` is true for `ThermalPolicy.forLevel(.serious)` and `.critical`, false for `.nominal` and `.fair`.
+
+**Acceptance checks.** All RealityKit calls on main; packing off main; at most one pack in flight; entity count logged every 30 s with the last tick time (target under 8 ms of main-thread work per tick); frozen state logged on change; every material has `faceCulling = .none`; `detach()` removes the root and stops the loop (no tick after it).
+
+**SPEC owned.** "LIVE SCANNING EXPERIENCE" (GREEN = scanned well, YELLOW = partially scanned, RED = missing information, GRAY = not scanned, shown live; "The user should see the model forming while walking" in mesh-only scans); legend text for the four colors.
+
+**TEST_PLAN ids.** LIVE-01 (frame rate with the overlay on), LIVE-02, smoke list #3 (minimap and colors during a room scan), PERF-01, PERF-05 (overlay frozen at serious).
 
 ### 3.39 LargeObject (wave 5b)
 
-**Purpose.** Large objects (appliances, vehicles, equipment, D4): the mesh driver with a user-tapped seed, a gravity-aligned `OrientedBox.fit(_:gravityAligned: true)` grown from mesh vertices near the seed above the floor-classified faces, `SectorCoverage` (8 azimuth sectors plus top) raising `objectCaptureLeft`, `objectCaptureRight`, `objectCaptureBack`, `objectCaptureTop`, `objectMoveCloserToArea`, `objectNeedsDetail`, and the crop stored as a `cropObject` edit.
-**Files.** `ios/Sources/LargeObject/LargeObjectModel.swift`, `SectorCoverage.swift`, `LargeObjectSeed.swift`, `LargeObjectSelfTest.swift`.
-**Self-test.** At least 10 checks on sector assignment, least-covered sector to guidance kind, and box growth.
-**SPEC owned.** "OBJECT SCANNING" ("Capture the left side", "Capture the back", "Move closer to this area", "This section needs more detail"; vehicles, appliances, equipment); "SCANNING MODES" OBJECT (large).
+**Purpose.** Large objects (appliances, vehicles, machines, equipment; D4, ARCHITECTURE 4.5): capture on the LiDAR mesh driver instead of Object Capture. The user taps the object; the tap becomes a seed point (ray through the tap against the live faces, else an `.estimatedPlane` raycast); a gravity-aligned `OrientedBox.fit(_:gravityAligned: true)` is grown every second from the live faces connected to the seed above the floor (floor height from floor-classified faces, never from plane anchors, D14), with tall wall-classified columns left out; `SectorCoverage` tracks 8 azimuth sectors plus the top around the box from camera positions and face coverage and raises "Move around the object slowly", "Capture the left side", "Capture the right side", "Capture the back", "Capture the top", "Move closer to this area", "This section needs more detail" and "All sides captured. Tap Done when you're ready" through Coverage's `GuidanceEngine` (CR-9). At Done the pass is sealed as `raw/objects/<o>/` (RawScanFolder layout plus `largeobject.json`), an `ObjectRecord` (size `.large`) is added and the box is stored as a `cropObject` edit, which ObjectModel's `ObjectMetricsStep` uses to isolate the object.
+
+**Build and wave.** Build 5, wave 5b. Core, CoverageLive, LiveMeshView, CaptureCore, MeshRecord, Store, Coverage (with CR-9), Geometry, ScanUI (`ScanErrorCopy`, `ScanAlert`, `ScanFlowModel.defaultProjectName`), Units, Support; ARKit, RealityKit, SwiftUI. It does not need ObjectModel or MeshProcessing (the isolation runs in ObjectModel's step from the edit). About 1400 lines plus the self-test.
+
+**Files.** `ios/Sources/LargeObject/LargeObjectModel.swift` (the `@MainActor` flow), `LargeObjectTracker.swift` (hub recorder: poses; 1 Hz box and sector pass on its own queue), `LargeObjectSeed.swift` (pure: floor, growth, box, ray pick), `LargeObjectSectorCoverage.swift` (pure `SectorCoverage`), `LargeObjectBoxEntity.swift` (RealityKit wireframe box), `LargeObjectScreen.swift` (screen and HUD), `LargeObjectSelfTest.swift`, `ios/Sources/Support/Copy+LargeObject.swift`.
+
+**Public Swift API.**
+```swift
+/// The object being captured; the project exists before capture.
+struct LargeObjectTarget: Equatable, Sendable {
+    var projectID: UUID
+    var package: ProjectPackage
+    var sessionID: UUID
+    var objectID: UUID
+    var settings: ScanSettings
+    /// `ScanSettings.defaults(for: .object)` with detail `.high` (0.20 m or 10 degree keyframe gate)
+    /// and distance `.normal` (0.3 to 4 m, large objects are walked around at arm's length or more).
+    static func defaultSettings() -> ScanSettings
+    /// Main. Creates the Object project (`ProjectLibrary.shared.create(kind: .object, name:
+    /// ScanFlowModel.defaultProjectName(mode: .object, now: now))`, as ObjectUI does), sets `settings`, appends `CaptureSessionRef(id:startedAt:frameLink:
+    /// .projectFrame(sessionID:), worldMapFile: nil)` and returns the target. The caller ran
+    /// `ScanPreflight.run(mode: .object, isDemo: false)` (async) first.
+    @MainActor static func makeNew(now: Date) throws -> LargeObjectTarget
+}
+
+/// `largeobject.json` in the sealed folder: capture facts (the user-facing box is the edit).
+struct LargeObjectLog: Codable, Equatable, Sendable {
+    static let fileName = "largeobject.json"
+    var seed: Vec3?
+    var floorY: Float?
+    var front: Vec3?
+    var box: OrientedBoxRecord?
+    /// Seconds the camera viewed each region (8 sides, then top) and each region's face score.
+    var viewSeconds: [Double]
+    var faceScores: [Float?]
+    var topRequired: Bool
+    var covered: Int
+    var required: Int
+}
+
+/// One live face for sector scoring.
+struct SectorFace: Equatable {
+    var centroid: SIMD3<Float>
+    var normal: SIMD3<Float>
+    var area: Float
+    var state: CoverageState
+}
+
+/// 8 azimuth sectors (45 degrees each) plus the top around the box (D4). Azimuth is measured around
+/// +Y from the front direction (box center toward the camera when the seed was set), positive toward
+/// the viewer's right as seen from the front: sector 0 front, 1 front-right, 2 right, 3 back-right,
+/// 4 back, 5 back-left, 6 left, 7 front-left; region 8 is the top. Pure value type.
+struct SectorCoverage: Equatable {
+    static let sideCount = 8
+    static let topRegion = 8
+    static let minViewSeconds: Double = 1.5
+    static let viewConeDegrees: Float = 35
+    static let viewDistance: ClosedRange<Float> = 0.3...3.5     // camera to the box surface
+    static let topElevationDegrees: Float = 25
+    static let maxReachableTop: Float = 1.9                       // box top above the floor
+    static let minFaceArea: Float = 0.05
+    static let coveredScore: Float = 0.6
+    static let closerDistance: Float = 1.6
+    static let startupSeconds: Double = 4
+    private(set) var box: OrientedBox
+    private(set) var floorY: Float
+    /// Unit horizontal (x, z) front direction.
+    let front: SIMD2<Float>
+    private(set) var viewSeconds: [Double]        // 9 regions
+    private(set) var meanViewDistance: [Float?]   // 9 regions
+    private(set) var faceScores: [Float?]         // 9 regions, nil under minFaceArea
+    private(set) var elapsed: Double
+    init(box: OrientedBox, floorY: Float, firstCamera: SIMD3<Float>)
+    mutating func updateBox(_ box: OrientedBox, floorY: Float)
+    /// Adds `seconds` to the region the camera sees: a side sector when the camera looks at the box
+    /// center within `viewConeDegrees` from `viewDistance` of its surface; the top when the camera is at
+    /// least `topElevationDegrees` above the top face center and looks down at it. Nothing unless tracking is normal.
+    mutating func observe(cameraToWorld: simd_float4x4, seconds: Double, trackingNormal: Bool)
+    /// Face scores: faces inside the box grown by 0.05 m, normals turned outward from the box center;
+    /// top = normal.y > 0.7 within 0.15 m of the top; bottom-facing faces ignored; side sector from the
+    /// normal's horizontal azimuth. Score = (green area + 0.5 x yellow area) / area.
+    mutating func updateFaces(_ faces: [SectorFace])
+    /// Degrees in (-180, 180], 0 front, +90 right.
+    func azimuthDegrees(of point: SIMD3<Float>) -> Float
+    static func sector(azimuthDegrees: Float) -> Int
+    /// False when the box top is more than `maxReachableTop` above the floor (a person cannot see it).
+    var topRequired: Bool { get }
+    /// viewSeconds >= minViewSeconds and (no score or score >= coveredScore).
+    func isCovered(_ region: Int) -> Bool
+    var coveredCount: Int { get }
+    var requiredCount: Int { get }                // 8 or 9
+    /// The one object message for now (camera-relative):
+    /// startup with nothing covered -> .objectMoveAround; all required covered -> .objectLooksComplete;
+    /// the camera's own sector uncovered: mean view distance > closerDistance -> .objectMoveCloserToArea,
+    /// else a score below coveredScore after minViewSeconds -> .objectNeedsDetail, else nil (keep going);
+    /// otherwise the uncovered side with the smallest |delta| from the camera's azimuth (ties to the right):
+    /// |delta| > 135 -> .objectCaptureBack, delta > 0 -> .objectCaptureRight, delta < 0 -> .objectCaptureLeft;
+    /// only the top left -> .objectCaptureTop.
+    func guidance(cameraToWorld: simd_float4x4) -> GuidanceKind?
+}
+
+/// Seed, floor, growth and box. Pure.
+struct LargeObjectSample: Equatable { var position: SIMD3<Float>; var surface: SurfaceClass }
+enum LargeObjectSeed {
+    static let voxelSize: Float = 0.10
+    static let floorClearance: Float = 0.04
+    static let searchRadius: Float = 4.0          // horizontal, from the seed
+    static let maxHeight: Float = 3.0             // above the floor
+    static let snapRadius: Float = 0.3            // to the nearest occupied voxel
+    static let wallColumnHeight: Float = 2.3      // columns taller than this and mostly wall, door or window are walls
+    static let boxMargin: Float = 0.05
+    static let minPoints = 30
+    /// Samples (face centroids with area > 0 and their class) of the anchors whose bounds come within
+    /// `searchRadius` of the seed.
+    static func samples(from anchors: [CoverageAnchorFaces], near seed: SIMD3<Float>) -> [LargeObjectSample]
+    /// Median y of `.floor` samples within 3 m (horizontal) when at least 20, else the 5th percentile of
+    /// all samples within 1.5 m, else nil.
+    static func floorHeight(seed: SIMD3<Float>, samples: [LargeObjectSample]) -> Float?
+    /// Occupied voxels above floorY + floorClearance and below floorY + maxHeight within searchRadius,
+    /// `.floor` and `.ceiling` samples ignored, wall columns removed; 26-connected flood fill from the seed
+    /// voxel or the nearest occupied voxel within snapRadius. Returns the sample positions of the filled
+    /// voxels; empty when the seed is in a wall column or nothing is near.
+    static func grow(seed: SIMD3<Float>, samples: [LargeObjectSample], floorY: Float) -> [SIMD3<Float>]
+    /// `OrientedBox.fit(points, gravityAligned: true)`, bottom extended down to floorY, `boxMargin` on every
+    /// side; nil under `minPoints` points.
+    static func box(points: [SIMD3<Float>], floorY: Float) -> OrientedBox?
+    /// Anchors whose world bounds the ray crosses within `maxDistance` (slab test).
+    static func anchorsOnRay(_ ray: Ray, anchors: [CoverageAnchorFaces], maxDistance: Float) -> [CoverageAnchorFaces]
+    /// World triangles of `anchors` (local positions through their transforms), merged.
+    static func worldMesh(_ anchors: [CoverageAnchorFaces]) -> TriangleMesh
+    /// Nearest hit on `mesh` (MeshBVH) within `maxDistance`.
+    static func pick(_ ray: Ray, mesh: TriangleMesh, maxDistance: Float) -> SIMD3<Float>?
+}
+
+/// Tracker state for the model (any thread copy).
+struct LargeObjectTrackerState: Equatable {
+    var box: OrientedBox?
+    var floorY: Float?
+    var covered: Int
+    var required: Int
+    var guidance: GuidanceKind?
+    var passes: Int
+}
+
+/// Hub recorder plus a 1 Hz pass on its own serial queue "mapper.largeobject" (QoS utility).
+final class LargeObjectTracker: ScanRecorder {
+    static let poseInterval: Double = 0.1
+    static let passInterval: Double = 1.0
+    init(coverage: CoverageLiveRecorder)
+    /// Resets the seed, box and sectors.
+    func beginRecording(into folder: RawScanFolder, profile: ScanProfile, startTimestamp: TimeInterval)
+    /// Every 0.1 s copies the camera transform and tracking state; the pass (below) runs every second.
+    func hub(_ hub: ARSessionHub, didUpdate frame: ARFrame)
+    func finishRecording(completion: @escaping () -> Void)
+    var stats: RecorderStats { get }                                  // zero
+    /// Any thread. A new seed (nil clears); `front` is the camera position at the tap.
+    func setSeed(_ seed: SIMD3<Float>?, floorY: Float?, front: SIMD3<Float>?)
+    /// Hub queue: `apply(decision:to:)` with the latest object message.
+    func augment(_ input: inout GuidanceInput)
+    /// Pure: `extraConditions` = [decision] (empty for nil, CR-9); `viewCoverage` = nil and
+    /// `nearbyMissing` = [] (object guidance replaces room coverage nags).
+    static func apply(decision: GuidanceKind?, to input: inout GuidanceInput)
+    /// The engine's guidance hook: `coverage.guidanceHook`, then `augment`. Formed here, outside any
+    /// actor, and capturing both weakly (never form hub-queue closures in the `@MainActor` model).
+    func guidanceHook(after coverage: CoverageLiveRecorder) -> (inout GuidanceInput) -> Void
+    func current() -> LargeObjectTrackerState
+    func log() -> LargeObjectLog
+}
+
+enum LargeObjectPhase: Equatable { case starting, aiming, locating, capturing, finishing, done(UUID), cancelled, failed(String) }
+
+@MainActor final class LargeObjectModel: ObservableObject {
+    @Published private(set) var phase: LargeObjectPhase
+    @Published private(set) var box: OrientedBox?
+    @Published private(set) var sidesCovered: Int
+    @Published private(set) var sidesRequired: Int
+    /// Seed hints (Copy.LargeObject), nil while capturing.
+    @Published private(set) var hint: String?
+    @Published var showsCancelConfirmation: Bool
+    @Published var alert: ScanAlert?
+    let target: LargeObjectTarget
+    let scan: MeshScanModel
+    /// For AppShell's CoverageOverlay: `CoverageOverlayRenderer(source: model.coverage, thermal: model.scan.engine.hub.thermal)`.
+    let coverage: CoverageLiveRecorder
+    let tracker: LargeObjectTracker
+    /// Project id after the seal, the ObjectRecord and the crop edit.
+    var onComplete: ((UUID) -> Void)?
+    /// After a confirmed cancel (the project is deleted when it holds nothing).
+    var onDismiss: (() -> Void)?
+    init(target: LargeObjectTarget)
+    func start()
+    /// From LiveMeshScreen's onViewReady: keeps the view weakly and attaches the box entity.
+    func attach(_ arView: ARView)
+    /// Seed from a tap (below).
+    func handleTap(_ point: CGPoint, in arView: ARView)
+    func chooseAgain()
+    /// Done (enabled once a box exists).
+    func finish()
+    func requestCancel(); func confirmCancel(); func keepScanning()
+    func teardown()
+}
+
+/// Wireframe box on the ARView (`MeshResource.generateBox(size:cornerRadius:)` with an UnlitMaterial,
+/// `triangleFillMode = .lines`, `faceCulling = .none`, white), placed with `Transform(matrix:)` from the
+/// box axes and center; the mesh is regenerated only when a size changes by more than 2 cm.
+@MainActor final class LargeObjectBoxEntity {
+    init()
+    func attach(to arView: ARView)
+    func update(_ box: OrientedBox?)
+    func detach()
+}
+struct LargeObjectScreen: View {
+    /// `LiveMeshScreen` with `onViewReady` = `{ model.attach($0); extra?($0) }` and `onTap` = `model.handleTap`,
+    /// plus the HUD: `LiveMeshTopBar` (Done enabled with a box), the hint or the sides progress, the box
+    /// size, Choose Again, the cancel confirmation and alerts.
+    init(model: LargeObjectModel, onViewReady extra: (@MainActor (ARView) -> Void)? = nil)
+}
+```
+
+Flow:
+1. `init`: `let mesh = MeshStore()`, coverage = `CoverageLiveRecorder(meshSource: mesh)`, tracker = `LargeObjectTracker(coverage: coverage)`, recorders `MeshScanRecorderSet(photos: false, mesh: mesh, extra: [coverage, tracker]).all`, `MeshScanEngine(target: .largeObject(...), recorders:)` (owned hub, profile mode `.object`, no planes, D14), `engine.guidanceAugmenter = tracker.guidanceHook(after: coverage)`, `engine.snapshotAugmenter = coverage.snapshotHook`. `start()`: `scan.start()`; phase `.aiming`, hint `Copy.LargeObject.tapToSelect`.
+2. Tap (`handleTap`, main): `arView.ray(through:)`; phase `.locating`; off main: `anchorsOnRay` over `coverage.anchorFaces(changedSince: 0).anchors`, `worldMesh`, `pick` within 6 m; when nothing is hit, back on main `arView.raycast(from: point, allowing: .estimatedPlane, alignment: .any).first` gives the point. Then off main `samples(from:near:)`, `floorHeight`, `grow`, `box`: a box sets `tracker.setSeed(seed, floorY:, front: camera position)` and phase `.capturing`; no box gives hint `noObjectFound` (or `tappedWall` when the seed voxel lies in a wall column) and phase `.aiming`.
+3. Capturing: the tracker regrows the box every second from the current faces (seed fixed), scores faces with `updateFaces` and camera poses with `observe`, and publishes the message; a 2 Hz main loop copies `tracker.current()` into the published values and `LargeObjectBoxEntity.update`.
+4. Done: `scan.finish(attachments: [LargeObjectLog.fileName: log encoded with ProjectStore.encoder])`; on `onFinished(result)`: one `ProjectLibrary.shared.update(projectID)` appends `ObjectRecord(id: objectID, name: "", size: .large, status: .captured, imageCount: result.keyframeCount, modelFile: nil)` and sets status `.needsProcessing`; `EditStore.append(.cropObject(object: ElementID(uuid: objectID), box: OrientedBoxRecord(box)), to: package)`; `thumbnail.jpg` from `arView.snapshot(saveToHDR: false)` of the attached view (`jpegData(compressionQuality: 0.7)`, `ProjectStore.writeData(_:to: package.thumbnailURL)`, best effort, logged; FloorPlan's ThumbnailStep reads only room keyframes and `Images/`, so a large object would otherwise have no Home thumbnail); `scan.teardown()`; phase `.done(projectID)`; `onComplete`. A `.failed` after `.roomFinished` (heat, storage, memory) shows `ScanErrorCopy.alert(for:)` and still completes.
+5. Cancel (after `Copy.Scanning.cancelConfirm*`): `scan.discard()`; on idle, `ProjectLibrary.shared.delete(projectID)` when the manifest has no object and no room; `onDismiss`.
+
+**Uses.** LiveMeshView: `MeshScanEngine` (`guidanceAugmenter`, `snapshotAugmenter`, `latestCameraTransform`, `hub`), `MeshScanTarget.largeObject(projectID:package:sessionID:objectID:settings:)`, `MeshScanRecorderSet`, `MeshScanModel`, `MeshScanResult`, `LiveMeshScreen`, `LiveMeshTopBar`, `Copy.LiveMeshView.saving`. CoverageLive: `CoverageLiveRecorder` (`anchorFaces(changedSince:)`, `augment`), `CoverageAnchorFaces`. CaptureCore: `ScanRecorder`, `ARSessionHub`, `ScanProfile`, `RecorderStats`, `ThermalGovernor`. MeshRecord: `MeshStore` (through the set). Coverage: `GuidanceInput` (`extraConditions`, CR-9; `viewCoverage`, `nearbyMissing`), `CoverageState`, `SurfaceClass`. Geometry: `OrientedBox` (`fit(_:gravityAligned:)`, `enclosing(_:axes:)`, `contains(_:tolerance:)`, `corners`), `Ray`, `TriangleMesh` (`init(positions:indices:)`, `transformed(by:)`, `merged(with:)`), `MeshBVH` (`init(mesh:)`, `raycast(_:maxDistance:)`). Store: `ProjectLibrary` (`create(kind:name:)`, `update(_:_:)`, `delete(_:)`, `manifest(for:)`), `EditStore.append(_:to:)`. ScanUI: `ScanErrorCopy.alert(for:)`, `ScanAlert`, `ScanFlowModel.defaultProjectName(mode:now:)`. Units: `LengthFormat.display(_:prefs:)`, `UnitPreferences.load(from:)`. Core: `ObjectRecord`, `ObjectSize`, `RoomStatus`, `CaptureSessionRef`, `FrameLink`, `ElementID`, `EditOperation.cropObject(object:box:)`, `OrientedBoxRecord`, `Vec3`, `ScanMode`, `ScanSettings`, `ProjectStore` (`encoder`, `writeData(_:to:protection:createParents:)`), `ProjectPackage.thumbnailURL`, `MapperError`. Support: `Copy.Scanning.cancelConfirmTitle`, `cancelConfirmBody`, `cancelConfirmDiscard`, `cancelConfirmKeep`, guidance through `GuidanceKind.message`, `LogStore`.
+
+**Apple APIs** (RESEARCH 3.1, 3.5):
+```swift
+@MainActor @preconcurrency func ray(through screenPoint: CGPoint) -> (origin: SIMD3<Float>, direction: SIMD3<Float>)?   // ARView
+@MainActor @preconcurrency func raycast(from point: CGPoint, allowing target: ARRaycastQuery.Target,
+                                        alignment: ARRaycastQuery.TargetAlignment) -> [ARRaycastResult]            // .estimatedPlane, .any
+@MainActor @preconcurrency static func generateBox(size: SIMD3<Float>, cornerRadius: Float = 0) -> MeshResource
+@MainActor @preconcurrency func snapshot(saveToHDR: Bool, completion: @escaping (ARView.Image?) -> Void)                  // ARView, thumbnail at Done
+var triangleFillMode: UnlitMaterial.TriangleFillMode { get set }                      // .lines, iOS 18.0
+var faceCulling: UnlitMaterial.FaceCulling { get set }                                // .none, iOS 18.0
+var transform: simd_float4x4 { get }; var trackingState: ARCamera.TrackingState { get }   // ARCamera, in the frame callback
+```
+Not in RESEARCH (RealityKit, iOS 13, as Viewer3D uses them): `ModelEntity(mesh:materials:)`, `AnchorEntity(world:)`, `Scene.addAnchor(_:)`, `Scene.removeAnchor(_:)`, `Entity.transform`, `Transform(matrix:)`; `Task.sleep(nanoseconds:)`.
+
+**Must NOT do.** Plane detection stays off (D14). Never use Object Capture here and never create a second ARSession. Never put the crop into raw (the edit holds it; `largeobject.json` records the capture-time box as a fact), never write after the seal. Never run the ray pick, growth or sector pass on main or on the hub queue (tracker queue or detached tasks only). Never keep an `ARFrame`. Never show a second message beside the guidance banner's one (object messages go through `extraConditions`). Never keep an empty project after a confirmed cancel. No hardcoded text; box sizes only through Units.
+
+**Copy strings.** Existing: guidance texts of `.objectMoveAround`, `.objectCaptureLeft`, `.objectCaptureRight`, `.objectCaptureBack`, `.objectCaptureTop`, `.objectMoveCloserToArea`, `.objectNeedsDetail`, `.objectLooksComplete` (through `GuidanceKind.message`); `Copy.Modes.object`; `Copy.Scanning.done`, `cancel`, `cancelConfirmTitle`, `cancelConfirmBody`, `cancelConfirmDiscard`, `cancelConfirmKeep`; `Copy.Quality.objectSides`. New (`extension Copy { enum LargeObject }` in `Copy+LargeObject.swift`): `tapToSelect = "Tap the object you want to scan"`, `locating = "Finding the object..."`, `noObjectFound = "Couldn't find an object there. Tap the middle of it."`, `tappedWall = "That looks like a wall. Tap the object instead."`, `chooseAgain = "Choose Again"`, `static func sidesProgress(_ covered: Int, of total: Int) -> String { "\(covered) of \(total) sides captured" }`, `static func boxSize(width: String, depth: String, height: String) -> String { "About \(width) by \(depth) by \(height)" }`, `a11yBox = "Outline of the selected object"`.
+
+**Self-test.** `LargeObjectSelfTest.run()`, at least 24 checks (all on synthetic samples and poses):
+1. With the first camera at +Z from the center, a point at +X has azimuth +90, one at -X has -90, one at -Z has 180.
+2. `sector`: 0 -> 0, 22.4 -> 0, 22.6 -> 1, 90 -> 2, 180 -> 4, -180 -> 4, -90 -> 6.
+3. `observe`: a camera 1.5 m in front looking at the center for 20 poses of 0.1 s gives viewSeconds[0] of 2.
+4. Looking away, standing 5 m away, or with tracking limited adds nothing.
+5. A camera 1 m above a 1 m tall box looking down adds top seconds; a 2.2 m tall box has `topRequired` false and `requiredCount` 8.
+6. `updateFaces` of a 1 m cube of faces, all green: side sectors 0, 2, 4, 6 score 1; diagonal sectors have no score.
+7. Inward-wound faces are turned outward (the same scores).
+8. Yellow faces score 0.5 (not covered).
+9. `guidance` at startup with nothing covered: `.objectMoveAround`.
+10. Front covered, camera at the front, sectors 1 and 7 uncovered: `.objectCaptureRight` (tie goes right).
+11. Everything but the back covered: `.objectCaptureBack`; everything but the left: `.objectCaptureLeft`.
+12. All sides covered, top required and not covered: `.objectCaptureTop`.
+13. All required covered: `.objectLooksComplete`.
+14. Own sector uncovered with mean view distance 2.5 m: `.objectMoveCloserToArea`; at 1 m with a 0.5 score after 1.5 s: `.objectNeedsDetail`.
+15. `floorHeight` from 30 floor samples at y 0 plus or minus 5 mm is 0 within 0.005; without floor samples it is the 5th percentile.
+16. `grow`: a 1 m cube of samples next to a 3 m tall wall-classified column returns only cube samples.
+17. `box` of that result is about 1.1 x 1.1 x 1.05 m (margins) with its bottom at the floor.
+18. A seed 0.2 m from the cube snaps to it; 0.5 m away returns nothing.
+19. A seed inside the wall column returns nothing.
+20. `box` with fewer than 30 points is nil.
+21. `anchorsOnRay` keeps an anchor across the ray and drops one beside it.
+22. `pick` on a 1 m quad at z -2 hits (0, 0, -2) along -Z and nothing along +Z.
+23. `LargeObjectLog` round trip through `ProjectStore.encoder` and `decoder`.
+24. `defaultSettings()` has detail `.high`, distance `.normal`, findRooms false.
+25. `LargeObjectTracker.apply(decision:to:)` puts the message in `extraConditions` and clears `viewCoverage` and `nearbyMissing`; a nil decision leaves `extraConditions` empty.
+
+**Acceptance checks.** The tracker's hub callback copies only; the 1 Hz pass time is logged (target under 50 ms for 300k tracked faces); the seed and box are logged with their sizes; the box entity updates at most twice a second; the ObjectRecord and the crop edit are written only after the seal; a cancelled capture leaves no project; guidance changes are logged by `GuidanceAnnouncer` (OBJ-01 "Log").
+
+**SPEC owned.** "OBJECT SCANNING" for large objects ("Guide the user around the object"; "Move around the object slowly", "Capture the left side", "Capture the back", "Capture the top", "Move closer to this area", "This section needs more detail"; vehicles, appliances, machines, equipment; "Attempt to separate the target object from its background" at capture: seed region and box; bounding box capture); "SCANNING MODES" OBJECT (large path); "CORE DESIGN PRINCIPLE" Representation E (capture side).
+
+**TEST_PLAN ids.** OBJ-01 (large-object variant of the guidance steps), OBJ-04 (the detail message), OBJ-05, OBJ-07, OBJ-09, MODE-03 (Object, large), PERF-06, PERF-26 (recovery through AppShell).
 
 ### 3.40 MissingAreas (wave 5b)
 
-**Purpose.** Show Missing Areas (D19, kept by lead decision 4): from the quality sheet, continue on the same running `ARSession` (the room's `RoomScanEngine` has not been torn down; the sheet stays over the live camera) in a `MeshScanEngine(target:recorders:hub:)` patch pass with the room engine's hub (new mesh-pass folder, new recorders), tour the missing areas sorted by walking distance with an arrow HUD toward the suggested viewpoint, mark an area filled when coverage reaches it, Next Area, and return to the quality sheet with re-evaluated numbers; windows and mirrors excluded. The button is offered only when `RoomScanResult.stoppedBySystem` is false (a heat, storage or memory stop already paused the session). Finish or Discard after the tour tears down both engines.
-**Files.** `ios/Sources/MissingAreas/MissingAreasModel.swift`, `MissingAreasHUD.swift`, `MissingAreasSelfTest.swift`, `Copy+MissingAreas.swift` (uses `Copy.Quality.missingAreaHint`, `missingAreaDone`, `nextMissingArea`, `allAreasDone`, `missingAreaStep(_:of:)`).
-**Self-test.** At least 8 checks on ordering, arrow angle and the filled rule.
-**SPEC owned.** "SCAN QUALITY SYSTEM" ("Selecting SHOW MISSING AREAS should guide the user directly to locations requiring additional scanning").
+**Purpose.** Show Missing Areas (SPEC SCAN QUALITY SYSTEM, D19, lead decision 4): from the quality sheet, continue on the same running `ARSession` (the room's `RoomScanEngine` has not been torn down and its `RoomCaptureView` stays mounted) in a `MeshScanEngine` patch pass on the room engine's hub (new `mesh-pass/` folder, new recorders), tour the evaluation's missing areas in walking order with an arrow toward each suggested standable viewpoint, then toward the area itself, show each area red in the live overlay, mark it filled when coverage reaches it, skip what cannot be scanned (glass and mirrors: windows, doors and openings are already excluded by Quality), and return to the quality sheet with numbers evaluated again from the room plus the pass. Offered only when `RoomScanResult.stoppedBySystem` is false and the evaluation lists missing areas.
+
+**Build and wave.** Build 5, wave 5b. Core, CoverageLive, LiveMeshView, Quality (with CR-10), MeshModel (`MeshConsolidator`), RoomModel (`CapturedRoomStore.rawFolder`), CaptureCore, Store, ScanUI (`ScanErrorCopy`), Units, Support; RealityKit (the `ARView` type in hooks), SwiftUI. About 1000 lines plus the self-test.
+
+**Files.** `ios/Sources/MissingAreas/MissingAreasModel.swift`, `MissingAreaTour.swift` (pure tour state machine, order, arrow, samples), `MissingAreasReevaluation.swift` (seed inputs and the evaluation after the tour), `MissingAreasHUD.swift` (screen and HUD), `MissingAreasSelfTest.swift`, `ios/Sources/Support/Copy+MissingAreas.swift`.
+
+**Public Swift API.**
+```swift
+/// Everything the tour needs; built by ScanUI from the finished room.
+struct MissingAreasTarget {
+    var projectID: UUID
+    var package: ProjectPackage
+    var room: RoomRecord
+    var evaluation: QualityEvaluation
+    /// The room's mode and settings (the borrowed hub keeps its profile).
+    var mode: ScanMode
+    var settings: ScanSettings
+    /// `RoomScanEngine.hub` of the finished room, still running.
+    var hub: ARSessionHub
+}
+
+enum MissingAreaStopStatus: String, Equatable, Sendable { case pending, filled, unscannable, passed }
+struct MissingAreaStop: Identifiable, Equatable {
+    /// `MissingAreaRecord.id`.
+    var id: Int
+    var record: MissingAreaRecord
+    var samplePoints: [SIMD3<Float>]
+    var status: MissingAreaStopStatus
+    var fraction: Float
+    /// Seconds spent facing the area from its viewpoint without progress.
+    var facingSeconds: Double
+}
+/// Where to point the user. Angles in radians.
+struct MissingAreaArrow: Equatable, Sendable {
+    /// Horizontal bearing from the camera's facing direction to the target, positive to the right (clockwise seen from above).
+    var bearing: Float
+    /// Elevation of the target above the camera's horizontal plane.
+    var pitch: Float
+    var horizontalDistance: Float
+    /// Within `MissingAreaTour.arrivalRadius` of the viewpoint (the arrow then points at the area itself).
+    var atViewpoint: Bool
+}
+enum MissingAreaDirection: Equatable, Sendable { case ahead, left, right, behind, up, down }
+enum MissingAreaTourEvent: Equatable, Sendable { case filled(Int), unscannable(Int), advanced(Int), finished }
+
+/// The tour as a value. Pure.
+struct MissingAreaTour: Equatable {
+    static let filledFraction: Float = 0.8
+    static let sampleSpacing: Float = 0.2
+    static let observedRadius: Float = 0.15
+    static let arrivalRadius: Float = 0.75
+    static let facingConeDegrees: Float = 35
+    static let facingMaxDistance: Float = 3.5
+    static let unscannableSeconds: Double = 8
+    static let unscannableMaxFraction: Float = 0.3
+    private(set) var stops: [MissingAreaStop]
+    /// Index into `stops` of the area shown now, nil when none is pending.
+    private(set) var currentIndex: Int?
+    /// Orders the records by `order(_:from:)`; records with surface `.window` or `.door` are dropped (D19).
+    init(records: [MissingAreaRecord], start: SIMD3<Float>)
+    /// Updates fractions of every pending stop; a stop at `filledFraction` or more becomes filled (any stop,
+    /// not only the current); facing time counts for the current stop only with normal tracking; the current
+    /// stop becomes unscannable after `unscannableSeconds` facing it with its fraction under
+    /// `unscannableMaxFraction`; a resolved current stop advances to the nearest pending stop.
+    mutating func update(fractions: [Int: Float], cameraToWorld: simd_float4x4, seconds: Double,
+                         trackingNormal: Bool) -> [MissingAreaTourEvent]
+    /// Next Area: the current stop becomes passed; advance.
+    mutating func next() -> [MissingAreaTourEvent]
+    var remainingCount: Int { get }
+    var isFinished: Bool { get }
+    /// Greedy walking order: from `start`, repeatedly the nearest suggested viewpoint (horizontal distance).
+    static func order(_ records: [MissingAreaRecord], from start: SIMD3<Float>) -> [Int]
+    /// Points on a disc of radius sqrt(area / pi) (at least 0.1 m) in the area's plane, `spacing` apart, centroid included.
+    static func samplePoints(for record: MissingAreaRecord, spacing: Float) -> [SIMD3<Float>]
+    /// Arrow to the viewpoint, or to the centroid once within `arrivalRadius`. The facing direction is the
+    /// camera's forward (-Z column) on the floor plane, or its top edge (-X column, portrait) when the
+    /// forward is within 30 degrees of vertical.
+    static func arrow(cameraToWorld: simd_float4x4, record: MissingAreaRecord) -> MissingAreaArrow
+    /// |bearing| <= 45 degrees ahead, 45 to 135 right or left, beyond behind; at the viewpoint, pitch
+    /// above 35 degrees is up and below -35 degrees is down.
+    static func direction(_ arrow: MissingAreaArrow) -> MissingAreaDirection
+}
+
+enum MissingAreasPhase: Equatable { case preparing, touring, allDone, finishing, rechecking, done, cancelled, failed(String) }
+
+@MainActor final class MissingAreasModel: ObservableObject {
+    /// Tour refresh rate, Hz.
+    static let refreshHz: Double = 10
+    @Published private(set) var phase: MissingAreasPhase
+    @Published private(set) var tour: MissingAreaTour
+    @Published private(set) var arrow: MissingAreaArrow?
+    /// A short line after an event ("That area is filled in"), cleared after 2 s.
+    @Published private(set) var notice: String?
+    @Published var showsCancelConfirmation: Bool
+    @Published var alert: ScanAlert?
+    let target: MissingAreasTarget
+    let scan: MeshScanModel
+    /// For ScanUI's CoverageOverlay: `CoverageOverlayRenderer(source: model.coverage, thermal: target.hub.thermal)`.
+    let coverage: CoverageLiveRecorder
+    /// The evaluation after the tour (nil until then).
+    private(set) var newEvaluation: QualityEvaluation?
+    /// True when a system stop ended the pass (the session is paused; ScanUI hides Show Missing Areas).
+    private(set) var stoppedBySystem: Bool
+    /// Called once: the new evaluation after Done, or nil after Cancel.
+    var onFinished: ((QualityEvaluation?) -> Void)?
+    init(target: MissingAreasTarget)
+    /// The tour's guidance rule: keep tracking, speed, distance, light and heat inputs; clear
+    /// `viewCoverage` and `nearbyMissing` (the arrow is the guide).
+    nonisolated static func tourGuidance(_ input: inout GuidanceInput)
+    /// The engine's guidance hook: `coverage.guidanceHook` then `tourGuidance`. Nonisolated, so the
+    /// closure is formed outside the main actor (it runs on the hub queue).
+    nonisolated static func tourGuidanceHook(coverage: CoverageLiveRecorder) -> (inout GuidanceInput) -> Void
+    func start()
+    func nextArea()
+    /// Done: finish the pass, record it, evaluate again (below).
+    func finishTour()
+    func requestCancel(); func confirmCancel(); func keepScanning()
+    func teardown()
+}
+
+enum MissingAreasReevaluation {
+    /// Off main. Room poses, keyframes and mesh as Coverage inputs for `CoverageLiveRecorder.seed`:
+    /// `QualityRoomFiles.load`, `MeshConsolidator.fastWorldMesh(MeshConsolidator.latestChunks(in: [room]))`,
+    /// `QualityInputs.observations(poses:keyframes:hz: 1)`, `QualityInputs.oriented(_:toward:limit: 100_000).faces`.
+    static func seedInputs(package: ProjectPackage, record: RoomRecord) -> (observations: [CoverageObservation], faces: [CoverageFace])
+    /// Off main. `QualityEvaluator.evaluateSealedRoom(package:record:passes:now:)` (CR-10) with
+    /// `MeshPassFolders.forRoom(record.id, in: package)`, then `QualityStore.save`.
+    static func run(package: ProjectPackage, record: RoomRecord, now: Date) throws -> QualityEvaluation
+}
+
+/// `LiveMeshScreen(model: model.scan, onViewReady: onViewReady) { MissingAreasHUD(model: model) }`.
+struct MissingAreasScreen: View { init(model: MissingAreasModel, onViewReady: (@MainActor (ARView) -> Void)? = nil) }
+/// Arrow (rotated by `bearing`, or up and down at the viewpoint), step line, hint, distance, notice,
+/// Next Area, Done (`LiveMeshTopBar`), the all-done line, cancel confirmation, VoiceOver direction
+/// announcements at most every 3 s.
+struct MissingAreasHUD: View { init(model: MissingAreasModel) }
+```
+
+Flow:
+1. `init` (main): `let mesh = MeshStore()`, coverage = `CoverageLiveRecorder(meshSource: mesh)` (it must read the pass's own mesh store), recorders `MeshScanRecorderSet(photos: false, mesh: mesh, extra: [coverage]).all`; `MeshScanEngine(target: .patchPass(projectID:package:sessionID: room.sessionID, roomID: room.id, mode:settings:), recorders:, hub: target.hub)`; `engine.guidanceAugmenter = MissingAreasModel.tourGuidanceHook(coverage: coverage)` (tier 1 safety messages stay), `engine.snapshotAugmenter = coverage.snapshotHook`. `start()`: `coverage.setWatchedAreas` with every stop's sample points (they read red); `scan.start()`; in a detached task `seedInputs` then `coverage.seed(observations:faces:deadlineSeconds: 2)` (best effort, logged) so the areas scanned in the room pass read green or yellow; phase `.touring` with the tour built from `latestCameraTransform` (else the first viewpoint).
+2. Refresh loop (main, `refreshHz`): `tour.update(fractions: coverage.watchedFractions(), cameraToWorld: scan.engine.latestCameraTransform, seconds:, trackingNormal: scan.snapshot.tracking == .normal)`; events: filled gives `Haptics.success()` and `Copy.Quality.missingAreaDone`; unscannable gives `Copy.MissingAreas.cantScan`; finished gives phase `.allDone` and `Copy.Quality.allAreasDone`; the arrow is recomputed every tick.
+3. Done (`finishTour()`): `scan.finish()`; on `onFinished(result)`: `ProjectLibrary.shared.update(projectID)` sets the room's `hasMeshPass = true`; phase `.rechecking`; `MissingAreasReevaluation.run` in a detached task; `newEvaluation`; `scan.teardown()` (the borrowed hub goes back to the room engine, still running unless a system stop paused it); phase `.done`; `onFinished(newEvaluation)`. A failed evaluation logs and returns the old evaluation (the pass stays sealed and the pipeline scores it later).
+4. Cancel after `Copy.MissingAreas.cancelTitle` and `cancelBody`: `scan.discard()`; on idle, `scan.teardown()`; phase `.cancelled`; `onFinished(nil)`.
+5. A system stop seals the pass as usual, then `stoppedBySystem = true`, the `ScanErrorCopy` alert, then step 3's recording and evaluation.
+
+**Uses.** CoverageLive: `CoverageLiveRecorder` (`setWatchedAreas(_:)`, `watchedFractions()`, `seed(observations:faces:deadlineSeconds:)`, `augment`). LiveMeshView: `MeshScanEngine` (borrowed hub, `latestCameraTransform`, augmenters), `MeshScanTarget.patchPass(...)`, `MeshScanRecorderSet`, `MeshScanModel`, `MeshPassFolders.forRoom(_:in:)`, `LiveMeshScreen`, `LiveMeshTopBar`. Quality: `QualityEvaluation`, `MissingAreaRecord` (`surfaceClass`), `QualityStore.save(_:package:)`, `QualityEvaluator.evaluateSealedRoom(package:record:passes:now:)` (CR-10), `QualityRoomFiles.load(_:roomID:)`, `QualityInputs` (`observations(poses:keyframes:hz:)`, `viewpoints(_:)`, `oriented(_:toward:limit:)`). MeshModel: `MeshConsolidator.fastWorldMesh(_:)`, `latestChunks(in:)`. RoomModel: `CapturedRoomStore.rawFolder(_:room:)`. CaptureCore: `ARSessionHub` (`thermal`). Coverage: `CoverageObservation`, `CoverageFace`, `SurfaceClass`. Store: `ProjectLibrary.update(_:_:)`. ScanUI: `ScanErrorCopy.alert(for:)`, `ScanAlert`. Units: `LengthFormat.display(_:prefs:)`, `UnitPreferences.load(from:)`. Core: `RoomRecord` (`hasMeshPass`, `sessionID`), `ProjectPackage`, `ScanMode`, `ScanSettings`, `Vec3`. Support: `Copy.Quality` (`showMissingAreas`, `missingAreaHint`, `missingAreaDone`, `nextMissingArea`, `allAreasDone`, `missingAreaStep(_:of:)`), `Copy.Scanning` (`done`, `cancel`, `cancelConfirmKeep`), `GuidanceKind.scanCeiling` and `.pointAtFloor` messages (reused as the up and down hints), `Haptics.success()`, `LogStore`.
+
+**Apple APIs.** None directly beyond the `ARView` type in the view hook and SwiftUI: `Image(systemName:)` with `.rotationEffect(_:)` for the arrow, `.confirmationDialog` (not in RESEARCH, iOS 13 to 15), `UIAccessibility.post(notification: .announcement, argument:)` (not in RESEARCH, iOS 3, main), `Task.sleep(nanoseconds:)` (iOS 13).
+
+**Must NOT do.** Never create a second ARSession, never pause the room's session (only a system stop does, inside LiveMeshView), never tear the room engine down or let its `RoomCaptureView` be dismantled (ScanUI keeps it mounted). Never count windows, doors, openings or mirrors as missing (D19; mirrors and glass end as unscannable, never as a nag). Never write into the room's sealed folder (the pass has its own). Never block main with the seed or the evaluation. Never present the quality sheet itself (ScanUI does). No hardcoded text; distances through Units.
+
+**Copy strings.** Existing: `Copy.Quality.showMissingAreas`, `missingAreaHint`, `missingAreaDone`, `nextMissingArea`, `allAreasDone`, `missingAreaStep(_:of:)`; `Copy.Scanning.done`, `cancel`, `cancelConfirmKeep`, `startingUp`; guidance texts of `.scanCeiling` and `.pointAtFloor`. New (`extension Copy { enum MissingAreas }` in `Copy+MissingAreas.swift`): `cantScan = "This spot can't be scanned. It may be glass or a mirror."`, `rechecking = "Checking your scan again..."`, `static func distanceAway(_ distance: String) -> String { "\(distance) away" }`, `cancelTitle = "Stop filling in missing areas?"`, `cancelBody = "What you scanned in this pass will be lost. Your room scan is kept."`, `cancelDiscardPass = "Discard This Pass"`, `a11yAhead = "Missing area ahead"`, `a11yLeft = "Missing area to your left"`, `a11yRight = "Missing area to your right"`, `a11yBehind = "Missing area behind you"`, `a11yUp = "Missing area above you"`, `a11yDown = "Missing area below you"`.
+
+**Self-test.** `MissingAreasSelfTest.run()`, at least 20 checks:
+1. `order` of viewpoints at x = 1, 5 and 3 from the origin is 1, 3, 5 (by record index).
+2. `init` drops `.window` and `.door` records and keeps wall, floor and ceiling ones.
+3. `samplePoints` of a 0.5 m^2 wall area lie in its plane (within 1e-5) and within radius 0.4; the centroid is included; a 0.01 m^2 area still has at least 1 point.
+4. `arrow` with the identity camera (facing -Z) at the origin: target (0, 0, -2) bearing 0 and `direction` ahead; (2, 0, 0) bearing +pi / 2, right; (-2, 0, 0) left; (0, 0, 2) behind.
+5. A ceiling area straight above the viewpoint while standing there: `atViewpoint` true, pitch above 35 degrees, `direction` up; a floor area: down.
+6. A camera looking straight down still gets a bearing from its top edge.
+7. `update` with fraction 0.79 keeps a stop pending; 0.8 fills it and emits `.filled`.
+8. Filling the current stop advances to the nearest pending one (`.advanced`).
+9. Filling a non-current stop marks it filled without moving the current one.
+10. `next()` marks the current stop passed and advances.
+11. Facing the current area from its viewpoint for 8 s at fraction 0.2 makes it unscannable; at 0.35 it does not.
+12. Facing time does not grow with tracking limited or when standing 1.5 m from the viewpoint.
+13. The tour is finished when every stop is filled, unscannable or passed; `remainingCount` counts pending ones.
+14. An empty record list is finished at once.
+15. `direction` boundaries: bearing 44 degrees ahead, 46 degrees right, 136 degrees behind.
+16. `MissingAreasReevaluation.run` in a temporary package with a sealed room fixture and a sealed pass (scan.json roomID set) finds the pass and writes quality.json whose input hash differs from the room-only Done hash.
+17. The same with no pass gives the room-only hash.
+18. `seedInputs` of the fixture returns observations at 1 Hz and at most 100,000 faces.
+19. `Copy.MissingAreas.distanceAway(LengthFormat.display(1.5, prefs:))` contains the formatted length.
+20. `MissingAreasModel.tourGuidance(_:)` clears `viewCoverage` and `nearbyMissing` and keeps tracking and speed inputs.
+
+**Acceptance checks.** The patch pass shares the room's session (log: "hub lent" and "hub returned", the same session identity, one "hub deinit" only when the flow ends); nothing is written into the room folder; the pass folder is sealed before the manifest update and the evaluation; the missing area count over time is logged (QUAL-03 "Log"); the arrow updates at 10 Hz without main-thread work above 2 ms per tick; the room's `RoomCaptureView` is never recreated.
+
+**SPEC owned.** "SCAN QUALITY SYSTEM" ("Selecting SHOW MISSING AREAS should guide the user directly to locations requiring additional scanning"; the quality numbers after the extra pass); "LIVE SCANNING EXPERIENCE" (RED shown where information is missing during the tour).
+
+**TEST_PLAN ids.** QUAL-01 (the button), QUAL-02 (step 2 through Show Missing Areas), QUAL-03, QUAL-04, LIVE-09, ROOM-06 (mirror areas end as unscannable), ROOM-07 (glass), smoke list #4.
 
 ### 3.41 HouseUI (wave 5b)
 
-**Purpose.** House and building flow: room list with status ("Kitchen done", "Hallway needs additional scan"), Scan Next Room on the same RoomCaptureView and session (`RoomScanEngine.startNextRoom`), name each room, Rescan, Add Floor, Finish Building (merge through Structure with the "Joining rooms together..." state), `AlignRoomsScreen` for manual alignment (drag, rotate, parallel-wall and doorway snapping) stored as `setRoomAlignment` edits, returning later with world map relocalization (`initialWorldMap`, "Start fresh here" after 30 s), memory eviction per room and the "Finish this floor" suggestion under 800 MB (D17).
-**Files.** `ios/Sources/HouseUI/HouseModel.swift`, `HouseScreen.swift`, `AlignRoomsScreen.swift`, `HouseRelocalization.swift`, `HouseUISelfTest.swift`, `Copy+HouseUI.swift` (uses `Copy.House.*`).
-**Apple APIs.** `getCurrentWorldMap(completionHandler:)` when `worldMappingStatus` is `.extending` or `.mapped`; `NSKeyedArchiver.archivedData(withRootObject:requiringSecureCoding: true)`; `NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from:)`; `initialWorldMap`; run with `[.resetTracking, .removeExistingAnchors]` only for a relocalizing new session.
-**Self-test.** At least 10 checks on room status text, the memory rule and the relocalization timeout.
-**SPEC owned.** "HOUSE / BUILDING MODE" (all, including progress, return to incomplete sections, manual correction); "SCANNING MODES" HOUSE / BUILDING.
+**Purpose.** The House / Building flow for an amateur, room by room (ARCHITECTURE 4.3, D9, D17): preflight, permission and tips; one `RoomScanEngine` (one `RoomCaptureView`, one `ARSession`) per visit with `startNextRoom(roomID:)` between rooms; the quality sheet after each room (QualityUI) over the live camera; naming each room with suggestions (the detected section label first); the room list with status ("Kitchen done", "Hallway needs additional scan", "Office needs lining up") grouped by floor; Scan Next Room, Rescan (the new capture supersedes the old one, CR-7), Add Floor, Finish Building; returning another day with world map relocalization (a new session that relocalizes against the latest saved room map with Apple's coaching overlay; "Start Fresh Here" after 30 s gives an unaligned session); per-room memory eviction and the "finish this floor" suggestion under 800 MB; the project room screen reached from Results (status, Continue Scanning, Rescan, Line Up by Hand, Join Rooms Again); the manual alignment screen (drag, turn, parallel-wall, wall-gap and doorway snapping from Structure) stored as `setRoomAlignment` edits; Demo Mode with synthetic rooms. The merge and alignment themselves are Structure's steps, run by the pipeline after Finish Building.
+
+**Build and wave.** Build 5, wave 5b. Core (CR-7), Store, Structure, RoomCapture (with 3.30c), CaptureCore (with 3.30b), MeshRecord, Keyframes, Quality, QualityUI, ScanUI, GuidanceUI, RoomModel, FloorPlan, Pipeline (`IdleTimerGuard`), Support; SwiftUI, AVFoundation, ARKit, RealityKit (the relocalization `ARView` only). About 1450 lines excluding the self-test; if it grows past 1500, `HouseAlignRooms.swift` is split, never moved to another module.
+
+**Files.** `ios/Sources/HouseUI/HouseFlowModel.swift`, `HouseFlowModel+Rooms.swift` (room finish, quality, naming, next room, rescan, floors), `HouseFlowModel+Session.swift` (sessions, relocalization, start fresh, teardown), `HouseScanScreen.swift`, `HouseRoomList.swift` (`HouseRoomListView`, `HouseProjectScreen`), `HouseRelocalization.swift` (`HouseRelocalization`, `HouseRelocalizationView`), `HouseAlignRooms.swift` (`AlignRoomsModel`, `AlignRoomsScreen`), `HousePresentation.swift` (pure rules, `HouseManifestRules`, `HouseAlert`), `HouseDemo.swift`, `HouseUISelfTest.swift`, `ios/Sources/Support/Copy+HouseUI.swift`.
+
+**Public Swift API.**
+```swift
+/// How a house flow starts (AppShell 5d presents the flow as a full-screen cover).
+enum HouseScanStart: Equatable, Sendable {
+    /// New Scan > House / Building: creates the project; the first session is the project frame.
+    case newProject
+    /// Continue Scanning on an existing house: a new session that relocalizes first.
+    case continueProject(UUID)
+    /// Rescan one room of an existing house: a new session that relocalizes (preferring that
+    /// room's own map); the new capture supersedes the room when the user keeps it.
+    case rescan(project: UUID, room: UUID)
+}
+struct HouseScanRequest: Identifiable, Equatable, Sendable { var id: UUID; var start: HouseScanStart; var isDemo: Bool }
+
+enum HouseFlowPhase: Equatable {
+    case preflight, permission, tips, relocalizing, capturing, stopping, checking, quality, naming, roomList, finishing
+    case done(UUID), failed(String), cancelled
+}
+enum HouseFlowSignal: Equatable, Sendable {
+    case preflightPassed(showTips: Bool, relocalize: Bool), preflightBlocked, permissionNeeded
+    case permissionGranted(showTips: Bool, relocalize: Bool), permissionDenied, tipsDone(relocalize: Bool)
+    case relocalized, startedFresh, doneTapped, engineStopping, roomFinished, evaluated, finishTapped
+    case roomDiscarded(hasRooms: Bool), named, nextRoom(relocalize: Bool), finishBuilding, finished(UUID)
+    case cancelConfirmed(hasRooms: Bool), failed(String)
+}
+
+/// Room list row (pure presentation, `HousePresentation.rows`).
+enum HouseRoomStatus: Equatable, Sendable { case done, needsScan, needsLineUp, notProcessed }
+struct HouseRoomRow: Identifiable, Equatable, Sendable {
+    var id: UUID
+    var title: String            // user name, else "Room n" (Copy.FloorPlan.defaultRoomTitle)
+    var statusText: String       // Copy.House.roomDone / roomNeedsScan, Copy.HouseUI.roomNeedsLineUp
+    var status: HouseRoomStatus
+    var floorIndex: Int
+    var floorTitle: String       // FloorRecord.name, else Copy.House.floorLabel(index + 1)
+    var accessibility: String    // Copy.A11y.roomDone / roomNeedsScan
+}
+
+/// Alerts of the house flow (ScanUI's `ScanAlertAction` has no house actions).
+enum HouseAlertAction: Equatable, Sendable {
+    case ok, openSettings, resume, finishNow, startFresh, keepLooking, lineUp(UUID), rescan(UUID), joinAgain, cancel
+}
+struct HouseAlert: Identifiable, Equatable {
+    var id: String; var title: String; var body: String; var actions: [HouseAlertAction]
+    /// ScanUI's `ScanErrorCopy.alert(for:)` text with its actions mapped one to one.
+    static func from(_ alert: ScanAlert) -> HouseAlert
+}
+
+/// Naming prompt after a room is kept.
+struct HouseNamingRequest: Identifiable, Equatable { var id: UUID; var suggestions: [String]; var current: String }
+
+@MainActor final class HouseFlowModel: ObservableObject {
+    @Published private(set) var phase: HouseFlowPhase
+    @Published private(set) var snapshot: LiveScanSnapshot
+    @Published private(set) var evaluation: QualityEvaluation?
+    @Published private(set) var rows: [HouseRoomRow]
+    @Published private(set) var progressText: String          // Copy.House.progressSummary(done:total:)
+    @Published private(set) var currentFloor: Int
+    @Published private(set) var relocalizationElapsed: Double  // seconds, for the Start Fresh Here offer
+    @Published private(set) var showsStartFresh: Bool          // true after HouseRelocalization.timeoutSeconds
+    @Published private(set) var lowMemory: Bool                // under 800 MB after a room (D17)
+    @Published private(set) var isPaused: Bool
+    /// True from the Show Missing Areas tap until `refreshEvaluation(_:stoppedBySystem:)`: the quality
+    /// sheet is not presented while AppShell's missing-areas tour runs over this screen (3.43e).
+    @Published private(set) var isTourActive: Bool
+    @Published var alert: HouseAlert?
+    @Published var showsCancelConfirmation: Bool
+    @Published var naming: HouseNamingRequest?
+    let request: HouseScanRequest
+    let announcer: GuidanceAnnouncer
+    private(set) var projectID: UUID?
+    /// The visit's engine (nil in Demo Mode); HouseScanScreen hosts its view. AppShell's
+    /// missing-areas tour (5d) uses it and `lastResult`.
+    private(set) var roomEngine: RoomScanEngine?
+    private(set) var lastResult: RoomScanResult?
+    /// Main. Called once when the visit ends with at least one room (Finish Building, or the
+    /// flow closing after a system stop); AppShell enqueues the House plan and opens Results.
+    var onComplete: ((UUID) -> Void)?
+    /// Main. Called when the flow ends without a room (the new project was deleted).
+    var onDismiss: (() -> Void)?
+    /// AppShell (5d) wires MissingAreas here. The quality sheet offers Show Missing Areas only when
+    /// this is set and `canShowMissingAreas`; the tap sets `isTourActive`, then calls it.
+    var onShowMissingAreas: (() -> Void)?
+    /// Optional capture add-ons, called once per engine with its MeshStore before the engine
+    /// exists: extra recorders plus a hook installer (AppShell 5d wires CoverageLive here the
+    /// same way the ScanUI 5c revision does for rooms). Nil in build 5b.
+    var captureExtras: ((MeshStore) -> (recorders: [ScanRecorder], install: (RoomScanEngine) -> Void))?
+    /// `HousePresentation.canOfferMissingAreas` for the room on the quality sheet (not Demo Mode, the
+    /// engine `.finished`, no system stop of the room or of an earlier tour of it, at least one
+    /// missing area).
+    var canShowMissingAreas: Bool { get }
+    init(request: HouseScanRequest)
+    func begin()                                   // preflight, permission, tips, then capture or relocalization
+    func permissionContinue() async                // AVCaptureDevice.requestAccess(for: .video)
+    func tipsFinished(dontShowAgain: Bool)
+    func done(); func resume(); func finishNow()   // as ScanFlowModel
+    func takePhoto()
+    func finishRoom()                              // quality sheet Finish or Finish Anyway
+    func discardRoom()                             // quality sheet Discard, after confirmation
+    func name(_ text: String)                      // naming sheet Save (empty keeps the default title)
+    func skipNaming()
+    func scanNextRoom()
+    func rescan(_ roomID: UUID)                    // in-visit Rescan from the room list
+    func addFloor()
+    func finishBuilding()
+    func keepLooking()                             // relocalization: restart the 30 s timer
+    func startFresh()                              // relocalization gave up: unaligned session
+    func requestCancel(); func confirmCancel(); func keepScanning()
+    func openSettings()
+    /// AppShell calls this when the missing-areas tour ends: a nil evaluation (tour cancelled, or the
+    /// evaluation failed) keeps the current one; `stoppedBySystem` (the tour's
+    /// `MissingAreasModel.stoppedBySystem`) hides Show Missing Areas for the rest of this room; a
+    /// non-nil evaluation also re-applies `HouseManifestRules.status(after:)` to the room's record
+    /// (a room the tour fixed leaves `.needsRescan`); clears `isTourActive`, so the quality sheet
+    /// shows again with the numbers.
+    func refreshEvaluation(_ evaluation: QualityEvaluation?, stoppedBySystem: Bool)
+    /// Pure phase reducer used by the model and the self-test.
+    nonisolated static func nextPhase(_ phase: HouseFlowPhase, on signal: HouseFlowSignal) -> HouseFlowPhase
+}
+
+/// Camera (relocalization view, then `RoomCaptureContainer` mounted once for the rest of the
+/// visit, or the demo placeholder). The container carries `.id(ObjectIdentifier(engine))`: its
+/// coordinator is the engine it was made with and `updateUIView` ignores a new one, so a new
+/// engine (a new session after a system stop, or Start Fresh Here after `sceneTooLarge`) must get
+/// a new container, never the old view. Chrome (Cancel, room title and floor, timer, counts, Take
+/// Photo, Done, paused overlay with Resume and Finish Now), guidance banner, and the sheets:
+/// quality (`QualitySheet`, detents medium and large, not dismissable, not presented while
+/// `isTourActive`), naming, room list.
+/// Forced dark, `.persistentSystemOverlays(.hidden)`, holds an `IdleTimerGuard` token while visible.
+struct HouseScanScreen: View { init(model: HouseFlowModel) }
+/// The in-visit room list sheet: floor sections, rows, low-memory banner, Scan Next Room,
+/// Add Floor, Finish Building; tapping a "needs additional scan" row offers Rescan.
+struct HouseRoomListView: View { init(model: HouseFlowModel) }
+/// The room screen of an existing house (Results 5c opens it): rows with the Structure report,
+/// Continue Scanning, per-row Rescan and Line Up by Hand, Join Rooms Again after a crashed
+/// merge, and the "These rooms didn't line up" alert once per report.
+struct HouseProjectScreen: View {
+    init(projectID: UUID, onContinueScanning: @escaping () -> Void, onRescan: @escaping (UUID) -> Void,
+         onLineUp: @escaping (UUID) -> Void, onJoinAgain: @escaping () -> Void)
+}
+
+// MARK: Relocalization (HouseRelocalization.swift)
+
+enum HouseRelocalizationDecision: Equatable, Sendable { case keepWaiting, relocalized, timedOut }
+enum HouseRelocalization {
+    static let timeoutSeconds: Double = 30
+    /// Tracking must stay `.normal` this long before the session counts as relocalized.
+    static let normalHoldSeconds: Double = 1
+    /// Pure: relocalized when tracking has been `.normal` since `normalSince` for at least
+    /// `normalHoldSeconds`; timedOut at `timeoutSeconds` without that; else keepWaiting.
+    nonisolated static func decide(elapsed: Double, tracking: TrackingSummary, normalSince: Double?) -> HouseRelocalizationDecision
+    /// The map to relocalize against: for a rescan the room's own `worldmap.arworldmap` when it
+    /// exists and the room is in the anchor frame group (Structure `StructureEligibility`), else
+    /// the most recently captured active anchor-group room with a map. Nil when there is none
+    /// (the flow then goes straight to Start Fresh Here with `Copy.HouseUI.noMapTitle`).
+    static func sourceMap(manifest: ProjectManifest, package: ProjectPackage, preferRoom: UUID?) -> (session: UUID, room: UUID, url: URL)?
+    /// `CaptureSessionRef.worldMapFile` text for a room's map: "rooms/<id>/worldmap.arworldmap"
+    /// (relative to the session folder; readers resolve it with `RawScanFolder.resolve`).
+    static func worldMapPath(room: UUID) -> String
+    /// Tracking read on the hub queue (`hub.tracking.summary` is hub-queue only).
+    static func trackingSummary(of hub: ARSessionHub) async -> TrackingSummary
+}
+/// UIViewRepresentable: `ARView(frame: .zero, cameraMode: .ar, automaticallyConfigureSession: false)`,
+/// `arView.session = hub.session`, then `hub.install()` at once (whoever assigns the delegate last
+/// wins), plus an `ARCoachingOverlayView` with goal `.tracking` on the same session. Dismantling
+/// gives the ARView a fresh idle `ARSession()` before it goes away, then calls `hub.install()`
+/// again, so the hub's session is never paused by the view.
+struct HouseRelocalizationView: UIViewRepresentable { init(hub: ARSessionHub) }
+
+// MARK: Manual alignment (HouseAlignRooms.swift)
+
+/// Main actor. Works in the structure frame on the edited clean model.
+@MainActor final class AlignRoomsModel: ObservableObject {
+    @Published private(set) var others: [AlignShape]
+    @Published private(set) var moving: AlignShape?
+    @Published private(set) var placement: AlignPlacement?
+    @Published private(set) var snapText: String?           // Copy.HouseUI.snappedDoorway / snappedWall
+    @Published private(set) var isReady: Bool               // false until clean.json holds the room
+    init(projectID: UUID, roomID: UUID)
+    func load() async                                        // CleanModelStore.loadEdited off main
+    func drag(by planDelta: SIMD2<Float>)                    // accumulates, re-snaps with StructureSnapping.snap
+    func rotate(by radians: Float)
+    func turn(clockwise: Bool)                               // 90 degree steps (VoiceOver and buttons)
+    /// Appends one log entry: the `setRoomAlignment` edit (source `.user`,
+    /// `StructureAlignment.compose(delta, after: effective record)`) of every room of the moved
+    /// room's frame group, as one `.batch(operations:)` when the group has more than one room
+    /// (CR-1: one Undo reverts the whole move).
+    func save() throws
+}
+/// Canvas of all room outlines, walls and doors through FloorPlan's `PlanViewport`; the moving
+/// room highlighted; DragGesture moves it, RotateGesture turns it about its centroid,
+/// MagnifyGesture zooms the view; Turn Left and Turn Right buttons; Cancel and Save.
+struct AlignRoomsScreen: View { init(projectID: UUID, roomID: UUID, onDone: @escaping (_ saved: Bool) -> Void) }
+
+// MARK: Pure rules (HousePresentation.swift, HouseDemo.swift)
+
+enum HousePresentation {
+    /// D17: suggest finishing the floor below this much available memory after a room.
+    static let lowMemoryBytes: UInt64 = 800_000_000
+    /// Active rooms only (Structure `activeRooms`), floor then capture order.
+    static func rows(manifest: ProjectManifest, report: StructureReport, userAligned: Set<UUID>) -> [HouseRoomRow]
+    /// `.needsScan` for `.needsRescan` or `.failed`; `.needsLineUp` when the placement report
+    /// asks for manual alignment and the room has no user alignment; `.notProcessed` while the
+    /// room is `.capturing`; else `.done`.
+    static func status(for record: RoomRecord, placement: RoomPlacementReport?, userAligned: Bool) -> HouseRoomStatus
+    static func progressText(_ rows: [HouseRoomRow]) -> String
+    static func suggestsFinishFloor(availableMemory: UInt64) -> Bool
+    /// The Show Missing Areas rule (D19), the same as ScanUI's `ScanCoverageRules.canOfferMissingAreas`
+    /// (3.43a, wave 5c, which HouseUI cannot import): false in Demo Mode, when `engineState` is not
+    /// `.finished`, after a system stop, or with no missing area.
+    static func canOfferMissingAreas(isDemo: Bool, engineState: ScanEngineState?, stoppedBySystem: Bool,
+                                     missingAreas: Int) -> Bool
+    /// The error a blocking ScanUI preflight issue shows through `ScanErrorCopy.alert(for:)`:
+    /// cameraDenied -> `.cameraDenied`, noLidar -> `.unsupportedDevice`, lowStorage(free) ->
+    /// `.lowStorage(freeBytes: free)`; nil for cameraUndetermined (the permission phase answers
+    /// it) and for warnings.
+    static func preflightError(_ issue: PreflightIssue) -> MapperError?
+    /// The detected section name first (FloorPlan `RoomTitles.sectionName`), then
+    /// `Copy.House.roomSuggestions` without duplicates.
+    static func suggestedNames(sectionLabel: String?) -> [String]
+}
+
+enum HouseManifestRules {
+    static func session(id: UUID, startedAt: Date, link: FrameLink) -> CaptureSessionRef
+    /// The record for a finished room (status `.captured`, the session's frame link, never the
+    /// engine's; name empty until named).
+    static func roomRecord(_ result: RoomScanResult, sessionLink: FrameLink, floorIndex: Int) -> RoomRecord
+    /// Appends the record and sets the project status `.needsProcessing` in the same update.
+    static func append(_ record: RoomRecord, to manifest: inout ProjectManifest)
+    /// Poor verdict (QualityVerdict.poor) gives `.needsRescan`, else `.captured`.
+    static func status(after evaluation: QualityEvaluation) -> RoomStatus
+    /// Sets `old.supersededBy = new` (CR-7) and copies the old name and floor when the new
+    /// record has none.
+    static func supersede(_ old: UUID, by new: UUID, in manifest: inout ProjectManifest)
+    static func setWorldMap(session: UUID, room: UUID, in manifest: inout ProjectManifest)
+    /// Appends `FloorRecord(id: max + 1, name: "", elevation: 0)` and returns its id.
+    static func addFloor(to manifest: inout ProjectManifest) -> Int
+}
+
+enum HouseDemo {
+    static let sharedWallGap: Float = 0.12
+    /// Translation that places `room` to the +x side of `placed` with a 0.12 m wall gap.
+    static func offset(for room: CleanRoom, after placed: [CleanRoom]) -> RoomAlignmentRecord
+    /// Writes the demo house: `CleanModel` of the moved demo rooms with Structure's
+    /// `sharedWalls` and `applyThickness` applied, `CleanModelStore.save`, then
+    /// `PlanBuilder.build(from:floors:)` and `PlanModelStore.save`.
+    static func write(_ rooms: [CleanRoom], manifest: ProjectManifest, package: ProjectPackage) throws
+}
+```
+
+**Rules.**
+
+*Starting.* `begin` runs ScanUI's `ScanPreflight.run(mode: .house, isDemo:)` (async, main actor) in a `Task`; a blocking issue shows `HouseAlert.from(ScanErrorCopy.alert(for: HousePresentation.preflightError(issue)))` then `onDismiss`, or the permission phase, exactly as ScanUI does (camera undetermined: a screen with `Copy.Permissions.cameraTitle`, `cameraBody`, `cameraContinue`; denied: Open Settings). Tips use ScanUI's `ScanTipsSheet(mode: .house, onStart:)` when `SettingsKey.tipsSeen(.house)` is unset (the merged sheet shows `Copy.Onboarding.house` for `.house`). `.newProject`: `ProjectLibrary.shared.create(kind: .house, name: ScanFlowModel.defaultProjectName(mode: .house, now: Date()))`, `keepAllPhotos` from `SettingsKey.keepScanPhotos`, and the first `CaptureSessionRef` with `.projectFrame(sessionID:)`, all before the engine starts. Recorders per engine: `MeshStore()`, `KeyframeRecorder()`, `PoseTrackRecorder()`, `PhotoRecorder()` plus `captureExtras`; `RoomScanEngine(target:recorders:)` with `RoomScanTarget(mode: .house)`. ScanUI's `extension KeyframeRecorder: PausableScanRecorder {}` already covers pausing (never declared again here). Processing is suspended by AppShell while the cover is up (3.29).
+
+*Relocalizing* (`.continueProject`, `.rescan`, and Scan Next Room after a system stop). `HouseRelocalization.sourceMap`; the map file is read off main (`Data`), unarchived on main with `NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from:)`; a new engine for a new session id; `hub.install()`, `hub.run(options: [.resetTracking, .removeExistingAnchors], initialWorldMap: map)` (3.30b); `HouseRelocalizationView(hub:)` with `Copy.HouseUI.relocalizeTitle` and `relocalizeBody`; every 0.5 s `trackingSummary(of:)` feeds `decide`. Relocalized: the session ref is appended with `.relocalized(sessionID: new, from: sourceSession)`, the relocalization view is replaced by `RoomCaptureContainer(engine:)` (its `makeCaptureView` keeps the running session, 3.30c) and `engine.start()` runs. At 30 s `showsStartFresh` offers Start Fresh Here and Keep Looking; Start Fresh Here re-runs the hub with `hub.run(options: [.resetTracking, .removeExistingAnchors])`, appends the ref with `.unaligned`, and continues (these rooms are parked until lined up). A `.failed(.sceneTooLarge)` within 15 s of starting a relocalized room shows `Copy.HouseUI.relocalizeLost` with Start Fresh Here (RESEARCH 3.2 disputed 7); the tiny room stays with status `.needsRescan`. Start Fresh Here in that case tears the engine down and starts a new engine on a new session appended with `.unaligned` (reset run options are never passed to a session RoomPlan has run on).
+
+*Each room.* `.snapshot` events drive the chrome and `announcer.present`; `done` and `finishNow` call `engine.finish()`. On `.roomFinished` one `ProjectLibrary.update` appends `HouseManifestRules.roomRecord` (floor `currentFloor`) and sets `.needsProcessing`, and `setWorldMap` when the sealed folder holds `worldmap.arworldmap`; then `MeshStore.evict()` (D17) and a log line with `MemoryProbe.availableBytes()`; `lowMemory` from `suggestsFinishFloor`. Checking runs `QualityEvaluator.evaluateSealedRoom(package:record:now:)` in `Task.detached`, `QualityStore.save`, then the room status from `HouseManifestRules.status(after:)`, and the quality sheet (Show Missing Areas only when `onShowMissingAreas` is set and `canShowMissingAreas`; the tap sets `isTourActive` and calls `onShowMissingAreas`; the sheet returns after `refreshEvaluation(_:stoppedBySystem:)`). Finish keeps the room (a pending rescan now calls `supersede`), then naming: suggestions from `CapturedRoomStore.loadInput` and `CleanModelBuilder.sectionLabel(_:polygon:)` loaded off main; Save writes `RoomRecord.name`. Discard calls `ProjectLibrary.discardRoom(_:in:)` (the only raw removal; a first room discarded deletes the project and ends with `onDismiss`); its confirmation (`Copy.Scanning.cancelConfirm*`) is attached inside the quality sheet's content, because an alert attached to the screen under a presented sheet never appears (the build 4 AppShell rule). A room whose log says `.meshStripped` gets no D16 detail pass in build 5: it is logged, Raw Scan and Realistic show their honest fallback for that room, and Show Missing Areas still adds mesh passes; the House detail pass is scheduled in 3.49 (build 6). The room list follows. Scan Next Room calls `startNextRoom(roomID:)` on the same engine; after a system stop (`stoppedBySystem`), it tears the engine down and relocalizes a new session instead (the paused session's frame is not trusted). Add Floor appends a `FloorRecord` and switches `currentFloor`. Finish Building tears the engine down, sets `.finishing`, and calls `onComplete(projectID)` (the pipeline runs merge, alignment and the House clean model; Results shows `Copy.House.aligning` while those steps run, 5c). Cancel during a room uses `engine.discard()` (only that room's InProgress data) and returns to the room list, or ends the flow and deletes the project when it has no room. Every terminal phase calls `engine.teardown()`, which is idempotent.
+
+*Alignment screen.* Opened from `HouseProjectScreen` (Line Up by Hand) only when `clean.json` holds the room (`isReady`), else `Copy.HouseUI.alignNotReady`. Shapes are `AlignShape.from` of the edited clean model's rooms on the moving room's floor; gestures accumulate a raw rotation and translation that `StructureSnapping.snap` turns into the placement shown; a snap fires `Haptics.selection()` once and shows its text. Save appends one entry through `EditStore.append(_:to:)` holding the edit of every room of the moving room's frame group (`StructureEligibility.frameGroups`; a `.batch` for more than one room), shows `Copy.House.alignDone`, and `onDone(true)`; AppShell then re-enqueues processing (the House clean model's hash includes the alignment digest, 3.30). Undo is the general edit undo of Results (PlanEditor, 5c).
+
+*Project screen.* Rows from `HousePresentation.rows(manifest:report: StructureStore.loadReport(package), userAligned:)`, where `userAligned` is the key set of `StructureStore.userAlignments(EditStore.load(package))`. When any row needs lining up, the alert `Copy.House.alignFailedTitle`, `alignFailedBody` with `.lineUp(room)` (`Copy.House.alignManual`) and `.rescan(room)` (`Copy.House.alignRescanDoorway`) shows once per placements `inputHash`; `report.hasCrashedAttempt` or merge outcome `crashedBefore` shows `Copy.HouseUI.mergeFailedTitle` and `mergeFailedBody` with Join Rooms Again, which calls `StructureStore.clearCrashedAttempt` then `onJoinAgain`.
+
+*Demo Mode* (`request.isDemo`): no camera, ARKit or LiDAR; each room is a `FakeScanEngine(roomID:)`; on `.roomFinished` ScanUI's `DemoProjectFactory.makeDemoRoom(package:sessionID:roomID:now:)` writes the room and returns its record and evaluation (the quality sheet shows it); the demo clean room is read back with `CleanModelStore.loadBase`, moved with `StructureAlignment.apply(HouseDemo.offset(...))`, and `HouseDemo.write` rewrites the combined clean.json and plan.json; the project ends `.ready` and is never enqueued.
+
+**Uses.** RoomCapture: `RoomScanEngine` (`init(target:recorders:)`, `makeCaptureView`, `start`, `finish`, `pause`, `resume`, `discard`, `teardown`, `startNextRoom(roomID:)`, `lastResult`, `hub`), `RoomScanTarget`, `RoomScanResult`, `RoomCaptureContainer`. CaptureCore: `ARSessionHub` (`install`, `run(options:)`, `run(options:initialWorldMap:)` 3.30b, `queue`, `tracking.summary`, `isRunning`), `ScanRecorder`, `MemoryProbe.availableBytes()`. MeshRecord: `MeshStore` (`evict`). Keyframes: `KeyframeRecorder`, `PoseTrackRecorder`, `PhotoRecorder` (`requestPhoto(note:)`, `onPhotoSaved`). Quality: `QualityEvaluator.evaluateSealedRoom(package:record:now:)`, `QualityStore.save`, `QualityEvaluation`. QualityUI: `QualitySheet(evaluation:onFinish:onDiscard:onShowMissingAreas:)`. ScanUI: `ScanPreflight.run(mode:isDemo:)`, `ScanFlowModel.defaultProjectName(mode:now:)`, `PreflightReport`, `PreflightIssue`, `CameraPermission`, `ScanErrorCopy.alert(for:)`, `ScanAlert`, `ScanAlertAction`, `ScanTipsSheet(mode:onStart:)`, `DemoProjectFactory.makeDemoRoom`, `SettingsKey.demoMode`, `keepScanPhotos`, `tipsSeen(_:)`, `Copy.ScanUI` (`elapsed(minutes:seconds:)`, `counts(walls:doors:windows:)`, `finishNow`, `pausedFinishPrompt`, `timeHint`, `timeLimitTitle`, `timeLimitBody`, `demoBanner`). Structure: `StructureEligibility`, `StructureAlignment` (`apply`, `compose`, `identity`), `StructureSnapping`, `AlignShape`, `AlignPlacement`, `AlignSnapKind`, `StructureStore` (`loadReport`, `userAlignments`, `effectiveAlignments`, `clearCrashedAttempt`), `StructureReport`, `RoomPlacementReport`, `StructureWalls` (demo). GuidanceUI: `GuidanceBanner`, `GuidanceAnnouncer`. RoomModel: `CapturedRoomStore` (`loadInput`, `rawFolder`), `CleanModelBuilder.sectionLabel(_:polygon:)`, `RoomOutline.build`, `CleanModelStore` (`loadEdited`, `loadBase`, `save`). FloorPlan: `RoomTitles.sectionName(_:)`, `PlanViewport` (`fitting(min:max:in:margin:)`, `toScreen`, `toPlan`), `PlanBuilder.build(from:floors:)`, `PlanModelStore.save`. Pipeline: `IdleTimerGuard`. Store: `ProjectLibrary` (`create`, `update`, `discardRoom`, `delete`, `package(for:)`), `EditStore` (`load`, `append`). Core: `FakeScanEngine`, `ScanEngineEvent`, `ScanEngineState`, `LiveScanSnapshot`, `CaptureSessionRef`, `RoomRecord` (CR-7), `FloorRecord`, `FrameLink`, `RoomAlignmentRecord`, `EditOperation.setRoomAlignment`, `TrackingSummary`, `ProjectPackage` (`rawRoomURL`, `sessionURL`), `RawScanFolder` (`worldMapURL`, `resolve`), `MapperError`. Support: `Copy.House.*`, `Copy.Onboarding.house`, `Copy.Scanning.*`, `Copy.Permissions.*`, `Copy.Errors.*`, `Copy.A11y.roomDone(_:)`, `roomNeedsScan(_:)`, `rescanRoomHint`, `scanView`, `Copy.FloorPlan.defaultRoomTitle(_:)`, `Copy.Measure.save`, `Copy.Onboarding.skip`, `Copy.Project.cancel`, `Haptics.selection()`, `Haptics.success()`, `LogStore` (category "house").
+
+**Apple APIs** (RESEARCH 3.1, 3.2, 3.5, 3.9, 3.10):
+```swift
+@MainActor @preconcurrency init(frame frameRect: CGRect, cameraMode: ARView.CameraMode, automaticallyConfigureSession: Bool)
+dynamic var session: ARSession { get set }                                         // ARView
+var initialWorldMap: ARWorldMap? { get set }                                       // ARWorldTrackingConfiguration (through 3.30b)
+@nonobjc static func unarchivedObject<DecodedObjectType>(ofClass cls: DecodedObjectType.Type, from data: Data) throws -> DecodedObjectType?
+    where DecodedObjectType : NSObject, DecodedObjectType : NSCoding            // NSKeyedUnarchiver, iOS 11.0
+class ARCoachingOverlayView                                                        // goal, activatesAutomatically, setActive(_:animated:), iOS 13.0
+nonisolated func persistentSystemOverlays(_ visibility: Visibility) -> some View
+nonisolated func sensoryFeedback<T>(_ feedback: SensoryFeedback, trigger: T) -> some View where T : Equatable
+MagnifyGesture(minimumScaleDelta: 0.01); DragGesture(minimumDistance: 10, coordinateSpace: .local)   // RESEARCH 3.6
+```
+Not in RESEARCH: `ARCoachingOverlayView.session` and `.goal = .tracking` (iOS 13.0), `ARSession()` (iOS 11), SwiftUI `RotateGesture(minimumAngleDelta:)` (iOS 17.0; never the deprecated `RotationGesture`), `Canvas` path drawing (RESEARCH 3.6 lists `Canvas`), `AVCaptureDevice.authorizationStatus(for:)` and `requestAccess(for:)` (iOS 7), `UIApplication.openSettingsURLString` (iOS 8), `.presentationDetents` and `.interactiveDismissDisabled` (iOS 15 and 16), `Task.sleep(nanoseconds:)` (iOS 13).
+
+**Must NOT do.** Never create a second `RoomCaptureView` for the same session or mount `RoomCaptureContainer` in a branch that can switch back while its engine is in use (its dismantle tears the engine down; returning to the relocalization view is allowed only after that engine was torn down, with a new engine and `.id`); never pass reset run options except in the relocalization run before RoomPlan starts; never mark a session `.relocalized` unless tracking reached `.normal` against the map (D9); never reuse a session after a system stop for the next room; never delete a superseded room or its raw folder (CR-7 keeps both); never delete raw data except through `ProjectLibrary.discardRoom` after the Discard confirmation; never write alignment anywhere but `setRoomAlignment` edits; never run StructureBuilder or processing here (AppShell enqueues); never write `isIdleTimerDisabled` (IdleTimerGuard only); never show a banner that duplicates RoomPlan's coaching (the engine's filter already applies); never import MissingAreas, CoverageLive or LiveMeshView (closures only); never hardcode text.
+
+**Copy strings.** Existing: all of `Copy.House` (title, addRoom, rescanRoom, continueRoom, nameRoomTitle, nameRoomPlaceholder, roomSuggestions, addFloor, finishBuilding, aligning, alignFailedTitle, alignFailedBody, alignManual, alignRescanDoorway, alignDone, roomDone, roomNeedsScan, floorLabel, progressSummary), `Copy.Onboarding.house`, `Copy.Empty.noRooms`, `Copy.Scanning` chrome and cancel dialog, `Copy.A11y.roomDone`, `roomNeedsScan`, `rescanRoomHint`, `Copy.Measure.save`, `Copy.Onboarding.skip`, `Copy.ScanUI.*` (3.24). New in `Copy+HouseUI.swift` (`extension Copy { enum HouseUI }`):
+- `relocalizeTitle = "Go back to a room you already scanned"`
+- `relocalizeBody = "Point your iPhone at its walls and move slowly. Mapper will find its place."`
+- `relocalizeHint = "Looking for rooms you already scanned"`
+- `startFresh = "Start Fresh Here"`, `keepLooking = "Keep Looking"`
+- `startFreshBody = "Mapper couldn't find where you are. New rooms will need lining up by hand."`
+- `noMapTitle = "Nothing to line up with"`, `noMapBody = "This house has no saved room to find. New rooms will need lining up by hand."`
+- `relocalizeLost = (title: "Mapper lost its place", body: "Start fresh here and line up the new rooms by hand later.")`
+- `static func roomNeedsLineUp(_ room: String) -> String { "\(room) needs lining up" }`
+- `static func roomChip(_ room: String, floor: String) -> String { "\(room), \(floor)" }`
+- `nextRoomHint = "Start at the doorway you walked in through"`
+- `lowMemoryHint = "Your iPhone is low on memory. Finish Building now and scan the rest later."`
+- `joinRoomsAgain = "Join Rooms Again"`
+- `mergeFailedTitle = "Rooms weren't joined automatically"`, `mergeFailedBody = "Your rooms are saved. Try joining them again, or line them up by hand."`
+- `lineUpTitle = "Line Up Rooms"`, `lineUpHint = "Drag the room into place. Turn it with two fingers."`
+- `turnLeft = "Turn Left"`, `turnRight = "Turn Right"`
+- `snappedDoorway = "Lined up with the doorway"`, `snappedWall = "Lined up with the wall"`
+- `alignNotReady = "The rooms are still being built. Try again in a moment."`
+- `a11yMoveRoomHint = "Drag with one finger to move the room, two fingers to turn it"`
+
+**Self-test.** `HouseUISelfTest.run()`, at least 28 checks: `nextPhase` for the new-house path (preflight, tips, capturing, stopping, checking, quality, naming, roomList, capturing on nextRoom, finishing on finishBuilding, done), the relocalizing path (relocalized and startedFresh both reach capturing), `nextRoom(relocalize: true)` reaching relocalizing, discard with and without other rooms, cancel with and without rooms, `engineStopping` from capturing, a failure; `HouseManifestRules.status(after:)` gives `.needsRescan` for a poor evaluation and `.captured` for good and okay; `roomRecord` takes the session's link, not the result's; `append` sets `.needsProcessing`; `supersede` sets `supersededBy` and copies name and floor; `addFloor` returns max + 1; `status(for:placement:userAligned:)` for done, needs scan, needs lining up, lined up by the user, and capturing; `rows` hide a superseded room and group by floor with `Copy.House.floorLabel`; `progressText` counts done rooms; `suggestsFinishFloor` true at 799 MB and false at 801 MB; `preflightError` for cameraDenied, noLidar and lowStorage, nil for cameraUndetermined; `decide`: `.normal` held 1 s is relocalized, `.relocalizing` at 29 s keeps waiting, 30 s times out, `.normal` for 0.5 s keeps waiting; `sourceMap` in a temp package picks the rescanned room's map, else the latest anchor-group room with a map, skips an unaligned room's map, and returns nil without maps; `worldMapPath` resolves inside the session folder with `RawScanFolder.resolve`; `suggestedNames(sectionLabel: "kitchen")` starts with "Kitchen" and has no duplicate; `HouseAlert.from` keeps title, body and actions of a ScanUI alert; `HouseDemo.offset` leaves a 0.12 m gap between two demo rooms and the written demo model has one shared wall pair; `canOfferMissingAreas` is false in Demo Mode, after a system stop, with 0 missing areas and while the engine is not `.finished`, true otherwise.
+
+**Acceptance checks.** One `RoomCaptureView` per visit (log "RoomCaptureView created" once per engine); `startNextRoom` is used between rooms of a visit; every room of a relocalized session carries `.relocalized` only after the decision; two visits in a row log two "hub deinit" lines; each room logs available memory after eviction; the quality sheet shows over the live camera; the room list and project screen read only the manifest, the Structure report and the edit log; all text from Copy.
+
+**SPEC owned.** "HOUSE / BUILDING MODE": scan rooms separately and combine (capture side and the Finish Building hand-off), progress ("Dining Room done", "Hallway needs additional scan"), return to incomplete sections (Rescan, Continue Scanning with relocalization), manual correction when automatic alignment fails (AlignRoomsScreen), multiple floors (Add Floor); "SCANNING MODES" HOUSE / BUILDING; commercial spaces room by room (4.1).
+
+**TEST_PLAN ids.** HOUSE-01, HOUSE-02, HOUSE-05, HOUSE-06, HOUSE-07, HOUSE-08, HOUSE-09, MODE-03 (House starts), PERF-03, PERF-05, PERF-25, PERF-26 (recovery of a house room with AppShell), OFF-01 (house workflow offline).
 
 ### 3.42 ObjectUI (wave 5b)
 
-**Purpose.** The object flow and result: size chooser (small or medium, large), ObjectCapture or LargeObject capture, processing screen with stage and remaining time from `PhotogrammetrySession` outputs, object result in Viewer3D (textured, untextured, box toggle) with width, height, depth, volume or `Copy.Viewer.volumeUnavailable`.
-**Files.** `ios/Sources/ObjectUI/ObjectSizeChooser.swift`, `ObjectProcessingScreen.swift`, `ObjectResultScreen.swift`, `ObjectUISelfTest.swift`, `Copy+ObjectUI.swift`.
-**SPEC owned.** "OBJECT SCANNING" (outputs and "Object scanning must behave differently from architectural scanning"); "CORE DESIGN PRINCIPLE", Representation E.
+**Purpose.** The Object flow and result for an amateur ("Object scanning must behave differently from architectural scanning"): the size chooser (D4: small or medium goes to Object Capture here; large is handed to AppShell, which presents LargeObject), preflight (ScanUI's camera, LiDAR, storage, battery and heat checks plus ObjectCapture's support and 3 GB gate), the pre-permission screen, tips, project creation, the capture cover hosting ObjectCapture's `ObjectScanScreen`, the manifest update when the photos are sealed, and the object result screen: a processing view while reconstruction runs (stage, percent and time left from `PhotogrammetryMonitor`), then the model in Viewer3D (textured Object Capture model through `loadModel`, untextured mesh, box toggle), width, height, depth, surface area and volume (or `Copy.Viewer.volumeUnavailable`) with confidence, notes (photos downsampled, sides not joined), rename, Export and Retry callbacks, and Demo Mode with a synthetic object. Large objects' results (ObjectModel's large path) use the same result screen.
 
-### 3.43 Build 5 revisions (waves 5c and 5d)
+**Build and wave.** Build 5, wave 5b. Core, Store, ObjectCapture, ObjectModel, Viewer3D (with 3.34a), MeasureCore (`MeasureDisplay`), ScanUI, Pipeline (`ProcessingRunner`, `ProjectProcessingState`, `IdleTimerGuard`), TextureJob (`TextureStore` for large objects), Export (`USDZWriter`, demo), Geometry, MeshProcessing, Units, Support; SwiftUI, AVFoundation. About 1400 lines excluding the self-test.
 
-- Viewer3D (5a): `func loadModel(_ url: URL) async throws` on `ViewerModel` that adds an Object Capture USDZ with `try await Entity(contentsOf: url)` (RESEARCH 3.3, iOS 18.0) under the scene root, frames it and makes it pickable through `MeshBVH` of its loaded mesh; used by ObjectUI (5b).
-- ScanUI (5c): wires `CoverageLiveRecorder` into room scans (liveRoomHandler, augmenters), shows the minimap and legend, enables Show Missing Areas; adds the two-pass fallback when `degraded == .meshStripped` (RoomPlan pass, then a same-session mesh and photo pass in LiveMeshView).
-- ExportUI (5c): house USDZ through `CapturedStructure.export(to:metadataURL:modelProvider:exportOptions:)` (4-argument form only, RESEARCH 3.2) or `USDZWriter`, one plan PDF page per level, object USDZ as produced by Object Capture; object OBJ, STL, PLY and GLB follow in build 6.
-- Results (5c): Measure button (MeasureTool), Edit on the Floor Plan tab (PlanEditor), measurements list, orphaned edits listed (D3), Change Category on the object card (`Copy.ObjectMenu.changeCategory`, names from `Copy.FloorPlan.categoryName`, a `recategorizeObject` edit through `EditStore`).
-- HomeUI (5c): House, Object and Quick Measure enabled; house subtitle with room count; needs-work badge.
-- AppShell (5d): routes and covers for House, Object, Quick Measure, the missing areas tour and the editors; processing plans for houses (mergeStructure, alignRooms) and objects (reconstructObject, objectMetrics).
+**Files.** `ios/Sources/ObjectUI/ObjectSizeChooser.swift`, `ObjectFlowModel.swift`, `ObjectFlowScreen.swift`, `ObjectResultModel.swift`, `ObjectResultScreen.swift`, `ObjectPresentation.swift`, `ObjectDemo.swift`, `ObjectUISelfTest.swift`, `ios/Sources/Support/Copy+ObjectUI.swift`.
+
+**Public Swift API.**
+```swift
+enum ObjectFlowPhase: Equatable {
+    case chooser, preflight, permission, tips, capturing, saving
+    case done(UUID), largeChosen, failed(String), cancelled
+}
+enum ObjectFlowSignal: Equatable, Sendable {
+    case choseSmallMedium, choseLarge, preflightPassed(showTips: Bool), preflightBlocked, permissionNeeded
+    case permissionGranted(showTips: Bool), permissionDenied, tipsDone, captureSealed, saved(UUID)
+    case captureEnded, cancelled, failed(String)
+}
+enum ObjectAlertAction: Equatable, Sendable { case ok, openSettings }
+struct ObjectAlert: Identifiable, Equatable {
+    var id: String; var title: String; var body: String; var actions: [ObjectAlertAction]
+    /// Keeps title and body; `.ok` and `.openSettings` map one to one, `.finishNow` and `.resume`
+    /// (capture-time actions that preflight alerts never carry) are dropped, `[.ok]` when none is left.
+    static func from(_ alert: ScanAlert) -> ObjectAlert
+    /// `unsupported` -> Copy.Errors.objectUnsupported; `lowStorage` -> Copy.Errors.storageFullTitle
+    /// and storageFullBody(_:) with the size text ScanUI's storage alert uses (3 GB needed);
+    /// `deviceHot` -> Copy.ObjectUI.tooHotToStart; `deviceWarm` -> Copy.ScanUI.warmTitle, warmBody.
+    static func preflight(_ issue: ObjectPreflightIssue) -> ObjectAlert
+    /// ScanUI's blocking issue as an alert: `from(ScanErrorCopy.alert(for:))` of cameraDenied ->
+    /// `.cameraDenied`, noLidar -> `.unsupportedDevice`, lowStorage(free) -> `.lowStorage(freeBytes:)`;
+    /// nil for cameraUndetermined (the permission phase) and warnings.
+    static func scanPreflight(_ issue: PreflightIssue) -> ObjectAlert?
+}
+
+@MainActor final class ObjectFlowModel: ObservableObject {
+    @Published private(set) var phase: ObjectFlowPhase
+    @Published var alert: ObjectAlert?
+    let isDemo: Bool
+    private(set) var projectID: UUID?
+    /// The capture model while capturing (ObjectFlowScreen shows its ObjectScanScreen).
+    private(set) var scanModel: ObjectScanModel?
+    /// Main. Called once after the photos were sealed and the manifest updated (AppShell
+    /// enqueues the object plan and opens the object result).
+    var onComplete: ((UUID) -> Void)?
+    /// Main. The user chose Large (AppShell presents LargeObject's flow).
+    var onLargeObject: (() -> Void)?
+    /// Main. The flow ended without an object (any project made for it was deleted).
+    var onDismiss: (() -> Void)?
+    init(isDemo: Bool)
+    func begin()                                   // shows the chooser
+    func choose(_ size: ObjectSize)
+    func permissionContinue() async
+    func tipsFinished(dontShowAgain: Bool)
+    func openSettings()
+    func cancel()                                  // chooser, permission or tips
+    nonisolated static func nextPhase(_ phase: ObjectFlowPhase, on signal: ObjectFlowSignal) -> ObjectFlowPhase
+}
+/// Chooser, permission screen, tips (ScanUI's ScanTipsSheet(mode: .object)), the capture
+/// (ObjectCapture's ObjectScanScreen) and the saving state; forced dark while capturing,
+/// holds an IdleTimerGuard token while capturing or saving.
+struct ObjectFlowScreen: View { init(model: ObjectFlowModel) }
+struct ObjectSizeChooser: View { init(onPick: @escaping (ObjectSize) -> Void, onCancel: @escaping () -> Void) }
+
+/// What exists on disk for the object.
+struct ObjectResultFiles: Equatable, Sendable {
+    var hasModel = false, hasMesh = false, hasDimensions = false, hasTexture = false
+    var size: ObjectSize = .smallMedium
+    init()
+}
+enum ObjectResultAvailability: Equatable, Sendable {
+    case processing(text: String, percent: Int?, remaining: String?)
+    case ready
+    case failed(reason: String)
+    case noObject
+}
+struct ObjectDimensionRow: Identifiable, Equatable, Sendable {
+    var id: String                 // "object.width", "object.height", "object.depth", "object.area", "object.volume"
+    var title: String              // Copy.Viewer.width, height, depth, Copy.Measure.surfaceArea, Copy.Viewer.volume
+    var valueText: String          // MeasureDisplay.valueText, or Copy.Viewer.volumeUnavailable for the volume
+    var accuracyText: String?      // MeasureDisplay.accuracyText
+    var note: String?              // Copy.Measure.estimated when the record's provenance is .estimated
+    var isLowConfidence: Bool      // MeasureDisplay.isLowConfidence(_:kind:)
+    var accessibility: String      // MeasureDisplay.accessibilityText
+}
+enum ObjectPresentation {
+    /// Pure. Ready when dims.json and (the model or the mesh) exist; processing while the job
+    /// is queued or running (text from `stageText` of the monitor's stage, else the runner's
+    /// current step: reconstructObject -> Copy.ObjectUI.stagePreparing until the monitor
+    /// reports, objectMetrics -> Copy.ObjectUI.stageMeasuring, thumbnail -> Copy.Processing.stepSaving;
+    /// waiting shows Copy.ObjectUI.waiting); failed when the status is `.needsAttention` or a
+    /// step failed (Copy.Errors.processingFailed.body); noObject without an ObjectRecord.
+    static func availability(files: ObjectResultFiles, processing: ProjectProcessingState, status: ProjectStatus,
+                             progress: PhotogrammetryProgress?) -> ObjectResultAvailability
+    /// Width, height, depth, surface area, volume, in that order, through
+    /// `ObjectDimensions.measuredValues` and MeasureDisplay.
+    static func rows(for record: ObjectDimensionsRecord, prefs: UnitPreferences) -> [ObjectDimensionRow]
+    static func stageText(_ stage: PhotogrammetryStage?) -> String
+    /// "About n min left" (minutes rounded up) or "Less than a minute left"; nil without an estimate.
+    static func remainingText(seconds: Double?) -> String?
+    static func notes(info: PhotogrammetryInfo?) -> [String]      // downsampled, stitching incomplete
+    /// Small and medium: the model exists. Large: TextureStore has the object's texture (no build 5
+    /// processing plan textures large objects, so this stays false for them until a later build).
+    static func canShowTextured(files: ObjectResultFiles) -> Bool
+    /// Large objects: textured page parts whose triangle centroid lies inside the box.
+    static func texturedParts(_ parts: [TexturedPagePart], inside box: OrientedBox) -> [TexturedPagePart]
+    /// The untextured mesh as one lit gray part on `.raw` with pick tag `.rawMesh`.
+    static func untexturedPart(_ mesh: MeshWithAttributes) -> ViewerPart
+    /// Box parts (`ViewerContentBuilder.boxParts`) on `.overlay`, no pick tag.
+    static func boxParts(_ box: OrientedBox) -> [ViewerPart]
+}
+
+@MainActor final class ObjectResultModel: ObservableObject {
+    @Published private(set) var availability: ObjectResultAvailability
+    @Published private(set) var rows: [ObjectDimensionRow]
+    @Published private(set) var notes: [String]
+    @Published private(set) var title: String
+    @Published private(set) var canShowTextured: Bool
+    @Published var showsTextured: Bool          // textured (.realistic) or Solid Color (.raw)
+    @Published var showsBox: Bool               // Copy.Viewer.boundingBox (.overlay)
+    let viewer: ViewerModel
+    let projectID: UUID
+    init(projectID: UUID)
+    /// Manifest, files, dims.json, mesh, info; while processing the viewer is unloaded
+    /// (nothing else holds GPU memory while photogrammetry runs); when ready, `viewer.load`
+    /// of the untextured part and the box, then `viewer.loadModel` of the Object Capture
+    /// model with the scale correction and the mesh as pick mesh.
+    func load() async
+    func setTextured(_ on: Bool)
+    func setBoxVisible(_ on: Bool)
+    func rename(to name: String) throws          // ProjectLibrary.rename
+}
+/// Processing view (Copy.Processing.title, stage text, progress bar, time left,
+/// Copy.Processing.keepOpen) or the viewer with the Textured / Solid Color control, Show Box,
+/// the size panel with confidence and Copy.Measure.disclaimer, notes, Export and Retry.
+/// Observes ProcessingRunner.shared.states[projectID], PhotogrammetryMonitor.shared and
+/// `.mapperManifestDidChange`; tapping the title offers Rename.
+struct ObjectResultScreen: View {
+    init(projectID: UUID, onExport: @escaping () -> Void, onRetry: @escaping () -> Void)
+}
+
+enum ObjectDemo {
+    /// A 0.40 x 0.30 x 0.25 m two-color box: raw/objects/<id>/ with a demo objectlog.json
+    /// sealed by `ProjectStore.sealRawFolder`, `model.usdz` from `USDZWriter.data(for:)` at
+    /// `PhotogrammetryStore.modelURL`, mesh.mchk and dims.json through ObjectModel; returns the
+    /// record (status `.processed`, `modelFile` "model.usdz"). The caller sets the project `.ready`.
+    static func makeDemoObject(package: ProjectPackage, objectID: UUID, now: Date) throws -> ObjectRecord
+}
+```
+
+**Rules.** `choose(.large)` ends the flow with `onLargeObject` (no project is made here). `choose(.smallMedium)`: `ScanPreflight.run(mode: .object, isDemo:)` (async) then `ObjectCapturePreflight.run()` (Demo Mode skips both); a blocking issue shows `ObjectAlert.scanPreflight` or `ObjectAlert.preflight` and ends with `onDismiss`; camera undetermined goes to the permission phase (`Copy.Permissions` strings, `AVCaptureDevice.requestAccess(for: .video)`); tips when `SettingsKey.tipsSeen(.object)` is unset (the merged sheet shows `Copy.Onboarding.object` for `.object`). Then `ProjectLibrary.shared.create(kind: .object, name: ScanFlowModel.defaultProjectName(mode: .object, now: Date()))`, a new object id, `ObjectScanModel(target:)` and `start()` (a throw deletes the new project and shows the alert). On the model's `onComplete(result)`: one `ProjectLibrary.update` appends `ObjectRecord(id:, name: "", size: .smallMedium, status: .captured, imageCount: result.imageCount, modelFile: nil)`, sets status `.needsProcessing` and `reconstructionPending = true`, then `onComplete(projectID)`. On `onEnded` before any record the project is deleted (`ProjectLibrary.delete`) and `onDismiss` fires. Demo Mode: create the project, `ObjectDemo.makeDemoObject`, set `.ready`, `onComplete`. The result screen decides only from files and the in-memory runner state (never from stamps, as Results does); it shows Retry (`Copy.Errors.tryAgain`) when the status is `.needsAttention` or a step failed, and Retry calls `onRetry` (AppShell's `ProcessingPlans.retry`).
+
+**Uses.** ObjectCapture: `ObjectScanModel` (`start`, `onComplete`, `onEnded`, `teardown`), `ObjectScanScreen`, `ObjectScanTarget`, `ObjectScanResult`, `ObjectCapturePreflight`, `ObjectPreflightReport`, `ObjectPreflightIssue`, `PhotogrammetryMonitor.shared`, `PhotogrammetryProgress`, `PhotogrammetryStage`, `PhotogrammetryStore` (`modelURL`, `modelURLIfPresent`, `loadInfo`), `PhotogrammetryInfo`. ObjectModel: `ObjectModelStore` (`loadDimensions`, `loadMesh`, `saveMesh`, `saveDimensions`), `ObjectDimensionsRecord`, `ObjectDimensions` (`measuredValues`, `measure`), `ObjectVolumeReason`. Viewer3D: `ViewerModel` (`load`, `loadModel(_:layer:transform:pickMesh:pickTag:)`, `unload`, `setVisible`, `resetView`), `ViewerContainer`, `ViewerContent`, `ViewerPart`, `ViewerMaterial`, `ViewerLayer`, `ViewerPickTag`, `ViewerContentBuilder` (`boxParts`, `texturedPart`). MeasureCore: `MeasureDisplay` (`valueText`, `accuracyText`, `isLowConfidence(_:kind:)`, `accessibilityText`). ScanUI: `ScanPreflight.run(mode:isDemo:)`, `ScanFlowModel.defaultProjectName(mode:now:)`, `PreflightReport`, `PreflightIssue`, `CameraPermission`, `ScanErrorCopy.alert(for:)`, `ScanAlert`, `ScanTipsSheet(mode:onStart:)`, `SettingsKey.tipsSeen(_:)`, `demoMode`. Pipeline: `ProcessingRunner.shared` (`states`), `ProjectProcessingState`, `IdleTimerGuard`. TextureJob: `TextureStore` (`exists`, `load`), `TexturedMesh.pageParts()`, `TexturedPagePart`. Export: `USDZWriter.data(for:layerName:modified:)`, `ExportScene`, `ExportMesh`, `ExportMaterial`. Geometry: `OrientedBox` (`contains(_:tolerance:)`, `corners`), `TriangleMesh`. MeshProcessing: `MeshWithAttributes`. Store: `ProjectLibrary` (`create`, `update`, `delete`, `rename`, `package(for:)`), `Notification.Name.mapperManifestDidChange`. Core: `ObjectRecord`, `ObjectSize`, `ProjectStatus`, `MeasurementKind`, `MapperError`, `ProjectStore.sealRawFolder`, `ProjectStore.verifyRawFolder` (self-test). Units: `UnitPreferences.load(from:)`. Support: `Copy.ObjectUI` (new), `Copy.Viewer` (`width`, `height`, `depth`, `volume`, `volumeUnavailable`, `boundingBox`, `textured`, `solidColor`, `export`, `resetView`), `Copy.Measure.surfaceArea`, `estimated`, `disclaimer`, `Copy.Processing.title`, `stepShape`, `stepTextures`, `stepSaving`, `keepOpen`, `Copy.Errors.processingFailed`, `tryAgain`, `objectUnsupported`, `storageFullTitle`, `storageFullBody(_:)`, `tooHot`, `ok`, `Copy.ScanUI.warmTitle`, `warmBody`, `Copy.Permissions.*`, `Copy.Onboarding.object`, `Copy.Project.rename`, `renameTitle`, `Copy.A11y.modelViewer`, `modelViewerHint`, `LogStore` (category "objectui").
+
+**Apple APIs.** SwiftUI only beyond the modules above: `.fullScreenCover` is AppShell's; this module uses `ProgressView(value:)`, `Picker` with `.pickerStyle(.segmented)` for Textured and Solid Color, `Toggle`, `.alert`, `.sensoryFeedback(.success, trigger:)` on a finished model (RESEARCH 3.10); `AVCaptureDevice.authorizationStatus(for:)` and `requestAccess(for: .video)` (not in RESEARCH, iOS 7); `UIApplication.openSettingsURLString` (not in RESEARCH, iOS 8).
+
+**Must NOT do.** Never start Object Capture for a large object; never create a project before preflight passes; never run processing (AppShell enqueues); never keep the viewer loaded while reconstruction runs; never show a size without its confidence text, or a volume when ObjectModel reported none; never present a bounding-box volume as the object's volume; never write `isIdleTimerDisabled`; never import LargeObject, Results or ExportUI; never hardcode text.
+
+**Copy strings.** Existing as listed under Uses. New in `Copy+ObjectUI.swift` (`extension Copy { enum ObjectUI }`):
+- `sizeTitle = "How big is it?"`
+- `smallMedium = "Small or Medium"`, `smallMediumDetail = "Fits on a table or a chair. You walk all the way around it."`
+- `large = "Large"`, `largeDetail = "An appliance, a vehicle or equipment."`
+- `stagePreparing = "Getting your photos ready"`, `stageAligning = "Lining up your photos"`, `stageDetail = "Adding detail"`, `stageFinishing = "Finishing up"`, `stageMeasuring = "Measuring your object"` (`stageText` maps meshGeneration to `Copy.Processing.stepShape` and textureMapping to `Copy.Processing.stepTextures`; pointCloudGeneration to `stageDetail`)
+- `waiting = "Waiting to start"`
+- `tooHotToStart = (title: "Your iPhone is too hot", body: "Let it cool down for a few minutes, then try again.")`
+- `static func remainingMinutes(_ minutes: Int) -> String { "About \(minutes) min left" }`, `remainingSoon = "Less than a minute left"`
+- `sizeSection = "Size"`
+- `downsampledNote = "Your photos were made smaller to fit in memory, so the model may show less detail."`
+- `stitchingNote = "Some sides didn't join up, so parts of the model may be missing."`
+
+**Self-test.** `ObjectUISelfTest.run()`, at least 18 checks: `nextPhase` for the small path (chooser, preflight, permission, tips, capturing, saving, done), the large choice, a blocked preflight, a denied permission and a cancel; `ObjectAlert.preflight` non-empty for every issue; `scanPreflight` nil for cameraUndetermined and a warning, Open Settings for cameraDenied; `availability`: processing with percent while `reconstructObject` runs, the waiting text when queued, ready with dims and a model, ready with dims and only a mesh (large), failed for `.needsAttention`, noObject; `stageText` non-empty and distinct for the six stages; `remainingText` of 30 s, 150 s ("About 3 min left") and nil; `rows` of a 0.40 x 0.30 x 0.25 m closed box give 5 rows with one plus-minus accuracy each in metric and imperial; a record without volume gives the volume row with `Copy.Viewer.volumeUnavailable` and no accuracy; an `.estimated` record gives the Estimated note; `canShowTextured` for small with a model, large with and without a texture; `texturedParts` keeps only faces inside the box; `ObjectDemo.makeDemoObject` in a temp package writes model.usdz, dims.json and mesh.mchk that load back through ObjectModel and a sealed raw folder that `ProjectStore.verifyRawFolder` accepts.
+
+**Acceptance checks.** The flow owns the capture model and tears it down on every end; the result screen shows the processing view without any viewer content while reconstruction runs, then the model within a few seconds of `objectMetrics` finishing; switching Textured and Solid Color only toggles layers; every number goes through MeasureDisplay and Units; Demo Mode never touches the camera.
+
+**SPEC owned.** "OBJECT SCANNING": "Object scanning must behave differently from architectural scanning" (size chooser, object-only result with no walls, floor plan or room numbers), outputs shown (textured mesh, untextured mesh, bounding box, width, height, depth, estimated volume where valid); "SCANNING MODES" OBJECT entry; "MEASUREMENT CONFIDENCE" shown for objects; "CORE DESIGN PRINCIPLE" Representation E (display).
+
+**TEST_PLAN ids.** OBJ-01, OBJ-02, OBJ-03, OBJ-05 (Estimated note), OBJ-06, OBJ-09, MODE-02, MODE-03, OFF-01 (object workflow offline), PERF-04, smoke #9.
+
+### 3.43 Build 5 revisions of the build 4 screens (waves 5c and 5d)
+
+Every 5c revision edits only its own module folder and its own `Copy+<Module>.swift`, keeps the build 4 contract (3.24 to 3.28) and adds exactly the API below. No 5c revision imports another: the quality sheet (QualityUI) and its Show Missing Areas callback are composed by AppShell; Results reaches House actions, exports and Quick Measure exports only through closures AppShell wires; ScanUI's reusable pieces for House (`ScanCaptureExtras`, `ScanCoverageHUD`, `ScanTourLayer`) are used by AppShell (5d), never by Results or HouseUI. Where the build 4 implementation split a contract file differently (for example ScanUI's `ScanFlowReducer.swift` and `ScanQualityCheck.swift`, Results' `ResultLoader.swift` and `ResultContentBuilder.swift`), the agent edits the file that holds the code; new files use the names listed. AppShell (3.43e, wave 5d) is the only module that composes screens of different modules and the only editor of `ContentView.swift` and `MapperApp.swift`.
+
+### 3.43a ScanUI revision (wave 5c)
+
+**Purpose.** Wire the build 5 live-coverage pieces into the room scan: a `CoverageLiveRecorder` on every room capture (expected surfaces from the live room, coverage guidance "Scan this corner", "Point toward the floor", "Scan the ceiling", "This area needs another pass", `coverageFraction` and the minimap in the snapshots); the minimap and the color legend over `RoomCaptureView`; Show Missing Areas (D19) as a tour on the same running session between two quality-sheet appearances, with the re-evaluated numbers; and the two-pass fallback when RoomPlan stripped the mesh (D16): a same-session mesh and photo pass before the quality check. Also the reusable pieces AppShell needs for House rooms (coverage extras, the tour layer, the coverage HUD).
+
+**Build and wave.** Build 5, wave 5c (branch `impl/scanui-b5`). Build 4 dependencies plus CoverageLive (5a), LiveMeshView (5a), Quality with CR-10 (5a), CoverageOverlay (5b), MissingAreas (5b); RealityKit (`ARView` in the overlay hook). About 400 lines of changes.
+
+**Files.** Edits: `ScanFlowModel.swift` (state), `ScanFlowModel+Room.swift` (coverage in `makeEngine(for:)`, the detail offer), `ScanQualityCheck.swift` (passes in the quality check), `ScanFlowReducer.swift` (phases, signals, `nextPhase` and the computed phase properties), `RoomScanScreen.swift` (layers and the offer alert), `ScanUISelfTest.swift`, `Copy+ScanUI.swift`. New: `ScanFlowModel+Tour.swift` (tour and detail pass), `ScanCoverageViews.swift` (`ScanCoverageHUD`, `ScanTourLayer`, `ScanDetailPassLayer`), `ScanCoverageRules.swift` (pure rules and `ScanCaptureExtras`), `ScanUISelfTest+B5.swift`.
+
+**Public Swift API** (additions and changed enums).
+```swift
+/// (changed) New phases: detailOffer, detailPass (D16 fallback, before the check) and touring (Show
+/// Missing Areas, between two quality appearances). The build 4 computed properties get the new
+/// cases: none is terminal, none is a sheet phase (`isSheetPhase` false, so AppShell's quality sheet
+/// hides during them), and all three keep the capture view mounted (`showsCapture` true).
+enum ScanFlowPhase: Equatable, Sendable {
+    case preflight, permission, tips, capturing, stopping, detailOffer, detailPass, checking, quality, touring,
+         finishing, done(UUID), failed(String), cancelled
+}
+/// (changed) New signals appended; the build 4 cases are unchanged.
+enum ScanFlowSignal: Equatable, Sendable {
+    case preflightPassed, preflightBlocked, permissionNeeded, permissionGranted, permissionDenied, tipsDone,
+         engineStarted, doneTapped, engineStopping, roomFinished(UUID), evaluated, finishTapped, cancelConfirmed,
+         discarded, failed(String)
+    case completed(UUID)
+    case detailOffered, detailStarted, detailSkipped, detailFinished, tourStarted, tourFinished
+}
+/// Pure rules of this revision.
+enum ScanCoverageRules {
+    /// Show Missing Areas is offered (D19): not Demo Mode, the room engine is `.finished`, neither the room
+    /// nor an earlier tour was stopped by the system, and the evaluation lists at least one missing area.
+    static func canOfferMissingAreas(isDemo: Bool, engineState: ScanEngineState?, stoppedBySystem: Bool,
+                                     missingAreas: Int) -> Bool
+    /// The detail pass is offered (D16): not Demo Mode, the room's log says `.meshStripped`, and the room
+    /// was not stopped by the system (its session is still running).
+    static func offersDetailPass(isDemo: Bool, degraded: DegradedMode, stoppedBySystem: Bool) -> Bool
+}
+/// Live coverage for a `RoomScanEngine`, shared with AppShell's House covers (3.43e). A plain enum, so
+/// the closures are formed outside any actor (the hooks run on the hub queue, RoomCapture's
+/// `installHubClosures` rule).
+enum ScanCaptureExtras {
+    /// A `CoverageLiveRecorder(meshSource: meshStore)`, the recorders to add (that recorder), and an
+    /// installer that sets `liveRoomHandler`, `guidanceAugmenter` and `snapshotAugmenter` of an engine to
+    /// its `liveRoomHook`, `guidanceHook` and `snapshotHook`.
+    static func coverage(meshStore: MeshStore) -> (recorder: CoverageLiveRecorder, recorders: [ScanRecorder],
+                                                   install: (RoomScanEngine) -> Void)
+}
+extension ScanFlowModel {
+    // Declared in ScanFlowModel.swift:
+    //   private(set) var coverage: CoverageLiveRecorder?          // nil in Demo Mode
+    //   @Published private(set) var tour: MissingAreasModel?
+    //   @Published private(set) var detailPass: MeshScanModel?
+    /// The quality sheet may offer Show Missing Areas (AppShell passes `showMissingAreas` as the sheet's
+    /// `onShowMissingAreas` only when this is true).
+    var canShowMissingAreas: Bool { get }
+    /// Quality sheet button: builds `MissingAreasTarget` (projectID, package, the room's `RoomRecord`,
+    /// the evaluation, mode, settings, `roomEngine.hub`), `MissingAreasModel(target:)`, sets its
+    /// `onFinished`, `start()`, signal `tourStarted`.
+    func showMissingAreas()
+    /// Detail offer buttons.
+    func startDetailPass()
+    func skipDetailPass()
+}
+/// Minimap (`CoverageMinimapView(snapshot: snapshot.minimap, coverageFraction: snapshot.coverageFraction)`)
+/// at the bottom leading corner above the chrome's bottom bar, and a Colors button
+/// (`Copy.Scanning.legendTitle`) that shows `CoverageLegendView()` in a card. Hidden when
+/// `snapshot.minimap` is nil. Also placed by AppShell over `HouseScanScreen`.
+struct ScanCoverageHUD: View { init(snapshot: LiveScanSnapshot) }
+/// The tour over a still-mounted room view: `MissingAreasScreen(model:onViewReady:)` whose hook
+/// attaches a `CoverageOverlayRenderer(source: model.coverage, thermal: model.target.hub.thermal)`
+/// (detached in `onDisappear`). Also used by AppShell for House rooms.
+struct ScanTourLayer: View { init(model: MissingAreasModel) }
+/// The detail pass: `LiveMeshScreen(model:onViewReady:hud:)` with the same overlay attach, and a HUD of
+/// `LiveMeshTopBar(elapsed: model.elapsedText, doneEnabled: model.state == .scanning, onCancel:, onDone:)`
+/// with `Copy.ScanUI.detailHint`.
+struct ScanDetailPassLayer: View {
+    init(model: MeshScanModel, coverage: CoverageLiveRecorder, onCancel: @escaping () -> Void, onDone: @escaping () -> Void)
+}
+```
+
+**Rules.**
+- `makeEngine` (not Demo Mode): `let mesh = MeshStore()`, `let extras = ScanCaptureExtras.coverage(meshStore: mesh)`, recorders `[mesh, KeyframeRecorder(), PoseTrackRecorder(), photos] + extras.recorders`, `RoomScanEngine(target:recorders:)`, then `extras.install(room)`; `coverage = extras.recorder`. Never form the hook closures inside the `@MainActor` model.
+- `RoomScanScreen`: `ScanCoverageHUD(snapshot: model.snapshot)` while capturing (not Demo Mode). In `detailPass` and `touring` the `RoomCaptureContainer` stays mounted with `.opacity(0)` and `.allowsHitTesting(false)` (dismantling it calls `teardown()`, which would stop the session the pass runs on) and `ScanDetailPassLayer` or `ScanTourLayer` covers the screen. `detailOffer` shows an alert: `Copy.ScanUI.detailTitle`, `detailBody`, buttons `detailStart` (`startDetailPass`) and `Copy.Onboarding.skip` (`skipDetailPass`).
+- After `.roomFinished`: when `offersDetailPass(isDemo:degraded: roomEngine.lastResult.log.degraded, stoppedBySystem:)`, signal `detailOffered` instead of starting the check.
+- `startDetailPass`: `let mesh = MeshStore()`, `let pass = CoverageLiveRecorder(meshSource: mesh)`, `let set = MeshScanRecorderSet(photos: true, mesh: mesh, extra: [pass])`, `MeshScanEngine(target: .patchPass(projectID:package:sessionID:roomID:mode:settings:), recorders: set.all, hub: roomEngine.hub)` with `guidanceAugmenter = pass.guidanceHook` and `snapshotAugmenter = pass.snapshotHook`, `MeshScanModel(engine:photos: set.photos)`, `onFinished` (sets the room's `hasMeshPass` through `ProjectLibrary.update`, then `detailFinished`) and `onIdle` (cancelled: `detailFinished` without a pass), `try start()` (a throw logs and signals `detailSkipped`), signal `detailStarted`. Done calls `finish()`, Cancel `discard()`.
+- The quality check (build 4 `evaluateSealedRoom(package:record:now:)`) becomes `QualityEvaluator.evaluateSealedRoom(package:record:passes: MeshPassFolders.forRoom(roomID, in: package), now:)` (CR-10).
+- Tour end (`MissingAreasModel.onFinished`): `teardown()` the tour model, keep the new evaluation (nil keeps the old one), remember `stoppedBySystem`, signal `tourFinished` (the sheet shows again).
+- `finish()`, `discardScan()`, `confirmCancel()` and every terminal phase tear down the tour and the pass models (idempotent) before `roomEngine.teardown()`.
+
+**Uses.** CoverageLive: `CoverageLiveRecorder` (`init(meshSource:options:)`, `liveRoomHook`, `guidanceHook`, `snapshotHook`). CoverageOverlay: `CoverageOverlayRenderer` (`init(source:thermal:options:)`, `attach(to:)`, `detach()`), `CoverageMinimapView(snapshot:coverageFraction:)`, `CoverageLegendView(compact:)`. MissingAreas: `MissingAreasTarget`, `MissingAreasModel` (`init(target:)`, `start()`, `teardown()`, `onFinished`, `coverage`, `target`, `stoppedBySystem`), `MissingAreasScreen(model:onViewReady:)`. LiveMeshView: `MeshScanTarget.patchPass(projectID:package:sessionID:roomID:mode:settings:passID:)`, `MeshScanEngine(target:recorders:hub:)` (`guidanceAugmenter`, `snapshotAugmenter`), `MeshScanRecorderSet(photos:mesh:extra:)`, `MeshScanModel` (`start()`, `finish(attachments:)`, `discard()`, `teardown()`, `onFinished`, `onIdle`, `state`, `elapsedText`), `MeshScanResult`, `LiveMeshScreen`, `LiveMeshTopBar`, `MeshPassFolders.forRoom(_:in:)`. Quality: `QualityEvaluator.evaluateSealedRoom(package:record:passes:now:)` (CR-10). RoomCapture: `RoomScanEngine` (`liveRoomHandler`, `guidanceAugmenter`, `snapshotAugmenter`, `hub`, `lastResult`, `state`), `RoomScanResult` (`stoppedBySystem`, `log.degraded`). CaptureCore: `ARSessionHub.thermal`. MeshRecord: `MeshStore`. Core: `DegradedMode`, `ScanEngineState`, `LiveScanSnapshot` (`minimap`, `coverageFraction`), `RoomRecord.hasMeshPass`. Support: `Copy.Scanning.legendTitle`, `Copy.Onboarding.skip`, `Copy.A11y.coverageLegend`.
+
+**Apple APIs.** As 3.24, plus `ARView` only as the parameter type of `onViewReady` hooks (RealityKit); `.opacity(_:)` and `.allowsHitTesting(_:)` (SwiftUI, iOS 13, not in RESEARCH).
+
+**Must NOT do.** Never merge while a `switch` over `ScanFlowPhase` or `ScanFlowSignal` outside ScanUI lacks the new cases (grep the target first; AppShell 4d compares phases with `==`; any exhaustive switch found is reported to the lead, who adds the cases in the same merge so `integration` stays green). Never unmount `RoomCaptureContainer` during a tour or a detail pass; never offer Show Missing Areas after a system stop or in Demo Mode; never import QualityUI, Results, ExportUI, HomeUI, HouseUI or AppShell; never create a second `ARSession` for a pass (the pass borrows `roomEngine.hub`); never form hub-queue closures inside `ScanFlowModel`; no hardcoded text.
+
+**Copy strings.** Existing: `Copy.Scanning.legendTitle`, `legendGreen`, `legendYellow`, `legendRed`, `legendGray` (through `CoverageLegendView`), `Copy.Onboarding.skip`, `Copy.Quality.showMissingAreas` (the sheet's button, QualityUI). New in `Copy+ScanUI.swift` (`extension Copy.ScanUI`): `detailTitle = "Add the detailed scan?"`, `detailBody = "The detailed 3D scan didn't record. Walk slowly around the room once more to capture it. Your walls and floor plan are already saved."`, `detailStart = "Scan Detail"`, `detailHint = "Walk slowly around the room once"`.
+
+**Self-test.** At least 12 new checks (`ScanUISelfTest+B5.swift`): `nextPhase` for capturing -> detailOffer -> detailPass -> checking, detailOffer -> checking on skip, a `.failed` during the pass reaching checking, quality -> touring -> quality, touring ignoring `finishTapped`; `canOfferMissingAreas` false in Demo Mode, false after a system stop, false with 0 missing areas, false while the engine is not `.finished`, true otherwise; `offersDetailPass` true only for `.meshStripped` without a system stop outside Demo Mode; `ScanCaptureExtras.coverage` returns one recorder in `recorders` and it is the returned `recorder` (built from a `MeshStore()`, no hardware).
+
+**Acceptance checks.** Live coverage guidance appears during room scans (LIVE-05, LIVE-09); the minimap fills while walking; Show Missing Areas appears on the quality sheet only on a still-running session (smoke #4), the tour runs on the same session without a black screen, and the sheet returns with new numbers (QUAL-03); a `meshStripped` room offers the detail pass and the project's Raw Scan then has a mesh; the log shows one "RoomCaptureView created" per scan.
+
+**SPEC owned.** "LIVE SCANNING EXPERIENCE" (coverage messages and the green, yellow, red and gray minimap in Room mode); "SCAN QUALITY SYSTEM" ("Selecting SHOW MISSING AREAS should guide the user directly to locations requiring additional scanning", entry and return); "CORE DESIGN PRINCIPLE" Representation A kept when RoomPlan strips the mesh (D16 fallback).
+
+**TEST_PLAN ids.** LIVE-02 (minimap colors), LIVE-05, LIVE-09, QUAL-01 (with the button), QUAL-03, ROOM-05, smoke #3, #4.
+
+### 3.43b Results revision (wave 5c)
+
+**Purpose.** The result screen gains the build 5 tools and House support: measuring in the model (MeasureTool) on Realistic, 3D Clean and Raw Scan; Edit on the Floor Plan tab (PlanEditor); a floor picker for multi-level plans; for House projects the Rooms screen (HouseUI's `HouseProjectScreen`) with its actions forwarded to AppShell, per-room meshes and missing areas placed in the structure frame, superseded rooms left out, and "Joining rooms together..." while the merge runs; Change Category on the object card (honest: the card stops calling a user-set category a guess); orphaned edits listed with Remove These Edits (D3); Undo and Redo of the last edit (including alignment and category edits made elsewhere); and the Quick Measure project screen (the measurement list of a saved Quick Measure). Object projects are routed by AppShell to ObjectUI's result screen, never here.
+
+**Build and wave.** Build 5, wave 5c (branch `impl/results-b5`). Build 4 dependencies plus MeasureTool (5a), PlanEditor (5a), Structure (5a: `StructureStore.effectiveAlignments`, `StructureStore.placementMatrices`), LiveMeasure (5a: `QuickMeasureStore`), HouseUI (5b: `HouseProjectScreen`), Core CR-1 and CR-7. About 650 lines of changes.
+
+**Files.** Edits: `ResultScreen.swift`, `ResultModel.swift`, `ResultModel+Loading.swift` (and the loader and content builder files of the build 4 implementation), `ResultAvailability.swift` (`stepText`), `ResultObjectCard.swift`, `ResultsSelfTest.swift`, `Copy+Results.swift`. New: `ResultMeasuring.swift` (measure mode composition), `ResultHouse.swift` (pure House helpers), `ResultEdits.swift` (pure edit helpers, orphaned sheet, category picker), `ResultQuickMeasure.swift` (`QuickMeasureResultModel`, `QuickMeasureResultScreen`, `QuickMeasureRecords`), `ResultsSelfTest+B5.swift`.
+
+**Public Swift API** (additions).
+```swift
+/// House actions forwarded to AppShell (HouseProjectScreen's callbacks).
+enum ResultHouseAction: Equatable, Sendable { case continueScanning, rescan(UUID), lineUp(UUID), joinAgain }
+
+/// (changed) `onHouseAction` added with a default, so AppShell 4d's call still compiles.
+struct ResultScreen: View {
+    init(projectID: UUID, onExport: @escaping (ExportViewState) -> Void, onRetry: @escaping () -> Void,
+         onHouseAction: @escaping (ResultHouseAction) -> Void = { _ in })
+}
+
+extension ResultModel {
+    // Declared in ResultModel.swift (build 4 members unchanged):
+    //   let measureTool: MeasureToolModel                  // MeasureToolModel(projectID:viewer: viewer), made in init
+    //   @Published private(set) var isMeasuring: Bool
+    //   @Published var showsPlanEditor: Bool
+    //   @Published var showsRooms: Bool
+    //   @Published private(set) var isHouse: Bool
+    //   @Published private(set) var levelIndex: Int
+    //   @Published private(set) var levelTitles: [String]  // PlanEditorPresentation.levelTitle of each level
+    //   @Published private(set) var orphaned: [EditOperation]
+    //   @Published var showsOrphaned: Bool
+    //   @Published var showsCategoryPicker: Bool
+    //   @Published private(set) var canUndoEdit: Bool
+    //   @Published private(set) var canRedoEdit: Bool
+    //   @Published private(set) var userCategorized: Set<ElementID>
+    /// Measure mode on a 3D tab: clears the selection, loads the tool on first use, forwards Hide
+    /// Furniture (`setExcludesMovableObjects`); off: clears the draft.
+    func setMeasuring(_ on: Bool) async
+    /// Floor Plan tab level (rebuilds the drawing).
+    func selectLevel(_ index: Int)
+    /// Object card: appends `recategorizeObject(object:category:)` through `EditStore.append` off main.
+    func changeCategory(_ category: ObjectCategory) throws
+    /// `EditStore.reset(_:keeping: { !orphaned.contains($0) })` off main.
+    func removeOrphanedEdits() throws
+    /// `EditStore.undo` and `redo` off main.
+    func undoEdit() throws
+    func redoEdit() throws
+}
+
+enum ResultHouse {
+    /// Active rooms (CR-7: `supersededBy == nil`), manifest order.
+    static func activeRoomIDs(_ manifest: ProjectManifest) -> [UUID]
+    /// Each active room's placement in the structure frame: `StructureStore.placementMatrices(manifest:alignments:)`
+    /// of the effective records (`StructureStore.effectiveAlignments(package)`): the record's matrix,
+    /// identity for an anchor-group room without a record (before AlignRoomsStep ran), no entry (the
+    /// room is not drawn) for another group's room without a record, identity for every non-House project.
+    static func transforms(manifest: ProjectManifest, alignments: [UUID: RoomAlignmentRecord]) -> [UUID: simd_float4x4]
+    /// A part moved by a rigid transform: positions by the matrix, normals by its rotation, uvs kept.
+    static func transformed(_ part: ViewerPart, by matrix: simd_float4x4) -> ViewerPart
+    /// A missing-area record moved by a rigid transform (centroid, normal, suggested viewpoint).
+    static func transformed(_ record: MissingAreaRecord, by matrix: simd_float4x4) -> MissingAreaRecord
+}
+enum ResultEvidence {
+    /// A clean room's evidence for its rows: its record's tracking fraction and relocalizations, with the
+    /// WallEvidence of every room appended (walls merged in from another room keep theirs, CR-1).
+    static func combined(for room: CleanRoom, evidence: [UUID: RoomEvidence]) -> RoomEvidence
+}
+enum ResultEdits {
+    /// Orphaned operations of the clean model and the plan, without duplicates, in log order.
+    static func orphaned(clean: [EditOperation], plan: [EditOperation], log: EditLog) -> [EditOperation]
+    /// Objects whose category the user set: targets of the active (flattened) `recategorizeObject` operations.
+    static func userCategorized(_ log: EditLog) -> Set<ElementID>
+}
+
+/// Quick Measure projects (AppShell's `.measurements` route).
+enum QuickMeasureRecords {
+    /// The saved list when `edits/measurements.json` exists (the user renamed or deleted), else the
+    /// sealed `raw/measure/quick.json` records. The raw file is never rewritten.
+    static func effective(saved: [MeasurementRecord]?, raw: [MeasurementRecord]) -> [MeasurementRecord]
+}
+@MainActor final class QuickMeasureResultModel: ObservableObject {
+    @Published private(set) var rows: [MeasureToolRow]
+    @Published private(set) var title: String
+    let projectID: UUID
+    init(projectID: UUID)
+    /// Off main: `QuickMeasureStore.load(package)?.records`, `EditStore.loadMeasurements` only when
+    /// `package.measurementsURL` exists, `UnitPreferences.load()`.
+    func load() async
+    /// Rename and delete write the whole effective list with `EditStore.saveMeasurements`.
+    func rename(_ id: UUID, to name: String)
+    func delete(_ id: UUID)
+    func renameProject(to name: String) throws
+}
+/// Title with Rename, `MeasureToolList(rows:onRename:onDelete:onDeleteAll: nil, onClose: nil)`, Export.
+struct QuickMeasureResultScreen: View { init(projectID: UUID, onExport: @escaping () -> Void) }
+```
+
+**Rules.**
+- *Measure* (Copy.Viewer.measure in the toolbar of Realistic, 3D Clean and Raw Scan when that tab is ready): the `ViewerContainer` tap goes to `measureTool.tap(hit)` while `isMeasuring`, else to `handleTap(hit)`; `MeasureToolOverlay(model: measureTool)` sits over the viewer in the same frame; `MeasureToolBar(model:onDone:)` replaces the dimensions panel and the tab picker; its list is a sheet of `MeasureToolList` with Delete All. Switching to the Floor Plan tab ends measure mode. Hide Furniture changes are forwarded. 3D Clean floor parts get `pickTag: .element(room.id)` and Realistic textured parts `pickTag: .rawMesh` (build 4 left both unpickable), so floor and textured points can be tapped; the extra hierarchies are built off main at load like the others (their time is logged), and outside measure mode such a tap clears the selection, as a miss did.
+- *Edit* (Copy.Viewer.edit on the Floor Plan tab when the plan is ready): `.fullScreenCover` of `PlanEditorScreen(projectID:onDone:)`; the screen reloads through `.mapperEditsDidChange` (build 4 observation).
+- *Levels*: a segmented picker of `levelTitles` on the Floor Plan tab when the plan has more than one level; `PlanDrawing.make(level: plan.levels[levelIndex], ...)`; `RoomTitles.titles(for: plan, clean: clean)` for titles.
+- *House* (`manifest.kind == .house`): a Rooms button (`Copy.House.title`) opens `HouseProjectScreen(projectID:onContinueScanning:onRescan:onLineUp:onJoinAgain:)` in a sheet; each callback closes the sheet and calls `onHouseAction`. Realistic and Raw Scan parts and missing-area records of each active room are moved with `ResultHouse.transforms` (the House clean model and plan are already in the structure frame); rooms not in `activeRoomIDs`, and rooms without an entry in `transforms`, are skipped everywhere. `ResultAvailability.stepText` maps `.mergeStructure` and `.alignRooms` to `Copy.House.aligning`.
+- *Rows*: `RoomDimensions.rows(for: room, evidence: ResultEvidence.combined(for: room, evidence:))`.
+- *Object card*: a Change Category button (`Copy.ObjectMenu.changeCategory`) opens a list of `ObjectCategory.allCases` by `Copy.FloorPlan.categoryName`; the card title is `Copy.FloorPlan.categoryName(category)` alone when the object is in `userCategorized`, else `Copy.Results.objectGuess(...)`.
+- *Orphaned edits*: a banner (`Copy.Results.orphanedBanner`) when `orphaned` is not empty opens a sheet listing `PlanEditorPresentation.describe` of each, with `Copy.Results.orphanedBody`, Remove These Edits (`removeOrphaned`) and `Copy.Project.cancel`.
+- *Undo and Redo* (`Copy.FloorPlan.undo`, `redo`) in the title menu, enabled from the loaded `EditLog`. AppShell re-runs processing after edits that need it (3.43e); Results only writes the log.
+- *Quick Measure*: `QuickMeasureResultScreen` for `.quickMeasure` projects; Export calls `onExport` (AppShell presents `ExportSheet` with `ExportViewState.standard`).
+
+**Uses.** MeasureTool: `MeasureToolModel`, `MeasureToolOverlay`, `MeasureToolBar`, `MeasureToolList`, `MeasureToolRow`, `MeasureToolPresentation.rows`. PlanEditor: `PlanEditorScreen(projectID:onDone:)`, `PlanEditorPresentation` (`describe`, `levelTitle`). HouseUI: `HouseProjectScreen(projectID:onContinueScanning:onRescan:onLineUp:onJoinAgain:)`. Structure: `StructureStore.effectiveAlignments(_:)`, `StructureStore.placementMatrices(manifest:alignments:)`. LiveMeasure: `QuickMeasureStore.load(_:)`, `QuickMeasureFile.records`. Store: `EditStore` (`load`, `append(_:to:)`, `undo`, `redo`, `reset(_:keeping:)`, `loadMeasurements`, `saveMeasurements`). FloorPlan: `PlanModelStore.loadEdited`, `PlanDrawing`, `RoomTitles.titles(for:clean:)`. RoomModel: `CleanModelStore.loadEdited`. MeasureCore: `RoomDimensions.rows(for:evidence:)`, `RoomEvidence`, `WallEvidence`. Core: `EditOperation`, `EditLog.flattenedActive`, `RoomRecord.supersededBy` (CR-7), `RoomAlignmentRecord`, `ObjectCategory`, `ScanMode`, `MeasurementRecord`, `ProjectPackage.measurementsURL`. Support: `Copy.Viewer.measure`, `edit`, `Copy.House.title`, `aligning`, `Copy.ObjectMenu.changeCategory`, `Copy.FloorPlan.undo`, `redo`, `categoryName(_:)`, `Copy.Project.cancel`, `rename`, `renameTitle`, `Copy.Empty.noMeasurements`.
+
+**Apple APIs.** As 3.26, plus `.fullScreenCover(isPresented:content:)` (SwiftUI, iOS 14, not in RESEARCH).
+
+**Must NOT do.** Never show Object projects (AppShell routes them to ObjectUI); never write raw data or `raw/measure/quick.json`; never enqueue processing (AppShell does after edits); never present ExportUI directly; never draw a superseded room; never call a user-set category a guess; never block main on disk.
+
+**Copy strings.** Existing as listed under Uses. New in `Copy+Results.swift` (`extension Copy.Results`): `orphanedBanner = "Some edits no longer fit this scan"`, `orphanedBody = "They are kept but not shown. Remove them if you don't need them."`, `removeOrphaned = "Remove These Edits"`, `floorPicker = "Floor"`.
+
+**Self-test.** At least 14 new checks (`ResultsSelfTest+B5.swift`): `activeRoomIDs` drops a superseded room; `transforms` gives identity for a Room project, the record's matrix for a House room, identity for an anchor-group House room without a record and no entry for an unaligned room without one; `transformed(part)` moves positions and turns normals, keeping uvs; `transformed(record)` moves the centroid and the viewpoint; `stepText(.mergeStructure)` and `stepText(.alignRooms)` equal `Copy.House.aligning`; `combined` keeps the room's tracking fraction and holds the walls of two records; `orphaned` removes duplicates and keeps log order; `userCategorized` finds a recategorize inside a batch and ignores an undone one; `QuickMeasureRecords.effective` returns the raw list when there is no saved file, the saved list (even empty) when there is one; the floor part of a 3D Clean room has pick tag `.element(room.id)` and a Realistic part has `.rawMesh`; `ResultHouseAction` values are distinct.
+
+**Acceptance checks.** Measuring works on all three 3D tabs and never changes the dimensions panel's numbers; after Done Editing the plan, 3D Clean and the panel show the edits; a House project shows every active room in place on Realistic and Raw Scan; the Rooms screen's actions reach AppShell; a Quick Measure project opens its list, and rename and delete survive a relaunch while quick.json stays byte-identical.
+
+**SPEC owned.** "MEASUREMENT SYSTEM" and "MEASUREMENT CONFIDENCE" (the tools on the result screen); "FLOOR PLAN EDITING" (entry); "HOUSE / BUILDING MODE" (the combined model on the result screen, return to incomplete sections through the Rooms screen); "AUTOMATIC OBJECT RECOGNITION" ("allow the user to correct labels": Change Category; guesses shown as guesses until corrected); "SCANNING MODES" QUICK MEASURE (the saved result).
+
+**TEST_PLAN ids.** MEAS-01 to MEAS-11, CONF-01 to CONF-04, PEDIT-01 to PEDIT-09 (entry and result), PLAN-05, REC-02, HOUSE-05, HOUSE-06, HOUSE-07, HOUSE-08, MODE-06 (saved result), PERF-10, smoke #5, #7, #8.
+
+### 3.43c HomeUI revision (wave 5c)
+
+**Purpose.** Home for build 5: the mode picker enables House / Building, Object and Quick Measure (AppShell passes the set), a disabled mode shows its real reason (for example "Object scanning isn't available" on a device without Object Capture) instead of "Coming in a later version", and House rows count only active rooms (CR-7) in the subtitle and the needs-work badge.
+
+**Build and wave.** Build 5, wave 5c (branch `impl/homeui-b5`). Build 4 dependencies plus Core CR-7. About 60 lines of changes.
+
+**Files.** Edits: `HomePresentation.swift`, `HomeModePicker.swift`, `HomeScreen.swift`, `HomeUISelfTest.swift`.
+
+**Public Swift API** (additions).
+```swift
+struct HomeModeEntry: Equatable, Identifiable, Sendable {
+    // build 4 fields unchanged, plus:
+    /// Shown under a disabled mode: its reason, else `Copy.HomeUI.comingLater`; nil when enabled.
+    let note: String?
+}
+extension HomePresentation {
+    static func modeEntries(availableModes: Set<ScanMode>, unavailableReasons: [ScanMode: String]) -> [HomeModeEntry]
+    /// The build 4 form keeps working: `unavailableReasons` empty.
+    static func modeEntries(availableModes: Set<ScanMode>) -> [HomeModeEntry]
+    /// Rooms that count for a project: CR-7 `supersededBy == nil`.
+    static func activeRooms(_ manifest: ProjectManifest) -> [RoomRecord]
+}
+struct HomeScreen: View {
+    init(library: ProjectLibrary, runner: ProcessingRunner, availableModes: Set<ScanMode>,
+         unavailableReasons: [ScanMode: String] = [:], onNewScan: @escaping (ScanMode) -> Void,
+         onOpen: @escaping (UUID) -> Void, onSettings: @escaping () -> Void)
+}
+struct ModePickerSheet: View {
+    init(availableModes: Set<ScanMode>, unavailableReasons: [ScanMode: String] = [:],
+         onPick: @escaping (ScanMode) -> Void, onCancel: @escaping () -> Void)
+}
+```
+Rules: `subtitle(for:dateText:)` counts `activeRooms` for `.house` and `.advancedSpace` (Quick Measure rows keep the build 4 `Copy.Home.measureSubtitle`); `badge(for:processing:)` looks for `.needsRescan` among active rooms only; the picker row and its VoiceOver value read `note` instead of the fixed later-version text. Opening a project still calls `onOpen(id)`; AppShell routes by kind (3.43e).
+
+**Uses.** As 3.28, plus Core `RoomRecord.supersededBy` (CR-7).
+
+**Must NOT do.** As 3.28; never decide mode availability here (AppShell passes it); never route by project kind (AppShell does).
+
+**Copy strings.** Existing only: `Copy.HomeUI.comingLater`; reasons arrive as text from AppShell (`Copy.Errors.objectUnsupported.title`, `Copy.Errors.noLidar.title`).
+
+**Self-test.** At least 6 new checks: House, Object and Quick Measure enabled when in the set; a disabled Object with a reason shows that reason as `note`; a disabled Advanced without a reason shows `Copy.HomeUI.comingLater`; an enabled entry has no note; a House with 3 rooms, one superseded, reads "2 rooms, {date}"; a superseded `.needsRescan` room gives no needs-work badge.
+
+**Acceptance checks.** The picker shows five modes with House, Object and Quick Measure usable on the test phone (MODE-02, MODE-03); House rows count active rooms.
+
+**SPEC owned.** "SCANNING MODES" (ROOM, HOUSE / BUILDING, OBJECT, QUICK MEASURE selectable).
+
+**TEST_PLAN ids.** MODE-01, MODE-02, MODE-03, PROJ-01.
+
+### 3.43d ExportUI revision (wave 5c)
+
+**Purpose.** Exports for the build 5 project kinds and sizes: House projects (clean USDZ through RoomPlan's `CapturedStructure.export` when the automatic merge holds and nothing was edited, else our USDZ of the edited House clean model; raw and textured meshes of every active room placed with its alignment; plans with one PDF page per floor and one SVG, DXF or PNG per floor zipped), Object projects (Object Capture's USDZ as produced for small and medium objects; the untextured object mesh as USDZ for large ones; the dimensions as JSON), Quick Measure projects (the measurements as JSON), user measurements in every summary JSON when Include measurements is on, and progress with Cancel for long exports (EXP-09: no half file is left).
+
+**Build and wave.** Build 5, wave 5c (branch `impl/exportui-b5`). Build 4 dependencies plus Structure (5a: `StructureStore`, `StructureAlignment`), ObjectCapture (5a: `PhotogrammetryStore`), ObjectModel (5a: `ObjectModelStore`, `ObjectExportAdapter`, `ObjectDimensionsRecord`), LiveMeasure (5a: `QuickMeasureStore`), Core CR-7; PDFKit. About 450 lines of changes.
+
+**Files.** Edits: `ExportCatalog.swift`, `ExportRunner.swift`, `ExportAdapters.swift`, `ExportSummaryJSON.swift`, `ExportSheet.swift`, `ExportUISelfTest.swift`, `Copy+ExportUI.swift`. New: `ExportHouse.swift` (House scenes and plan pages), `ExportObject.swift` (object and Quick Measure outputs), `ExportPDFPages.swift`, `ExportUISelfTest+B5.swift`.
+
+**Public Swift API** (additions and changed declarations).
+```swift
+/// (changed) `.object`: a scanned object's model (Object projects only).
+enum ExportRepresentation: String, CaseIterable, Identifiable, Sendable {
+    case realistic, clean, raw, floorPlan, data, object
+    var id: String { rawValue }
+}
+struct ExportInputs: Equatable, Sendable {
+    // build 4 fields unchanged, plus:
+    var kind: ScanMode = .room
+    /// Plan levels with rooms or walls.
+    var levelCount = 1
+    /// House: a merged structure (merge.json outcome `merged`, structure.json present) and no active edit.
+    var structureExportable = false
+    /// House: every active room has `TextureStore.exists`.
+    var allRoomsTextured = false
+    /// Object: model.usdz (small and medium) or the object mesh (large) exists.
+    var hasObjectModel = false
+    var hasObjectDimensions = false
+    /// Saved measurements (measurements.json, or Quick Measure's raw file).
+    var measurementCount = 0
+}
+extension ExportCatalog {
+    /// (changed) By `inputs.kind`. Room and advancedSpace: as build 4. House: realistic usdz, obj, glb
+    /// (reason `Copy.ExportUI.colorNotReady` unless `allRoomsTextured`, `Copy.Export.noColor` without
+    /// keyframes), clean usdz, obj, glb, raw usdz, obj, ply, stl, glb, floorPlan pdf, svg, dxf, png,
+    /// data json. Object and advancedObject: object usdz (reason `Copy.ExportUI.objectNotReady` until
+    /// `hasObjectModel`), data json (same reason until `hasObjectDimensions`). Quick Measure: data json
+    /// only (reason `Copy.Empty.noMeasurements.title` with no measurement).
+    static func options(for inputs: ExportInputs) -> [ExportOption]
+    /// (added overload; the build 4 `fileName(project:option:date:)` is this with `level: nil`) `level`
+    /// (1-based) adds `Copy.ExportUI.levelSuffix(level)` before the extension of plan files of a
+    /// multi-level plan; DXF keeps "_mm".
+    static func fileName(project: String, option: ExportOption, date: Date, level: Int?) -> String
+    /// `Copy.Modes.object` for `.object`; the build 4 labels otherwise.
+    static func sectionTitle(_ representation: ExportRepresentation) -> String
+}
+/// House and multi-level outputs (`ExportHouse.swift`).
+enum ExportHouse {
+    /// One drawing per plan level with rooms or walls, in level order, with the result screen's toggles
+    /// (EXP-05) and the level's title (`PlanLevel.name`, else `Copy.House.floorLabel(id + 1)`).
+    static func planDrawings(_ package: ProjectPackage, prefs: UnitPreferences, toggles: PlanToggles) throws
+        -> [(level: Int, title: String, plan: Plan2D)]
+    /// Whole-house triangle budget of the binary raw formats (PLY, STL, GLB), whose build 4 rule
+    /// (always the full measured mesh) would hold every room's full mesh at once on a 6 GB phone.
+    static let maxBinaryTriangles = 2_000_000
+    /// Per-room limit that keeps a house inside one budget: `max(50_000, total / rooms)`.
+    static func perRoomLimit(total: Int, rooms: Int) -> Int
+    /// Every active room's measured mesh (full, or the view mesh plus the inferred mesh above the
+    /// room's limit, as build 4), placed with `StructureStore.placementMatrices` (rooms without an
+    /// entry are left out, logged); one ExportMesh per room, named by its room title. `maxTextTriangles`
+    /// is the whole-house budget: `ExportCatalog.textTriangleLimit` for OBJ and USDZ,
+    /// `maxBinaryTriangles` for the binary formats, split with `perRoomLimit`. Rooms are read one at a
+    /// time; each room's intermediates are released before the next.
+    static func rawScene(_ package: ProjectPackage, manifest: ProjectManifest, alignments: [UUID: RoomAlignmentRecord],
+                         maxTextTriangles: Int) throws -> ExportScene
+    /// Every active room's `ExportAdapters.texturedScene` placed like `rawScene`, materials concatenated.
+    static func texturedScene(_ package: ProjectPackage, manifest: ProjectManifest,
+                              alignments: [UUID: RoomAlignmentRecord]) throws -> ExportScene
+    /// A scene moved by a rigid transform: positions by the matrix, normals by its rotation, texcoords kept.
+    static func transformed(_ scene: ExportScene, by matrix: simd_float4x4) -> ExportScene
+    /// Clean USDZ of a House: `CapturedStructure.export(to:metadataURL:modelProvider:exportOptions: [.mesh])`
+    /// into `folder` (with a `.plist` metadata URL next to it, never shared) when `structureExportable`,
+    /// else nil (the caller writes `USDZWriter` of `ExportAdapters.cleanScene` of the edited model).
+    static func structureUSDZ(_ package: ProjectPackage, into folder: URL, fileName: String) throws -> URL?
+}
+/// Object and Quick Measure outputs (`ExportObject.swift`).
+enum ExportObject {
+    /// Small and medium: a copy of `PhotogrammetryStore.modelURL(_:object:)` named `fileName` in `folder`.
+    /// Large: `USDZWriter.data(for: ObjectExportAdapter.scene(mesh, name:))` of `ObjectModelStore.loadMesh`.
+    static func objectUSDZ(_ package: ProjectPackage, object: ObjectRecord, into folder: URL, fileName: String) throws -> URL
+}
+/// Joins single-page PDFs into one document in order (PDFKit).
+enum ExportPDFPages { static func merge(_ pages: [Data]) throws -> Data }
+extension ExportSummaryJSON {
+    /// (build 4, unchanged) The summary with a "measurements" array (kind, name, value in SI units and
+    /// radians, sigma, provenance, points, snaps, source, createdAt); listed because House projects use it.
+    static func data(model: CleanModel, evidence: [UUID: RoomEvidence], manifest: ProjectManifest,
+                     measurements: [MeasurementRecord]) throws -> Data
+    /// Quick Measure projects: project name and dates plus the measurements.
+    static func measurementsData(_ records: [MeasurementRecord], manifest: ProjectManifest) throws -> Data
+    /// Object projects: each object's dimensions (width, height, depth, surface area, volume or the
+    /// unavailable reason, box) and the project name and dates.
+    static func objectData(_ dimensions: [UUID: ObjectDimensionsRecord], manifest: ProjectManifest) throws -> Data
+}
+extension ExportRunner {
+    /// (changed) As build 4 plus `progress` (0...1, called on main at each stage: load, build, write,
+    /// zip; the default ignores it, so build 4 call sites compile). Cancellation stays as in build 4 (the
+    /// task is checked between stages, now also between plan levels; a cancelled run removes its
+    /// staging folder and throws `CancellationError`).
+    static func run(_ option: ExportOption, settings: ExportSettings, viewState: ExportViewState, projectID: UUID,
+                    package: ProjectPackage, prefs: UnitPreferences,
+                    progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> URL
+}
+```
+
+**Rules.**
+- Inputs: `kind` from the manifest; House alignments from `StructureStore.effectiveAlignments(package)`; active rooms are CR-7 `supersededBy == nil`; `structureExportable` from `StructureStore.loadReport(package).merge?.outcome == .merged`, `StructureStore.loadStructure` not nil, and `EditStore.load(package).active` empty; `measurementCount` from `EditStore.loadMeasurements`, or `QuickMeasureStore.load(package)?.records` when `measurements.json` does not exist.
+- Plans: a single level exports as build 4. With several levels: PDF writes one page per level with `PDFPlanWriter.data(for:options:)` (the level title in the plan name) and joins them with `ExportPDFPages.merge`; SVG, DXF and PNG write one file per level (`fileName(... level:)`) and zip them with `ZipWriter.archive`.
+- House clean USDZ: `ExportHouse.structureUSDZ` or `USDZWriter` of `ExportAdapters.cleanScene(edited House model, includeHidden:, includeMovable: !viewState.hideFurniture)`. House raw and realistic: `ExportHouse.rawScene` (budget `ExportCatalog.textTriangleLimit` for OBJ and USDZ, `ExportHouse.maxBinaryTriangles` for PLY, STL and GLB, both for the whole house) and `texturedScene` with the build 4 writers; the simplified note (`Copy.ExportUI.simplifiedNote`) shows whenever a room fell back to its view mesh.
+- Object projects export their first object (a second one is logged and left out in build 5).
+- Summary JSON keeps passing the project's measurements when `settings.includeMeasurements` is on, as build 4 does (EXP-08 data side; CSV comes in build 6); House projects pass the edited House clean model.
+- `ExportSheet` shows `ProgressView(value:)` with `Copy.Export.preparing` while a run is active, a Cancel button (`Copy.Project.cancel`) that cancels the run's task, and returns to the list after a cancel with no share sheet.
+
+**Uses.** Structure: `StructureStore` (`loadStructure`, `loadReport`, `effectiveAlignments`, `placementMatrices`), `StructureMergeOutcome.merged`, `StructureAlignment.matrix`. ObjectCapture: `PhotogrammetryStore.modelURL(_:object:)`, `modelURLIfPresent(_:object:)`. ObjectModel: `ObjectModelStore` (`loadMesh`, `loadDimensions`), `ObjectExportAdapter.scene(_:name:)`, `ObjectDimensionsRecord`. LiveMeasure: `QuickMeasureStore.load(_:)`. Store: `EditStore` (`load`, `loadMeasurements`). FloorPlan: `PlanModelStore.loadEdited`, `PlanDrawing.make`, `RoomTitles`. Core: `ObjectRecord` (`size`), `ScanMode`, `RoomRecord.supersededBy` (CR-7), `RoomAlignmentRecord`, `MeasurementRecord`, `PlanLevel`. Export: `PDFPlanWriter`, `SVGWriter`, `DXFWriter.data(for:millimeters:unitsNote:)`, `USDZWriter`, `ZipWriter.archive`, `ExportScene`, `ExportMesh`. Support: `Copy.Modes.object`, `Copy.House.floorLabel(_:)`, `Copy.Export.preparing`, `Copy.Project.cancel`, `Copy.Empty.noMeasurements`.
+
+**Apple APIs.** RESEARCH 3.2: `func export(to url: URL, metadataURL: URL? = nil, modelProvider: CapturedStructure.ModelProvider? = nil, exportOptions: CapturedStructure.USDExportOptions = .mesh) throws` (the only form on `CapturedStructure`, iOS 17.0). Not in RESEARCH: PDFKit `PDFDocument(data:)`, `page(at:)`, `insert(_:at:)`, `pageCount`, `dataRepresentation()` (iOS 11.0); `FileManager.copyItem(at:to:)` (iOS 2); `Task.checkCancellation()` (iOS 13).
+
+**Must NOT do.** Never call `CapturedStructure.export(to:exportOptions:)` (it does not exist; 4-argument form only); never export a superseded room; never use `MDLAsset.export` for USD; never leave a staging folder after a cancel or a failure; never write outside `exports/`; never share a folder (zip first); no hardcoded text.
+
+**Copy strings.** Existing as listed. New in `Copy+ExportUI.swift` (`extension Copy.ExportUI`): `objectNotReady = "Not available yet: the model is still being built"`, `static func levelSuffix(_ n: Int) -> String { "Floor\(n)" }`, `objectDetail = "The scanned object as a 3D model for iPhone, iPad and Mac."`.
+
+**Self-test.** At least 12 new checks (`ExportUISelfTest+B5.swift`): catalog of a House with `levelCount` 2 lists PDF, SVG, DXF, PNG and realistic unavailable until `allRoomsTextured`; catalog of an Object with and without a model; catalog of a Quick Measure project is JSON only, unavailable with no measurement; file names of level 2 contain `levelSuffix(2)` and DXF still ends "_mm.dxf"; `ExportPDFPages.merge` of two one-page PDFs (made with `PDFPlanWriter`) has 2 pages; `ExportHouse.transformed` moves positions and normals and keeps texcoords; `rawScene` of a temporary two-room House package with one superseded room has one mesh; `perRoomLimit(total: 600_000, rooms: 8)` is 75,000 and `perRoomLimit(total: 600_000, rooms: 20)` is 50,000; summary JSON with 2 measurements has `measurements.count == 2` and numbers as numbers; `measurementsData` and `objectData` parse with `JSONSerialization`; a cancelled run (a task cancelled before the write stage) leaves no staging folder; `sectionTitle(.object)` is `Copy.Modes.object`.
+
+**Acceptance checks.** A whole House exports as USDZ and PDF in Airplane Mode with progress, and Cancel leaves no file (EXP-09); a multi-floor House PDF has one page per floor; an object exports its Object Capture USDZ, which opens in Quick Look (OBJ-02); a Quick Measure project exports its measurements as JSON.
+
+**SPEC owned.** Deliverable 14 "Exportable professional files" for House, Object and Quick Measure projects; "2D FLOOR PLAN" output files for multi-floor plans; "OBJECT SCANNING" outputs (USDZ); "PROJECT SYSTEM" (export).
+
+**TEST_PLAN ids.** EXP-01, EXP-05 (annotations and floors), EXP-06, EXP-07, EXP-08 (JSON part), EXP-09, EXP-10, OBJ-02, PLAN-05, smoke #11.
+
+### 3.43e AppShell revision (wave 5d)
+
+**Purpose.** The composition root for build 5: routes by project kind (room and house results, object results, Quick Measure results), the covers for House, Object (small and medium), Large Object and Quick Measure with processing suspended while any cover is up, the House cover's live coverage, minimap and missing-areas tour, the quality sheet's Show Missing Areas for rooms, House actions from Results (Continue Scanning, Rescan, Line Up by Hand, Join Rooms Again), processing plans for House and Object projects and for rooms with mesh passes, processing after edits that need it, a one-time upgrade pass that rebuilds build 4 clean models and plans with the build 5 rules, recovery of House rooms, mesh passes and objects, the mode availability passed to Home, and the Diagnostics toggle of the live mesh debug view.
+
+**Build and wave.** Build 5, wave 5d (branch `impl/appshell-b5`). Every build 4 and build 5 module. Still the only editor of `ContentView.swift` and `MapperApp.swift`. About 700 lines of changes.
+
+**Files.** Edits: `AppRootView.swift`, `AppRouter.swift`, `AppScanCoordinator.swift` (quality sheet button), `AppResultsCoordinator.swift`, `AppProcessingPlans.swift`, `AppRecovery.swift`, `AppDiagnosticsScreen.swift`, `AppShellSelfTest.swift`. New: `AppCovers.swift` (`AppCover`, `AlignRequest`, `AppCapabilities`), `AppHouseCoordinator.swift`, `AppObjectCoordinators.swift` (object, large object and Quick Measure covers), `AppProcessingPlans+B5.swift` (house and object plans, edits, upgrade), `AppShellSelfTest+B5.swift`.
+
+**Public Swift API** (additions and changed declarations).
+```swift
+/// (changed) Routes by project kind.
+enum AppRoute: Hashable { case result(UUID), object(UUID), measurements(UUID), settings, diagnostics }
+/// The one full-screen cover (replaces build 4's `scanRequest: ScanRequest?`; `ScanRequest` is kept for rooms).
+enum AppCover: Identifiable, Equatable {
+    case room(ScanRequest)
+    case house(HouseScanRequest)
+    case object(id: UUID, isDemo: Bool)
+    case largeObject(id: UUID)
+    case quickMeasure(id: UUID)
+    var id: UUID { get }
+}
+/// Drives the Line Up by Hand sheet.
+struct AlignRequest: Identifiable, Equatable { let id: UUID; var projectID: UUID; var roomID: UUID }
+@MainActor final class AppRouter: ObservableObject {
+    @Published var path: [AppRoute]
+    @Published var cover: AppCover?
+    @Published var exportRequest: ExportRequest?
+    @Published var alignRequest: AlignRequest?
+    /// (changed) room -> `.room`, house -> `.house(.newProject)`, object -> `.object`, quickMeasure ->
+    /// `.quickMeasure`; Demo Mode (`SettingsKey.demoMode`) for room, house and object.
+    func startScan(_ mode: ScanMode)
+    /// (changed) Pushes `route(for:id:)` of the project's kind.
+    func openResult(_ id: UUID)
+    /// Results' House actions: continueScanning -> `.house(.continueProject(id))`, rescan(room) ->
+    /// `.house(.rescan(project:room:))`, lineUp(room) -> `alignRequest`, joinAgain -> enqueue at the front.
+    func houseAction(_ action: ResultHouseAction, projectID: UUID)
+    /// room, house, advancedSpace -> `.result`; object, advancedObject -> `.object`; quickMeasure -> `.measurements`.
+    nonisolated static func route(for kind: ScanMode, id: UUID) -> AppRoute
+}
+enum AppCapabilities {
+    /// Pure. Room and House need LiDAR and RoomPlan; Object needs Object Capture (reason
+    /// `Copy.Errors.objectUnsupported.title`); Quick Measure needs LiDAR (reason `Copy.Errors.noLidar.title`);
+    /// in Demo Mode Room, House and Object are available on any device; Advanced stays off without a reason
+    /// (Home shows "Coming in a later version").
+    static func modes(lidar: Bool, roomPlan: Bool, objectCapture: Bool, demo: Bool)
+        -> (available: Set<ScanMode>, reasons: [ScanMode: String])
+    /// From the Diagnostics probe checks and `SettingsKey.demoMode`.
+    @MainActor static func current() -> (available: Set<ScanMode>, reasons: [ScanMode: String])
+}
+/// House cover (see Rules).
+struct AppHouseCoordinator: View { init(request: HouseScanRequest, onFinished: @escaping (UUID?) -> Void) }
+/// Object cover: `ObjectFlowScreen(model: ObjectFlowModel(isDemo:))`; `onLargeObject` calls `onLarge`.
+struct AppObjectCoordinator: View {
+    init(isDemo: Bool, onLarge: @escaping () -> Void, onFinished: @escaping (UUID?) -> Void)
+}
+/// Large object cover: `ScanPreflight.run(mode: .object, isDemo: false)` (async; camera access and
+/// other blocking issues as in the Rules, *Permission*), `LargeObjectTarget.makeNew(now:)`, `LargeObjectModel(target:)`,
+/// `start()`, `LargeObjectScreen(model:onViewReady:)` whose hook attaches
+/// `CoverageOverlayRenderer(source: model.coverage, thermal: model.scan.engine.hub.thermal)`.
+struct AppLargeObjectCoordinator: View { init(onFinished: @escaping (UUID?) -> Void) }
+/// Quick Measure cover: `ScanPreflight.run(mode: .quickMeasure, isDemo: false)` (camera access and other
+/// blocking issues as in the Rules, *Permission*), then `LiveMeasureModel()`,
+/// `start()`, `LiveMeasureScreen(model:)`; `onComplete` routes to `.measurements`; never enqueues.
+struct AppQuickMeasureCoordinator: View { init(onFinished: @escaping (UUID?) -> Void) }
+
+extension ProcessingPlans {
+    /// Bumped when derived rules change; 5 = RoomModel "cleanModel-rules=2" and FloorPlan "planBuilder-rules=2".
+    static let rulesVersion = 5
+    /// By kind: room and advancedSpace `roomSteps`, house `houseSteps`, object and advancedObject
+    /// `objectSteps`, quickMeasure none.
+    static func steps(manifest: ProjectManifest, package: ProjectPackage) -> [ScheduledStep]
+    /// (changed) With mesh passes (CR-10): `ConsolidateMeshStep(roomID:folders: roomFolders(room:package:))`,
+    /// `QualityStep(room:passes: MeshPassFolders.forRoom(room.id, in:))`, `TextureLowStep(room:folders: roomFolders)`.
+    static func roomSteps(manifest: ProjectManifest, package: ProjectPackage) -> [ScheduledStep]
+    /// The room's raw folder (`CapturedRoomStore.rawFolder`) followed by its sealed mesh passes.
+    static func roomFolders(room: RoomRecord, package: ProjectPackage) -> [RawScanFolder]
+    /// House (active rooms, `StructureEligibility.activeRooms`): per room BuildRoomStep (optional, build 4
+    /// conditions), `MergeStructureStep()` (optional), `AlignRoomsStep()` (optional), per room
+    /// ConsolidateMeshStep (optional, with passes), `HouseCleanModelStep(meshProvider: { package, room in
+    /// try? MeshModelStore.loadMeasured(package, room: room) })` (required, depends on the rooms' buildRoom
+    /// steps), `FloorPlanStep(floors: [])` (required, depends on cleanModel), per room QualityStep
+    /// (optional, with passes), ThumbnailStep (optional, depends on floorPlan), per room TextureLowStep (optional).
+    static func houseSteps(manifest: ProjectManifest, package: ProjectPackage) -> [ScheduledStep]
+    /// Small and medium: `PhotogrammetryStep(object:)` (required), `ObjectMetricsStep(object:modelFile:
+    /// { p, id in PhotogrammetryStore.modelURLIfPresent(p, object: id) }, reportedExtents: { p, id in
+    /// PhotogrammetryStore.loadInfo(p, object: id)?.boundsExtents })` (required, depends on
+    /// reconstructObject), ThumbnailStep (optional, depends on objectMetrics). Large:
+    /// `ConsolidateMeshStep(roomID: object.id, folders: [RawScanFolder(url: package.rawObjectURL(object.id))])`
+    /// (required), ObjectMetricsStep (required, depends on consolidateMesh), ThumbnailStep (optional).
+    static func objectSteps(manifest: ProjectManifest, package: ProjectPackage) -> [ScheduledStep]
+    /// Demo projects: no room raw folder holds capturedroomdata.json, capturedroom.json,
+    /// capturedroom-live.json or keyframes.jsonl, and no small or medium object holds photos.
+    static func isDemoProject(_ manifest: ProjectManifest, package: ProjectPackage) -> Bool
+    /// What an edit needs (pure): `.none` for Quick Measure, `.capturing`, demo and running projects;
+    /// `.thumbnail` for room projects with a plan; `.full` for House and Object projects.
+    static func afterEditPlan(manifest: ProjectManifest, package: ProjectPackage, isRunning: Bool) -> AfterEditPlan
+    /// Debounced 2 s per project after `.mapperEditsDidChange`: `.full` enqueues `steps` (fresh steps are
+    /// skipped, so the House clean model reruns only when its alignment digest changed); `.thumbnail`
+    /// enqueues a job with only an optional ThumbnailStep and changes no status.
+    @MainActor static func enqueueAfterEdit(projectID: UUID)
+    /// Once per `rulesVersion` (`SettingsKey.processingRulesVersion`), after `resumePending`: enqueues every
+    /// `.ready` room and house project that is not a demo (atFront false), so build 4 clean.json and
+    /// plan.json are rebuilt with the build 5 rules (3.37b, 3.37c).
+    @MainActor static func upgradeIfNeeded(defaults: UserDefaults = .standard)
+}
+enum AfterEditPlan: Equatable, Sendable { case none, thumbnail, full }
+extension SettingsKey { static let processingRulesVersion = "processingRulesVersion" }   // Int
+```
+
+**Rules.**
+- *Covers.* `cover` drives one `.fullScreenCover(item:onDismiss:)`; `ProcessingRunner.shared.suspendAll(reason: "capture")` when it becomes non-nil, and `resumeAll()` in `onDismiss` when `cover` is nil (build 4 rule, now for every cover): `onDismiss` runs after the content is gone, so a finished capture's `ARView` or `ObjectCaptureView` is released before any step runs, and a switch from `.object` to `.largeObject` keeps processing suspended. `suspendAll` only flags the running step, and a `PhotogrammetrySession` finishes cancelling asynchronously, so every coordinator first awaits `ObjectCaptureActivity.waitForNoReconstruction(timeout: 30)` (showing `Copy.Scanning.startingUp`, logged) before its flow's first step (preflight); on a timeout it shows `Copy.Errors.generic` and closes. `.room`: the build 4 `AppScanCoordinator`, whose `QualitySheet` now gets `onShowMissingAreas: model.canShowMissingAreas ? { model.showMissingAreas() } : nil` (ScanUI 3.43a hosts the tour inside `RoomScanScreen`). `.object`: `AppObjectCoordinator`; Large switches the cover to `.largeObject` (a new id). Each coordinator's `onComplete(projectID)` enqueues the kind's plan with `atFront: true` (never for Quick Measure) and pushes `route(for:id:)`; `onDismiss` closes the cover.
+- *House cover.* `HouseFlowModel(request:)` with `captureExtras = { mesh in let extras = ScanCaptureExtras.coverage(meshStore: mesh); return (extras.recorders, extras.install) }`; `HouseScanScreen(model:)` with `ScanCoverageHUD(snapshot: model.snapshot)` over it while capturing; `onShowMissingAreas` builds `MissingAreasTarget(projectID:, package:, room: the finished room's record, evaluation: model.evaluation, mode: .house, settings:, hub:)` with `model.roomEngine?.hub` (no tour without an engine) and shows `ScanTourLayer(model:)` above the house screen (the room view stays mounted underneath); the tour's `onFinished` calls `model.refreshEvaluation(evaluation, stoppedBySystem: tour.stoppedBySystem)` (nil keeps the old evaluation), tears the tour model down and removes the layer; `onShowMissingAreas` is set on every House model, and HouseUI offers the button only when `model.canShowMissingAreas` and hides its sheet while `model.isTourActive` (3.41).
+- *Permission* (Large Object and Quick Measure covers, which have no permission phase of their own): a blocking `.cameraUndetermined` shows ScanUI's `ScanPermissionScreen(isRequesting:onContinue:onCancel:)`; Continue calls `AVCaptureDevice.requestAccess(for: .video)`, granted continues the flow, denied shows `ScanErrorCopy.alert(for: .cameraDenied)` (Open Settings) and closes; any other blocking issue shows `ScanErrorCopy.preflightAlert(for:)` and closes. Without this a first-time user who picks Large or Quick Measure before any other scan would hit a dead end.
+- *Routes.* `.result(id)`: `ResultScreen(projectID:onExport:onRetry:onHouseAction: { router.houseAction($0, projectID: id) })`. `.object(id)`: `ObjectResultScreen(projectID:onExport: { exportRequest = ExportRequest(id: UUID(), projectID: id, viewState: .standard) }, onRetry: { ProcessingPlans.retry(projectID: id) })`. `.measurements(id)`: `QuickMeasureResultScreen(projectID:onExport:)` with the same export request. Line Up by Hand: `.sheet(item: $router.alignRequest) { AlignRoomsScreen(projectID:roomID:onDone:) }`, a save (`onDone(true)`) enqueues the House plan at the front. Join Rooms Again: HouseUI clears the crashed attempt, AppShell enqueues at the front.
+- *Home.* `HomeScreen(library:runner:availableModes:unavailableReasons:onNewScan:onOpen:onSettings:)` with `AppCapabilities.current()`; `onOpen` calls `router.openResult`. A device without LiDAR still shows `Copy.Errors.noLidar` on New Scan outside Demo Mode (build 4 rule).
+- *Processing.* `enqueue(projectID:atFront:)` uses `steps(manifest:package:)`; on `.completed`: room and house projects set active `.captured` rooms to `.processed` (`.needsRescan` stays) and the project `.ready`; object projects set the object `.processed` and the project `.ready`; `.failed` and `.cancelled` as build 4. `resumePending` also resumes Object projects with `reconstructionPending`. `AppRootView` observes `.mapperEditsDidChange` and calls `enqueueAfterEdit`; launch runs `upgradeIfNeeded()` after `resumePending()`.
+- *Recovery* (`RecoveryService`): an InProgress scan of kind `.meshPass` is sealed into `rawMeshPassURL(session:pass:)`, its room gets `hasMeshPass`, and the project is enqueued; for an `.object` scan the object id is scan.json `roomID` (both object drivers write it, 3.32 and 3.33; `scanID` as a fallback), and a folder holding `Images/` (`ObjectScanFolders.imagesURL`) is a small or medium object: offered only when `ObjectScanFolders.canRecover`, Keep seals it with `ObjectScanFolders.seal`, appends the `ObjectRecord` (`.captured`, image count), sets `reconstructionPending` and enqueues; any other `.object` folder is a large object, sealed into `rawObjectURL(_:)` with an `ObjectRecord` of size `.large` (without its crop edit ObjectMetricsStep reports "no crop box", so the result shows the failure honestly); a House room (`mode == .house`) is recovered like a Room room with its session's frame link and the floor of the latest room. A `.capturing` Quick Measure project (killed during Save, 3.36) becomes `.ready` when `raw/measure/quick.json` exists and is deleted when it does not; a `.ready` one is never touched.
+- *Diagnostics.* A toggle for `SettingsKey.liveMeshDebugView` with `Copy.LiveMeshView.debugViewToggle` and `debugViewFooter`; the suite list gains the build 5 self-tests (lead-owned lines).
+
+**Uses.** Every build 5 screen type named above: HouseUI (`HouseFlowModel` with `captureExtras`, `onShowMissingAreas`, `canShowMissingAreas`, `isTourActive`, `refreshEvaluation(_:stoppedBySystem:)`, `roomEngine`, `evaluation`, `onComplete`, `onDismiss`; `HouseScanScreen`, `HouseScanRequest`, `HouseScanStart`, `AlignRoomsScreen`), ObjectUI (`ObjectFlowModel`, `ObjectFlowScreen`, `ObjectResultScreen`), LargeObject (`LargeObjectTarget.makeNew(now:)`, `LargeObjectModel`, `LargeObjectScreen`), LiveMeasure (`LiveMeasureModel`, `LiveMeasureScreen`), MissingAreas (`MissingAreasTarget`, `MissingAreasModel`), CoverageOverlay (`CoverageOverlayRenderer`), ScanUI (`ScanCaptureExtras`, `ScanCoverageHUD`, `ScanTourLayer`, `ScanPreflight`, `ScanErrorCopy`, `ScanFlowModel.canShowMissingAreas`, `showMissingAreas()`), Results (`ResultScreen`, `ResultHouseAction`, `QuickMeasureResultScreen`), HomeUI (`HomeScreen` with `unavailableReasons`), QualityUI (`QualitySheet(evaluation:onFinish:onDiscard:onShowMissingAreas:)`), ExportUI (`ExportSheet`), Structure (`StructureEligibility.activeRooms`, `MergeStructureStep`, `AlignRoomsStep`, `HouseCleanModelStep`), ObjectCapture (`PhotogrammetryStep`, `PhotogrammetryStore`, `ObjectScanFolders` (`canRecover`, `seal`, `imagesURL`), `ObjectCaptureActivity.waitForNoReconstruction(timeout:)`), ScanUI permission pieces (`ScanPermissionScreen(isRequesting:onContinue:onCancel:)`, `ScanErrorCopy.preflightAlert(for:)`, `PreflightIssue`), ObjectModel (`ObjectMetricsStep`), LiveMeshView (`MeshPassFolders.forRoom(_:in:)`), Quality (`QualityStep(room:passes:)`, CR-10), and the build 4 symbols of 3.29.
+
+**Apple APIs.** As 3.29, plus `.fullScreenCover(item:onDismiss:content:)` (iOS 14) and `AVCaptureDevice.requestAccess(for: .video)` (not in RESEARCH, iOS 7).
+
+**Must NOT do.** As 3.29; never run processing while any cover is up, and never resume it before the cover's content is gone; never enqueue Quick Measure or demo projects (the upgrade and edit rules check `isDemoProject`); never keep two covers at once; no business logic of a feature module (flows stay in their modules); no hardcoded text.
+
+**Copy strings.** Existing: `Copy.Errors.objectUnsupported`, `noLidar`, `Copy.LiveMeshView.debugViewToggle`, `debugViewFooter`, `Copy.AppShell.*` (3.29). New: none.
+
+**Self-test.** At least 16 new checks (`AppShellSelfTest+B5.swift`): `route(for:)` for every `ScanMode`; `AppCapabilities.modes` without Object Capture disables Object with its reason, without LiDAR outside Demo Mode disables Quick Measure with its reason, in Demo Mode enables Room, House and Object, and never enables Advanced; `houseSteps` for a two-room House with one superseded room lists steps for one room only, in the order above, with `dependsOn` of cleanModel and floorPlan; `objectSteps` for a small object (reconstructObject then objectMetrics) and a large one (consolidateMesh with subject = object id, then objectMetrics); `roomFolders` of a temporary package with one sealed mesh pass returns 2 folders and ignores an unsealed pass; `steps` of a Quick Measure project is empty; `isDemoProject` true for a `DemoProjectFactory` package and false once `capturedroomdata.json` exists; `afterEditPlan` for each kind, for `.capturing`, running and demo projects; the upgrade decision runs once per `rulesVersion`; the Quick Measure recovery rule sets a `.capturing` project with quick.json `.ready` and deletes one without it; an `.object` InProgress folder with `Images/` is classified small or medium and one without is large, with the object id read from `roomID`.
+
+**Acceptance checks.** New Scan starts all four modes on the test phone; each cover closes on finish and on cancel, and no job runs while one is up; House finishing opens the result with "Joining rooms together..."; the Rooms screen's actions open the right covers and sheets; an object opens its result screen, a Quick Measure its list; a build 4 project is rebuilt once after the update and then opens in the plan editor with no locked walls; force quits during House, object and patch-pass captures offer recovery (PERF-26).
+
+**SPEC owned.** "SCANNING MODES" (all four modes reachable, sensible defaults); "HOUSE / BUILDING MODE" (entry, return to incomplete sections and manual correction wiring); "OBJECT SCANNING" (entry and results); "SCAN QUALITY SYSTEM" (Show Missing Areas for House rooms); "PROJECT SYSTEM" (every project kind opens and resumes processing); "LOCAL-FIRST ARCHITECTURE" (everything offline).
+
+**TEST_PLAN ids.** MODE-02, MODE-03, MODE-06, HOUSE-01 to HOUSE-09, OBJ-01, OBJ-09, QUAL-03 (House rooms), PERF-03, PERF-25, PERF-26, PERF-27, OFF-01, smoke #6, #9, #10.
 
 ---
 
@@ -2793,6 +7482,7 @@ final class ObjectMetricsStep: ProcessingStep { init(object: ObjectRecord) }   /
 - Texturing (6a, lead decision 6: accepted): an atlas streaming callback on `TextureBaker` so each finished atlas page is handed to the caller and released instead of held until the end (lower peak than the about 830 MB at 1M faces).
 - TextureJob (6a, after the Texturing revision): `TextureHighStep` (id `.textureHigh`, budget 1 GB, reduced 500 MB) at `TextureDensity.photoRealistic` with `normalizeExposure = true` (Texturing `TXExposure`), density by `DetailLevel`, reduced variant at 2048 atlases, baking `mesh.mchk` up to 1M faces into `derived/rooms/<r>/texture-high/` (same file names as `texture/`), writing each page from the atlas callback.
 - ExportUI (6a): object formats (USDZ as is, OBJ, STL, PLY, GLB from ObjectModel), measurements CSV and a PDF room schedule page, textured OBJ, GLB and USDZ at Photo Realistic, PNG images of the model (`ViewerModel.snapshotJPEG`).
+- HouseUI (6a) and AppShell (6c): the D16 detail pass for House rooms whose log says `meshStripped` (not offered in build 5, 3.41): HouseFlowModel gains a hook between `.roomFinished` and the quality check, AppShell shows ScanUI's `ScanDetailPassLayer` over `HouseScanScreen` on the room engine's hub, and the check then runs with the room's mesh-pass folders (CR-10).
 - HomeUI, Results, ScanUI (6b) and AppShell (6c): project menu (rename, duplicate, archive, back up, restore from backup, Free up space), Photo Realistic style, crop, reference length entry, Advanced flow, background processing toggle.
 
 ---
@@ -2819,25 +7509,25 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 | Requirement | Owner | Build |
 |---|---|---|
 | Scan a single room | RoomCapture, ScanUI | 4 |
-| Multiple connected rooms; entire houses and buildings | Structure, HouseUI | 5 |
+| Multiple connected rooms; entire houses and buildings | HouseUI (room by room, relocalization, manual alignment), Structure (merge, alignment, floors, shared walls, House clean model) | 5 |
 | Commercial spaces, restaurants, offices | HouseUI (room by room) | 5; very large open areas SpaceScan 7 |
 | Warehouses; outdoor structures when technically possible | AdvancedScan (space without rooms, LiveMeshView driver) | 6; SpaceScan 7 |
-| Furniture, appliances, equipment, boxes, small and medium objects, arbitrary objects | ObjectCapture, ObjectUI | 5 |
-| Vehicles, large appliances and equipment | LargeObject | 5 |
+| Furniture, appliances, equipment, boxes, small and medium objects, arbitrary objects | ObjectUI (size chooser, result), ObjectCapture (guided capture, reconstruction), ObjectModel (measurements) | 5 |
+| Vehicles, large appliances and equipment | LargeObject (LiDAR mesh driver, tapped seed, gravity-aligned box, side guidance), ObjectModel (`ObjectIsolation` from the crop edit), ObjectUI (result) | 5 |
 | Use both LiDAR geometry and camera imagery whenever possible | CaptureCore, MeshRecord, Keyframes | 4 |
 | Usable by an amateur, advanced functionality available | Copy voice rules everywhere; AdvancedScan | 4; 6 |
-| 1 Realistic textured 3D model | TextureJob (Textured), Results | 4; Photo Realistic 6; objects 5 |
+| 1 Realistic textured 3D model | TextureJob (Textured), Results | 4; Photo Realistic 6; objects 5 (ObjectCapture `PhotogrammetryStep`, Viewer3D `loadModel`) |
 | 2 High-detail LiDAR mesh | MeshRecord, MeshModel, Results (Raw Scan) | 4 |
 | 3 Clean architectural 3D model | RoomModel, Viewer3D, Results | 4 |
 | 4 2D floor plan | FloorPlan, Results | 4 |
-| 5 Measurements | MeasureCore, Results; MeasureTool, LiveMeasure | 4; 5 |
-| 6 Object dimensions | Results object card with MeasureCore `objectRows` (room objects, with confidence); ObjectModel (scanned objects) | 4; 5 |
+| 5 Measurements | MeasureCore, Results (4); MeasureTool in the model, LiveMeasure live, Results (measurement list, Quick Measure result) (5) | 4; 5 |
+| 6 Object dimensions | Results object card with MeasureCore `objectRows` (room objects, with confidence); ObjectModel `ObjectDimensions` with confidence, ObjectUI (scanned objects) | 4; 5 |
 | 7 Room dimensions; 9 floor area; 10 ceiling height | RoomModel, MeasureCore, Results | 4 |
-| 8 Surface area | room and per-wall area in MeasureCore (b4, openings not counted, stated in the panel); MeasureTool area, ObjectModel surface area | 4; 5 |
-| 11 Distance measurements | MeasureTool, LiveMeasure | 5 |
+| 8 Surface area | room and per-wall area in MeasureCore (4, openings not counted, stated in the panel); MeasureTool Area tool, ObjectModel surface area (5) | 4; 5 |
+| 11 Distance measurements | MeasureTool (Distance and Height tools), LiveMeasure | 5 |
 | 12 Images and photos associated with scanned locations | Keyframes (capture, poses), ScanUI Take Photo; PhotoBrowser (browse) | 4; 7 |
-| 13 Editable detected objects | Hide Furniture (b4); fixture move, delete and recategorize in PlanEditor and Change Category on the Results card (b5); EditMenus rename, rotate, show raw (b7) | 4; 5; 7 |
-| 14 Exportable professional files | ExportUI | 4; remaining formats 6 |
+| 13 Editable detected objects | Hide Furniture (4); PlanEditor move, turn, delete and change category of furniture and fixtures, Results Change Category (5); EditMenus rename, rotate, show raw (7) | 4; 5; 7 |
+| 14 Exportable professional files | ExportUI (4); House, Object and Quick Measure exports and multi-floor plans (ExportUI revision 3.43d, 5); remaining formats 6 | 4; 5; 6 |
 
 ### 4.2 CORE DESIGN PRINCIPLE
 
@@ -2847,15 +7537,15 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 | A: LiDAR mesh; ARKit anchors; world transforms | MeshRecord (anchor-local chunks with transforms, D8) | 4 |
 | A: camera poses; timestamps; device orientation | Keyframes (10 Hz pose track, keyframe poses) | 4 |
 | A: camera frames where permitted; depth; confidence; calibration | Keyframes (JPEG, Float16 depth plus confidence, intrinsics per keyframe) | 4 |
-| A: feature points; detected planes | Feature points: the ARWorldMap at Done (mesh anchors stripped) in every room folder (RoomCapture, 4) and per session for relocalization (HouseUI, 5); not recorded per frame (unstable, RESEARCH 3.8 gotcha 21). Planes: RoomPlan's surfaces in `capturedroomdata.json` (4); ARKit plane anchors are not recorded because plane detection flattens the raw mesh (D14) | 4; 5 |
+| A: feature points; detected planes | Feature points: the ARWorldMap at Done (mesh anchors stripped) in every room folder (RoomCapture, 4), reused by HouseUI to relocalize later sessions and referenced by `CaptureSessionRef.worldMapFile` (5); not recorded per frame (unstable, RESEARCH 3.8 gotcha 21). Planes: RoomPlan's surfaces in `capturedroomdata.json` (4); ARKit plane anchors are not recorded because plane detection flattens the raw mesh (D14); Quick Measure uses them live for snapping and records none (LiveMeasure, 5) | 4; 5 |
 | A: never destroy the original raw scan | Store (sealed folders D5, no thinning D6), every module's "Must NOT do" | 4 |
 | B: LiDAR geometry plus RGB imagery, texture projection, texture blending | TextureJob with Texturing | 4 |
-| B: photogrammetry where appropriate | ObjectCapture | 5 |
+| B: photogrammetry where appropriate | ObjectCapture `PhotogrammetryStep` (on device, default detail) | 5 |
 | B: mesh cleanup; hole filling where reasonable (flagged inferred); simplification | MeshModel with MeshProcessing | 4 |
 | C: walls, floors, ceilings, doors, windows, openings, stairs where detectable, furniture, appliances, other recognized objects | RoomModel (RoomPlan categories, D12, D13) | 4 |
 | C: counters, cabinets (beyond RoomPlan storage), columns, structural features | MeshRefine | 8 |
 | D: 2D floor plan from the reconstructed geometry | FloorPlan | 4 |
-| E: isolated object model | ObjectCapture, ObjectModel, LargeObject | 5 |
+| E: isolated object model | ObjectCapture (model), ObjectModel (measurements; `ObjectIsolation` for large objects), ObjectUI (display), LargeObject (capture) | 5 |
 
 ### 4.3 SCANNING MODES
 
@@ -2863,9 +7553,9 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 |---|---|---|
 | Large NEW SCAN button on the home screen | HomeUI | 4 |
 | ROOM | ScanUI, RoomCapture | 4 |
-| HOUSE / BUILDING | HouseUI | 5 |
-| OBJECT | ObjectUI, ObjectCapture, LargeObject | 5 |
-| QUICK MEASURE | LiveMeasure | 5 |
+| HOUSE / BUILDING | HouseUI, Structure; HomeUI (enabled, 3.43c), AppShell (cover, 3.43e) | 5 |
+| OBJECT | ObjectUI (chooser), ObjectCapture (small, medium), LargeObject (large); HomeUI (enabled), AppShell (covers) | 5 |
+| QUICK MEASURE | LiveMeasure (capture), HomeUI (enabled, 3.43c), AppShell (cover and route, 3.43e), Results (saved list, 3.43b) | 5 |
 | ADVANCED SCAN | AdvancedScan | 6 |
 | Sensible defaults chosen automatically | Core `ScanSettings.defaults(for:)`, ScanUI | 4 |
 | No need to understand LiDAR, meshes, polygons, SLAM, anchors, point clouds, photogrammetry | Copy (UX_COPY.md voice rules) | 4 onward |
@@ -2883,26 +7573,26 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 
 | Requirement | Owner | Build |
 |---|---|---|
-| Scan rooms separately and combine into one structure | HouseUI, Structure | 5 |
-| Preserve room relationships; maintain coordinate alignment | Structure (FrameLink, alignment D9) | 5 |
-| Recognize shared walls | Structure (StructureBuilder, measured thickness from wall pairs) | 5 |
-| Detect doorways connecting rooms | Structure (kept door identifiers) | 5 |
-| Combine rooms into one building model | Structure, RoomModel | 5 |
-| Multiple floors when technically possible | Structure `StructureFloors`, HouseUI Add Floor; stair links LevelsAndStairs | 5; 8 |
-| Manual correction when automatic alignment fails | HouseUI `AlignRoomsScreen` | 5 |
-| Progress such as "Kitchen done", "Hallway needs additional scan" | HouseUI | 5 |
-| Return to incomplete sections | HouseUI (relocalization, Rescan) | 5 |
+| Scan rooms separately and combine into one structure | HouseUI (room by room, Finish Building), Structure (`MergeStructureStep`, `HouseCleanModelStep`) | 5 |
+| Preserve room relationships; maintain coordinate alignment | Structure (frame groups, least-squares placement, fallbacks, `effectiveAlignments`, D9); HouseUI with the CaptureCore revision (relocalized sessions) | 5 |
+| Recognize shared walls | Structure `StructureWalls.sharedWalls` (thickness measured from wall pairs) | 5 |
+| Detect doorways connecting rooms | Structure `StructureWalls.doorwayLinks` (each doorway drawn once) | 5 |
+| Combine rooms into one building model | Structure `HouseCleanModelStep`, FloorPlan | 5 |
+| Multiple floors when technically possible | HouseUI Add Floor, Structure `StructureFloors.assign`; stair links LevelsAndStairs | 5; 8 |
+| Manual correction when automatic alignment fails | HouseUI `AlignRoomsScreen` with Structure `StructureSnapping`, `setRoomAlignment` edits | 5 |
+| Progress such as "Kitchen done", "Hallway needs additional scan" | HouseUI `HousePresentation.rows` | 5 |
+| Return to incomplete sections | HouseUI Rescan and Continue Scanning (relocalization), CR-7 supersede; Results Rooms screen (3.43b) | 5 |
 
 ### 4.6 OBJECT SCANNING
 
 | Requirement | Owner | Build |
 |---|---|---|
-| Behave differently from architectural scanning | ObjectUI size chooser (D4) | 5 |
-| Guide the user around the object; "Move around the object slowly"; "Capture the top" | ObjectCapture (Apple guidance), GuidanceUI | 5 |
-| "Capture the left side", "Capture the back", "Move closer to this area", "This section needs more detail" | LargeObject `SectorCoverage` | 5 |
-| Separate the target object from its background | ObjectCapture (object masking), ObjectModel `ObjectIsolation` | 5 |
-| Camera images for textures | ObjectCapture | 5 |
-| Textured mesh, untextured mesh, bounding box, width, height, depth, estimated volume where valid | ObjectModel, ObjectUI | 5 |
+| Behave differently from architectural scanning | ObjectUI (size chooser D4, object-only result) | 5 |
+| Guide the user around the object; "Move around the object slowly"; "Capture the top" | ObjectCapture (Apple's guided capture, three-pass onboarding, `higherHint`), GuidanceUI feedback mapping (small and medium); LargeObject `SectorCoverage` (large) | 5 |
+| "Capture the left side", "Capture the back", "Move closer to this area", "This section needs more detail" | LargeObject `SectorCoverage` through the Coverage revision CR-9 | 5 |
+| Separate the target object from its background | ObjectCapture (box selection, `isObjectMaskingEnabled`), LargeObject (seed region and box), ObjectModel (`ObjectIsolation` from the crop edit) | 5 |
+| Camera images for textures | ObjectCapture `PhotogrammetryStep` | 5 |
+| Textured mesh, untextured mesh, bounding box, width, height, depth, estimated volume where valid | ObjectModel (watertight volume only), ObjectUI (display), Viewer3D `loadModel`; LargeObject (capture box as a `cropObject` edit) | 5 |
 | Manually crop unwanted geometry | ObjectCrop | 6 |
 
 ### 4.7 IMAGE / TEXTURE CAPTURE
@@ -2911,7 +7601,7 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 |---|---|---|
 | Realistic textures from the camera; not a gray mesh | TextureJob | 4 |
 | Capture imagery associated with camera poses | Keyframes | 4 |
-| Texture the reconstructed mesh | TextureJob, Viewer3D, ExportUI | 4 |
+| Texture the reconstructed mesh | TextureJob, Viewer3D, ExportUI (4); objects keep Object Capture's own textures (ObjectCapture, Viewer3D `loadModel`, 5) | 4; 5 |
 | Overlapping images, perspective differences, texture seams | Texturing (view selection, charts, seam blending) via TextureJob | 4 |
 | Exposure differences, lighting changes | TextureJob Photo Realistic with `normalizeExposure` (TXExposure) | 6 |
 | Preserve original image quality where practical | Keyframes (full stream resolution, JPEG 0.85, never thinned); high-resolution stills experiment in BackgroundWork | 4; 6 |
@@ -2924,21 +7614,21 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 | Requirement | Owner | Build |
 |---|---|---|
 | Real-time visual guidance | RoomCaptureView coaching (RoomCapture), GuidanceUI banner | 4 |
-| See the model forming while walking | RoomCaptureView outlines and mini model (RoomCapture); live colored mesh (CoverageOverlay) | 4; 5 |
-| GREEN, YELLOW, RED, GRAY | CoverageLive, CoverageOverlay (colored mesh in mesh-only scans and patch passes, minimap in Room mode); HeadlessRoom (colored 3D overlay in Room mode) | 5; 7 |
-| "Move slower", "Move closer", "Too close", "Too far", "Tracking quality is low", "Lighting is poor" | Room mode: RoomPlan's own coaching (`slowDown`, `moveCloseToWall`, `moveAwayFromWall`, `turnOnLight`) plus Mapper's `trackingLow`, `trackingLost` and `deviceHot` through `GuidanceFilter` (4); Mapper's texts from `GuidanceEngine` in mesh-only scans (LiveMeshView, 5) | 4; 5 |
+| See the model forming while walking | RoomCaptureView outlines and mini model (RoomCapture, 4); LiveMeshView plus CoverageOverlay (colored mesh in mesh-only scans, large objects and the missing-area tour, 5) | 4; 5 |
+| GREEN, YELLOW, RED, GRAY | CoverageLive (states), CoverageOverlay (colored mesh in mesh-only views and the tour; minimap and legend in Room mode through the ScanUI revision 3.43a); HeadlessRoom (colored 3D overlay in Room mode) | 5; 7 |
+| "Move slower", "Move closer", "Too close", "Too far", "Tracking quality is low", "Lighting is poor" | Room mode: RoomPlan's own coaching (`slowDown`, `moveCloseToWall`, `moveAwayFromWall`, `turnOnLight`) plus Mapper's `trackingLow`, `trackingLost` and `deviceHot` through `GuidanceFilter` (4); Mapper's texts from `GuidanceEngine` in mesh-only scans (LiveMeshView) and tier 1 in Quick Measure (LiveMeasure) (5) | 4; 5 |
 | "Window detected", "Door detected", "Wall detected" | RoomCapture detection counts | 4 |
-| "Scan this corner", "Point toward the floor", "Scan the ceiling", "This area needs another pass" | CoverageLive (needs live coverage) | 5 |
+| "Scan this corner", "Point toward the floor", "Scan the ceiling", "This area needs another pass" | CoverageLive (`viewCoverage`, `nearbyMissing`), wired into room scans by the ScanUI revision (3.43a) and House rooms by AppShell (3.43e) | 5 |
 | Do not overwhelm; only important instructions | GuidancePolicy in `GuidanceEngine`, `GuidanceFilter` | 4 |
 
 ### 4.9 SCAN QUALITY SYSTEM
 
 | Requirement | Owner | Build |
 |---|---|---|
-| Scan-completeness system tracking coverage | Quality (from recorded data); CoverageLive (live) | 4; 5 |
+| Scan-completeness system tracking coverage | Quality (recorded data; mesh-pass folders from CR-10); CoverageLive (live) | 4; 5 |
 | SCAN QUALITY before finishing: Geometry (Shape), Walls, Floor, Ceiling, Textures, Missing areas | Quality, QualityUI | 4 |
 | FINISH ANYWAY | QualityUI | 4 |
-| SHOW MISSING AREAS guiding the user to them | MissingAreas | 5 |
+| SHOW MISSING AREAS guiding the user to them | QualityUI (button, 4); MissingAreas (tour on the same session, re-evaluation through CR-10); ScanUI revision 3.43a (room entry, return with new numbers); HouseUI and AppShell 3.43e (House rooms; processing of pass folders) | 4; 5 |
 
 ### 4.10 AUTOMATIC OBJECT RECOGNITION
 
@@ -2947,7 +7637,7 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 | Detect table, chair, sink, toilet, refrigerator, oven, bed, sofa, TV, stairs, appliance (dishwasher, washer, stove) | RoomModel from RoomPlan categories (`ObjectCategory`) | 4 |
 | Detect door, window, wall, floor, ceiling | RoomModel (surfaces; ceiling from mesh class, D13) | 4 |
 | Detect cabinet, counter, desk, column | RoomPlan storage and table cover part of it (4); MeshRefine heuristics | 4; 8 |
-| Allow the user to correct object labels | Change Category on the Results card and in PlanEditor (recategorize, 5); EditMenus relabel and the full object menu (7) | 5; 7 |
+| Allow the user to correct object labels | Results Change Category (the card then shows the name, not a guess) and PlanEditor Change Category (5); EditMenus relabel and the full object menu (7) | 5; 7 |
 | Never bake recognition guesses into the raw scan | RoomModel (derived only), EditLog overlays | 4 |
 
 ### 4.11 FURNITURE REMOVAL
@@ -2962,21 +7652,22 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 
 | Requirement | Owner | Build |
 |---|---|---|
-| Wall length, wall height, ceiling height, door width and height, window dimensions, room length, width, area, floor area, wall area, perimeter, estimated volume (room) | RoomModel, MeasureCore, Results | 4 |
-| Object width, height, depth | Results object card (room objects); ObjectModel | 4; 5 |
-| Point-to-point distance, angle, surface area | MeasureTool, LiveMeasure | 5 |
-| Estimated volume (objects) | ObjectModel | 5 |
+| Wall length, wall height, ceiling height, door width and height, window dimensions, room length, width, area, floor area, wall area, perimeter, estimated volume (room) | RoomModel, MeasureCore, Results (4); MeasureTool Wall and Height tools, merged and split room metrics in RoomModel (5) | 4; 5 |
+| Object width, height, depth | Results object card (room objects); ObjectModel, ObjectUI (scanned objects) | 4; 5 |
+| Point-to-point distance, angle, surface area | MeasureTool (Distance, Angle and Area tools in the model), LiveMeasure (distance in the live camera: existing points, plane corners and intersections, plane geometry, estimated plane) | 5 |
+| Estimated volume (objects) | ObjectModel (closed meshes only, reason otherwise) | 5 |
 | Feet and inches and metric; preference switching | Units, MeasureDisplay, AppShell Settings | 4 |
-| Manually placed measurement points | MeasureTool, LiveMeasure | 5 |
-| Snapping to corner, wall, edge, floor, ceiling, door, window, object edge | MeasureCore `SnapSet` (logic 4); MeasureTool, LiveMeasure (UI 5) | 4; 5 |
+| Manually placed measurement points | MeasureTool (tap, then drag to adjust), LiveMeasure | 5 |
+| Snapping to corner, wall, edge, floor, ceiling, door, window, object edge | MeasureCore `SnapSet` (logic, 4); MeasureTool (SnapSet then mesh vertex, "Snapped to" tag, haptic, toggle), LiveMeasure (5) | 4; 5 |
 
 ### 4.13 MEASUREMENT CONFIDENCE
 
 | Requirement | Owner | Build |
 |---|---|---|
-| Show measurement confidence ("Estimated accuracy ±0.6\"") | MeasureCore, Results | 4 |
-| "Low confidence, rescan this section" | MeasureCore `MeasureDisplay.isLowConfidence` | 4 |
+| Show measurement confidence ("Estimated accuracy ±0.6\"") | MeasureCore, Results (4); MeasureTool, LiveMeasure, ObjectUI (5) | 4; 5 |
+| "Low confidence, rescan this section" | MeasureCore `MeasureDisplay.isLowConfidence` (4); MeasureTool raises area and angle sigmas for weak evidence so the one rule flags them (5) | 4; 5 |
 | Never imply survey-grade accuracy | MeasureCore (3 cm RoomPlan floor), `Copy.Measure.disclaimer` | 4 |
+| Confidence for scanned objects | ObjectModel `ObjectDimensions.sigma`, shown by ObjectUI through MeasureDisplay | 5 |
 | Calibrate with one known length | ReferenceLength (D21) | 6 |
 
 ### 4.14 2D FLOOR PLAN
@@ -2984,31 +7675,32 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 | Requirement | Owner | Build |
 |---|---|---|
 | Automatic clean plan with walls, doors, windows, openings, room names, room dimensions, overall dimensions, fixtures, stairs, bathroom fixtures, kitchen equipment | FloorPlan | 4 |
-| Wall thickness where determinable | FloorPlan (estimated, outer face dashed on A-WALL-EST, 4); Structure measured wall pairs | 4; 5 |
-| Door swing direction when known | RoomModel default drawn dashed as estimated on A-DOOR-EST (4); confirmed by PlanEditor Flip Door Swing, then solid (5) | 4; 5 |
+| Wall thickness where determinable | FloorPlan (estimated, outer face dashed on A-WALL-EST, 4); Structure `StructureWalls` (measured from wall pairs, estimated exterior, 5) | 4; 5 |
+| Door swing direction when known | RoomModel default drawn dashed as estimated on A-DOOR-EST (4); PlanEditor Flip Door Swing stores a `.user` swing drawn solid (5) | 4; 5 |
+| Room names after edits | FloorPlan (4); merged rooms keep one tag, split lines dashed on A-AREA-BNDY with the room names (FloorPlan revision 3.37c, 5) | 4; 5 |
 | Counters | MeshRefine | 8 |
 | Toggles: Furniture, Measurements, Room names, Doors/windows, Fixtures, Grid, Scale | FloorPlan `PlanToggles` (grid lines on A-GRID, scale bar on A-ANNO-SCAL), Results; exports use the same toggles (`ExportViewState`) | 4 |
-| Allow manual editing | PlanEditor | 5 |
+| Allow manual editing | PlanEditor with CR-1 (3.37a) and the RoomModel and FloorPlan revisions (3.37b, 3.37c) | 5 |
 
 ### 4.15 FLOOR PLAN EDITING
 
 | Requirement | Owner | Build |
 |---|---|---|
-| Move wall, adjust wall length, change wall thickness, add wall, delete wall | PlanEditor | 5 |
-| Add, move, resize door; add, move, resize window; add opening | PlanEditor (move and resize via CR-1) | 5 |
+| Move wall, adjust wall length, change wall thickness, add wall, delete wall | PlanEditor (joined walls follow, a shared wall's other face moves with it, typed lengths through `LengthParser`) | 5 |
+| Add, move, resize door; add, move, resize window; add opening | PlanEditor; CR-1 `moveOpening` and `resizeOpening` applied by RoomModel and FloorPlan (5a0) | 5 |
 | Rename room | PlanEditor | 5 |
-| Merge rooms, split room | PlanEditor (needs CR-1) | 5 |
-| Add and delete measurement; add text annotation, symbol, notes | PlanEditor | 5 |
-| Manual edits must not overwrite raw scan data | EditLog overlays (Store, RoomModel, FloorPlan) | 4 |
+| Merge rooms, split room | PlanEditor; CR-1 `mergeRooms` and `splitRoom` with `Polygon2D.clipped` in RoomModel and FloorPlan (5a0) | 5 |
+| Add and delete measurement; add text annotation, symbol, notes | PlanEditor (user dimensions and annotations) | 5 |
+| Manual edits must not overwrite raw scan data | EditLog overlays (Store, RoomModel, FloorPlan) (4); one entry per action with Undo, Redo and Reset to Scan (PlanEditor, CR-1) (5) | 4; 5 |
 
 ### 4.16 3D EDITING
 
 | Requirement | Owner | Build |
 |---|---|---|
-| Tap objects | Results (read-only card with category guess and size with confidence; walls, doors and windows selectable to filter measurements) | 4 |
+| Tap objects | Results (read-only card with category guess and size with confidence; walls, doors and windows selectable to filter measurements, 4); Change Category on the card (5) | 4; 5 |
 | Object: Hide, Delete from clean model, Move, Rotate, Rename, Change category, Show raw geometry | EditMenus | 7 |
-| Object: Measure | MeasureTool (5); from the object menu in EditMenus (7) | 5; 7 |
-| Wall: Measure | MeasureTool | 5 |
+| Object: Measure | MeasureTool Distance tool with object box edges as snap targets (5); from the object menu in EditMenus (7) | 5; 7 |
+| Wall: Measure | MeasureTool Wall tool | 5 |
 | Wall: Adjust, Add opening, Add door, Add window | PlanEditor (plan, 5); EditMenus wall menu (3D, 7) | 5; 7 |
 | Wall: Hide, Inspect geometry | EditMenus | 7 |
 
@@ -3019,7 +7711,7 @@ Every section and requirement of `docs/SPEC.txt`, the module that owns it and th
 | Stored locally by default; no account, subscription or cloud | Store, AppShell | 4 |
 | Projects list | HomeUI | 4 |
 | Each project contains its original scan data and derived models | Store (package layout) | 4 |
-| Delete; export | HomeUI; ExportUI | 4 |
+| Delete; export | HomeUI; ExportUI (4); House, Object and Quick Measure exports, multi-floor plans, progress (ExportUI revision 3.43d, 5) | 4; 5 |
 | Rename | HomeUI and Results (Store `rename`) | 4 |
 | Duplicate, archive, backup, restore | ProjectOps | 6 |
 
