@@ -11,11 +11,11 @@ import simd
 //   Copy.swift: tiers, minimum on-screen time, gap, hold, repeat cooldown, tier 3 quiet time
 //   and cap, haptic cooldown, interruption rule. Every rule is implemented below.
 // - docs/research/raw/quality-coverage-measure.json: `ARLightEstimate.ambientIntensity` is
-//   lumens-scaled with 1000 = neutral lighting (the free "lighting is poor" signal); LiDAR
-//   range is about 5 m; RoomPlan's `RoomCaptureSession.Instruction` has six cases (normal,
-//   moveCloseToWall, moveAwayFromWall, turnOnLight, slowDown, lowTexture) but Apple does not
-//   publish the distance, speed or lux thresholds behind them, so the thresholds here are our
-//   own, chosen from the LiDAR range and the coverage grid's quality curve.
+//   lumens-scaled, 1000 = neutral lighting; LiDAR range is about 5 m; Apple does not publish
+//   the thresholds behind RoomPlan's `RoomCaptureSession.Instruction` cases, so the thresholds
+//   here are our own, chosen from the LiDAR range and the coverage grid's quality curve.
+// - docs/MODULES.md 3.31a (CR-9): callers add tier 2 and 3 conditions of their own
+//   (`GuidanceInput.extraConditions`), which then obey every display rule.
 //
 // Determinism: the engine never reads a clock. Time comes from `GuidanceInput.time`, so the
 // same input sequence always produces the same output sequence (used by CoverageSelfTest).
@@ -55,6 +55,10 @@ struct GuidanceInput {
     var deviceHot: Bool = false
     /// Scan quality says the room is done.
     var overallComplete: Bool = false
+    /// Conditions decided outside the engine (LargeObject sector coverage). Tier 2 and 3 kinds count
+    /// only while tracking is `.normal`, like the engine's own coverage conditions; tier 1 kinds are
+    /// ignored here (the engine owns tier 1). Default empty.
+    var extraConditions: Set<GuidanceKind> = []
 }
 
 /// Result of one tick: the message to show now (nil = nothing) and whether to fire a haptic.
@@ -249,7 +253,8 @@ struct GuidanceEngine {
     // MARK: Conditions
 
     /// The set of guidance conditions that are true for this input, ignoring timing rules.
-    /// Uses `current` only for hysteresis. Detection events are not included (see `update`).
+    /// Uses `current` only for hysteresis. Detection events are not included (see `update`);
+    /// the caller's tier 2 and 3 `extraConditions` are, while tracking is `.normal`.
     func conditions(for input: GuidanceInput) -> Set<GuidanceKind> {
         var out = Set<GuidanceKind>()
         let h = GuidanceEngine.hysteresis
@@ -322,6 +327,8 @@ struct GuidanceEngine {
         if input.overallComplete && input.nearbyMissing.isEmpty {
             out.insert(.roomLooksComplete)
         }
+        // Caller conditions (CR-9), tier 2 and 3 only; `update` ranks them like its own.
+        for kind in input.extraConditions where kind.message.tier >= 2 { out.insert(kind) }
         return out
     }
 

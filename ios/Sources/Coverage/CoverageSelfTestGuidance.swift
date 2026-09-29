@@ -155,6 +155,82 @@ extension CoverageSelfTest {
         let shown = resettable.current
         resettable.reset()
         c.check("guidance.reset", shown == .moveSlower && resettable.current == nil)
+        checkGuidanceExtras(&c)
+    }
+
+    // MARK: - Guidance extras (CR-9)
+
+    /// Caller conditions (`GuidanceInput.extraConditions`): tier 2 and 3 kinds obey the display
+    /// rules like the engine's own, limited tracking suppresses them, tier 1 kinds are ignored.
+    private static func checkGuidanceExtras(_ c: inout CoverageSelfTestChecker) {
+        let engine = GuidanceEngine()
+        let left = CSTG.GuidanceTrace(ticks: 8) { t in
+            var g = GuidanceInput(time: t)
+            g.extraConditions = [.objectCaptureLeft]
+            return g
+        }
+        c.check("guidance.extra.shownAfterHold", left.message(at: 0.5) == nil
+                && left.message(at: 0.75) == .objectCaptureLeft && left.hapticCount == 0,
+                "got \(String(describing: left.message(at: 0.75)))")
+
+        // Limited tracking: the extra waits. Once tracking recovers (1.0 s) it still waits for the
+        // tier 1 message's minimum time (hidden at 3.75 s) and the 3 s gap, so it shows at 6.75 s.
+        let recover = CSTG.GuidanceTrace(ticks: 32) { t in
+            var g = GuidanceInput(time: t)
+            if t < 1.0 { g.tracking = .excessiveMotion }
+            g.extraConditions = [.objectCaptureLeft]
+            return g
+        }
+        var limited = GuidanceInput(time: 0)
+        limited.tracking = .excessiveMotion
+        limited.extraConditions = [.objectCaptureLeft]
+        let limitedSet = engine.conditions(for: limited)
+        let early: [GuidanceKind?] = (0..<27).map { recover.message(at: Double($0) * CSTG.GuidanceTrace.step) }
+        let leftEarly: Bool = early.contains { $0 == .objectCaptureLeft }
+        let limitedHasLeft: Bool = limitedSet.contains(.objectCaptureLeft)
+        let slowerFirst: Bool = recover.message(at: 0.75) == .moveSlower
+        let leftLater: Bool = recover.message(at: 6.75) == .objectCaptureLeft
+        c.check("guidance.extra.limitedTracking", !limitedHasLeft && slowerFirst && !leftEarly && leftLater,
+                "got \(String(describing: recover.message(at: 6.75)))")
+
+        // Tier 1 belongs to the engine: extra tier 1 kinds never become conditions or messages.
+        let tier1Kinds: Set<GuidanceKind> = [.trackingLost, .moveSlower, .deviceHot]
+        var tier1 = GuidanceInput(time: 0)
+        tier1.extraConditions = tier1Kinds
+        let ignored = CSTG.GuidanceTrace(ticks: 8) { t in
+            var g = GuidanceInput(time: t)
+            g.extraConditions = tier1Kinds
+            return g
+        }
+        c.check("guidance.extra.tier1Ignored", engine.conditions(for: tier1).isEmpty && ignored.changeCount == 0,
+                "changes \(ignored.changeCount)")
+
+        // Priorities: the engine's "Move closer" precedes object kinds in the table; among
+        // extras the table order wins (left before back).
+        let withEngine = CSTG.GuidanceTrace(ticks: 4) { t in
+            var g = GuidanceInput(time: t)
+            g.centerDistance = 4.0
+            g.extraConditions = [.objectCaptureLeft, .objectNeedsDetail]
+            return g
+        }
+        let sides = CSTG.GuidanceTrace(ticks: 4) { t in
+            var g = GuidanceInput(time: t)
+            g.extraConditions = [.objectCaptureBack, .objectCaptureLeft]
+            return g
+        }
+        c.check("guidance.extra.priority", withEngine.message(at: 0.75) == .moveCloser
+                && sides.message(at: 0.75) == .objectCaptureLeft)
+
+        // A tier 3 extra shows once per run of being true, like "Looks good" for rooms.
+        let done = CSTG.GuidanceTrace(ticks: 121) { t in
+            var g = GuidanceInput(time: t)
+            g.extraConditions = [.objectLooksComplete]
+            return g
+        }
+        c.check("guidance.extra.tier3OncePerRun", done.message(at: 0.75) == .objectLooksComplete
+                && done.appearances(before: 30) == 1, "got \(done.appearances(before: 30))")
+        let plain = GuidanceInput(time: 0)
+        c.check("guidance.extra.defaultEmpty", plain.extraConditions.isEmpty && engine.conditions(for: plain).isEmpty)
     }
 
     // MARK: - Measurement confidence

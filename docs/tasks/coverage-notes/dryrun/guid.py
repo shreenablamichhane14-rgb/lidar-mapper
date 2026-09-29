@@ -28,7 +28,7 @@ def rank(k): return (MSG[k][0], ORDER.index(k))
 
 def inp(t, **kw):
     d = dict(conf=None, time=t, tracking='normal', ang=0.0, lin=0.0, center=None, lux=None, cov=None, missing=[],
-             doors=0, windows=0, walls=0, hot=False, complete=False)
+             doors=0, windows=0, walls=0, hot=False, complete=False, extra=())
     d.update(kw); return d
 
 class Engine:
@@ -71,6 +71,8 @@ class Engine:
         for a in i['missing']: out.add(a)  # already mapped kinds in this port
         if self.lowCovSince is not None and i['time'] - self.lowCovSince >= LOWCOV_HOLD: out.add('needsAnotherPass')
         if i['complete'] and not i['missing']: out.add('roomLooksComplete')
+        for k in i['extra']:  # CR-9: caller conditions, tier 2 and 3 only
+            if MSG[k][0] >= 2: out.add(k)
         return out
 
     def update_timers(self, i):
