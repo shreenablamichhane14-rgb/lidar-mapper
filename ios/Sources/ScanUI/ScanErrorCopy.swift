@@ -79,8 +79,10 @@ enum ScanErrorCopy {
 
     /// The alert for a preflight issue: blocking issues reuse the error text, warnings use
     /// Copy.ScanUI (storage, heat) and Copy.Errors.lowBattery. `cameraUndetermined` has no
-    /// alert of its own (the permission screen answers it) and maps to the denied text.
-    static func alert(for issue: PreflightIssue) -> ScanAlert {
+    /// alert of its own (the permission screen answers it) and maps to the denied text. Named
+    /// apart from `alert(for:)` so a contract call such as `alert(for: .cameraDenied)` (a case
+    /// both enums have) is never ambiguous.
+    static func preflightAlert(for issue: PreflightIssue) -> ScanAlert {
         switch issue {
         case .cameraDenied, .cameraUndetermined:
             return alert(for: MapperError.cameraDenied)
@@ -106,6 +108,23 @@ enum ScanErrorCopy {
     static func pausedPrompt() -> ScanAlert {
         ScanAlert(id: pausedPromptID, title: Copy.ScanUI.pausedFinishPrompt, body: Copy.Scanning.paused,
                   actions: [.finishNow, .resume])
+    }
+
+    /// Identifier of the interrupted alert (closed by Resume, Done or the engine scanning again).
+    static let interruptedID = "prompt.interrupted"
+
+    /// The scan paused because Mapper left the screen (Copy.Errors.interrupted): Resume or
+    /// Finish Now.
+    static func interruptedAlert() -> ScanAlert {
+        ScanAlert(id: interruptedID, title: Copy.Errors.interrupted.title, body: Copy.Errors.interrupted.body,
+                  actions: [.resume, .finishNow])
+    }
+
+    /// True for the alerts that only make sense while paused (the paused prompt and the
+    /// interrupted alert); they close when the scan runs again or finishes.
+    static func isPauseAlert(_ candidate: ScanAlert?) -> Bool {
+        guard let id = candidate?.id else { return false }
+        return id == pausedPromptID || id == interruptedID
     }
 
     /// Button title of an action.

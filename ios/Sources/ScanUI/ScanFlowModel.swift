@@ -102,6 +102,8 @@ import AVFoundation
     var timeHintShown = false, timeLimitShown = false, timeHintHideAt: TimeInterval?
     /// First `.scanning` state seen (start haptic), and a discard waiting for `.idle`.
     var hasStartedScanning = false, awaitingDiscardIdle = false
+    /// Mapper went to the background while scanning (the interrupted alert shows on return).
+    var leftScreenWhileScanning = false
 
     /// Creates a flow for `mode`; nothing runs until `begin()`.
     init(mode: ScanMode, isDemo: Bool) {
@@ -141,10 +143,10 @@ import AVFoundation
             apply(.permissionNeeded)
         case .cameraDenied:
             apply(.permissionDenied)
-            present(ScanErrorCopy.alert(for: blocking), followUp: .endFlow)
+            present(ScanErrorCopy.preflightAlert(for: blocking), followUp: .endFlow)
         case .noLidar, .lowStorage, .storageWarning, .lowBattery, .deviceHot:
             apply(.preflightBlocked)
-            present(ScanErrorCopy.alert(for: blocking), followUp: .endFlow)
+            present(ScanErrorCopy.preflightAlert(for: blocking), followUp: .endFlow)
         }
     }
 
@@ -154,7 +156,7 @@ import AVFoundation
         guard phase == .tips, !hasEnded else { return }
         if !pendingWarnings.isEmpty {
             let warning = pendingWarnings.removeFirst()
-            present(ScanErrorCopy.alert(for: warning), followUp: .continueToCapture)
+            present(ScanErrorCopy.preflightAlert(for: warning), followUp: .continueToCapture)
             return
         }
         if ScanUISettings.tipsSeen(mode) {
@@ -200,7 +202,8 @@ import AVFoundation
         showsTimeLimitSheet = false
         showsTimeHint = false
         showsCancelConfirmation = false
-        if alert?.id == ScanErrorCopy.pausedPromptID { alert = nil }
+        leftScreenWhileScanning = false
+        if ScanErrorCopy.isPauseAlert(alert) { alert = nil }
         apply(.doneTapped)
         announcer.reset()
         let seconds = ScanFlowModel.elapsedParts(snapshot.elapsed)
@@ -211,7 +214,7 @@ import AVFoundation
     /// Resume while paused (after an interruption the engine waits for this).
     func resume() {
         guard phase == .capturing, isPaused else { return }
-        if alert?.id == ScanErrorCopy.pausedPromptID { alert = nil }
+        if ScanErrorCopy.isPauseAlert(alert) { alert = nil }
         log("resume tapped")
         engine?.resume()
     }
@@ -358,7 +361,8 @@ import AVFoundation
                 pausedSince = nil
                 log("scanning again after a pause")
             }
-            if alert?.id == ScanErrorCopy.pausedPromptID { alert = nil }
+            leftScreenWhileScanning = false
+            if ScanErrorCopy.isPauseAlert(alert) { alert = nil }
             if !hasStartedScanning {
                 hasStartedScanning = true
                 Haptics.selection()
@@ -371,6 +375,7 @@ import AVFoundation
             pausedPrompted = false
             announcer.present(nil, now: snapshot.timestamp)
             log("engine paused")
+            if leftScreenWhileScanning && UIApplication.shared.applicationState == .active { appDidBecomeActive() }
         case .stopping:
             isPaused = false
             if phase == .capturing {

@@ -12,7 +12,8 @@ import SwiftUI
 struct RoomScanScreen: View {
     /// The scan flow (owned by AppShell).
     @ObservedObject var model: ScanFlowModel
-    /// Foreground or background (Demo Mode pauses its engine in the background).
+    /// Foreground or background (Demo Mode pauses its engine in the background; the interrupted
+    /// alert shows on return).
     @Environment(\.scenePhase) private var scenePhase
 
     /// Creates the screen for `model`.
@@ -41,6 +42,7 @@ struct RoomScanScreen: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background { model.appDidEnterBackground() }
+            if newPhase == .active { model.appDidBecomeActive() }
         }
         .alert(model.alert?.title ?? "", isPresented: $model.systemAlertPresented, presenting: model.alert) { current in
             alertButtons(current)

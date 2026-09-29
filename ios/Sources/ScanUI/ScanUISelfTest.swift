@@ -7,11 +7,11 @@ import Foundation
 // files only under FileManager.default.temporaryDirectory, removed afterwards. The demo room is
 // one small mesh consolidation and one quality evaluation (a few hundred ms on an A15).
 //
-// CHECK COUNT (60 when every group runs to the end):
+// CHECK COUNT (61 when every group runs to the end):
 //   preflight decision          14
 //   phase reducer               13
 //   time rules                   6
-//   alerts and copy             10
+//   alerts and copy             11
 //   settings, tips, names        6
 //   demo room and recorders     11
 
@@ -157,13 +157,19 @@ enum ScanUISelfTest {
             return alert.title.isEmpty || alert.body.isEmpty || alert.actions.isEmpty
         }
         c.check("alerts.everyErrorHasText", emptyErrors.isEmpty, "\(emptyErrors.map { $0.copyKey })")
-        c.check("alerts.cameraDeniedButtons", ScanErrorCopy.alert(for: MapperError.cameraDenied).actions == [.openSettings, .ok])
+        // The contract call with a bare case name must resolve (no PreflightIssue overload).
+        let denied: ScanAlert = ScanErrorCopy.alert(for: .cameraDenied)
+        c.check("alerts.cameraDeniedButtons", denied.actions == [.openSettings, .ok], "\(denied.actions)")
         c.check("alerts.trackingButtons", ScanErrorCopy.alert(for: MapperError.trackingFailed).actions == [.resume, .finishNow])
         c.check("alerts.noticeOnlyOK", ScanErrorCopy.notice(for: .trackingFailed).actions == [.ok])
+        let interrupted = ScanErrorCopy.interruptedAlert()
+        let interruptedOK = interrupted.actions == [.resume, .finishNow] && ScanErrorCopy.isPauseAlert(interrupted)
+        c.check("alerts.interruptedButtons", interruptedOK && ScanErrorCopy.isPauseAlert(ScanErrorCopy.pausedPrompt()),
+                "\(interrupted.actions)")
         c.check("alerts.heatText", ScanErrorCopy.alert(for: MapperError.deviceTooHot).title == Copy.RoomCapture.tooHotFinished.title)
         let issues: [PreflightIssue] = [.cameraDenied, .cameraUndetermined, .noLidar, .lowStorage(free: 1),
                                         .storageWarning(free: 2_000_000_000), .lowBattery(0.1), .deviceHot]
-        let emptyIssues = issues.filter { ScanErrorCopy.alert(for: $0).title.isEmpty }
+        let emptyIssues = issues.filter { ScanErrorCopy.preflightAlert(for: $0).title.isEmpty }
         c.check("alerts.everyIssueHasText", emptyIssues.isEmpty, "\(emptyIssues)")
         let actions: [ScanAlertAction] = [.ok, .openSettings, .finishNow, .resume]
         let titles = actions.map { ScanErrorCopy.title(for: $0) }

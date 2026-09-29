@@ -217,9 +217,28 @@ extension ScanFlowModel {
     /// The app went to the background. The room engine pauses itself on the ARSession
     /// interruption; the Demo Mode engine is paused here so the paused chrome can be tried.
     func appDidEnterBackground() {
-        guard isDemo, phase == .capturing, !isPaused, let current = engine else { return }
+        guard phase == .capturing else { return }
+        leftScreenWhileScanning = true
+        guard isDemo, !isPaused, let current = engine else { return }
         log("demo engine paused for the background")
         current.pause()
+    }
+
+    /// The app is in front again (also called when the engine's pause arrives after that): when
+    /// the scan paused while Mapper was away, the interrupted alert (`Copy.Errors.interrupted`)
+    /// says why and offers Resume and Finish Now; the 30 second prompt is then not needed.
+    func appDidBecomeActive() {
+        guard leftScreenWhileScanning else { return }
+        guard phase == .capturing else {
+            leftScreenWhileScanning = false
+            return
+        }
+        guard isPaused else { return }
+        leftScreenWhileScanning = false
+        guard alert == nil, !showsCancelConfirmation, !showsTimeLimitSheet else { return }
+        pausedPrompted = true
+        Haptics.warning()
+        present(ScanErrorCopy.interruptedAlert(), followUp: .stay)
     }
 
     // MARK: - Names and logs
