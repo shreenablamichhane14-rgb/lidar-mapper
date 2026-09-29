@@ -101,8 +101,11 @@ extension RoomModelSelfTest {
                                   completedEdges: 4, arc: arc)
         let curved = CleanModelBuilder.cleanWall(segment, inLoop: false, reference: [2, 2], geometry: .measured,
                                                  options: CleanBuildOptions())
-        let swapped = near(PlanAxes.toPlan(curved.start.simd), [4, 4], 1e-5) && near(PlanAxes.toPlan(curved.end.simd), [0, 4], 1e-5)
-        c.check("b5.curvedStrayKeepsArc", swapped && curved.arc == arc)
+        let curvedStart: SIMD2<Float> = PlanAxes.toPlan(curved.start.simd)
+        let curvedEnd: SIMD2<Float> = PlanAxes.toPlan(curved.end.simd)
+        let startSwapped = near(curvedStart, SIMD2<Float>(4, 4), 1e-5)
+        let endSwapped = near(curvedEnd, SIMD2<Float>(0, 4), 1e-5)
+        c.check("b5.curvedStrayKeepsArc", startSwapped && endSwapped && curved.arc == arc)
         c.check("b5.curvedStrayLeftNormal", hasLeftNormal(curved) && near(PlanAxes.toPlan(curved.normal.simd), [0, -1], 1e-5))
         let loopWall = CleanModelBuilder.cleanWall(segment, inLoop: true, reference: [2, 2], geometry: .measured,
                                                    options: CleanBuildOptions())
@@ -127,7 +130,9 @@ extension RoomModelSelfTest {
         var moved = base
         let movedOK = moved.apply(.moveOpening(opening: door, offset: 4.8))
         let far = moved.rooms.first?.openings.first { $0.id == door }
-        c.check("b5.moveOpeningClampsHigh", movedOK && near(far?.offsetAlongWall ?? -1, 4.1, 1e-4) && far?.provenance == .user,
+        let farOffset: Float = far?.offsetAlongWall ?? -1
+        let farIsUser = far?.provenance == Provenance.user
+        c.check("b5.moveOpeningClampsHigh", movedOK && near(farOffset, 4.1, 1e-4) && farIsUser,
                 "\(String(describing: far?.offsetAlongWall))")
         _ = moved.apply(.moveOpening(opening: door, offset: -1))
         let low = moved.rooms.first?.openings.first { $0.id == door }
@@ -148,9 +153,13 @@ extension RoomModelSelfTest {
         var resized = base
         let resizeOK = resized.apply(.resizeOpening(opening: door, width: 1.2, sillHeight: 0.3, headHeight: 3.0))
         let big = resized.rooms.first?.openings.first { $0.id == door }
-        c.check("b5.resizeKeepsCenter", resizeOK && near(big?.width ?? -1, 1.2, 1e-5) && near(big?.offsetAlongWall ?? -1, 0.85, 1e-4),
+        let bigWidth: Float = big?.width ?? -1
+        let bigOffset: Float = big?.offsetAlongWall ?? -1
+        c.check("b5.resizeKeepsCenter", resizeOK && near(bigWidth, 1.2, 1e-5) && near(bigOffset, 0.85, 1e-4),
                 "\(String(describing: big?.offsetAlongWall)) \(String(describing: big?.width))")
-        c.check("b5.resizeDoorSillZero", big?.sillHeight == 0 && big?.provenance == .user)
+        let bigSillZero = big?.sillHeight == Float(0)
+        let bigIsUser = big?.provenance == Provenance.user
+        c.check("b5.resizeDoorSillZero", bigSillZero && bigIsUser)
         c.check("b5.resizeHeadCapped", near(big?.headHeight ?? -1, 2.5, 1e-5), "\(String(describing: big?.headHeight))")
         _ = resized.apply(.resizeOpening(opening: door, width: 1.0, sillHeight: 1.0, headHeight: 0.5))
         let inverted = resized.rooms.first?.openings.first { $0.id == door }
@@ -197,8 +206,11 @@ extension RoomModelSelfTest {
         c.check("b5.mergePerimeter", near(m.perimeter, 18 + 14, 1e-3), "\(m.perimeter)")
         c.check("b5.mergeLengthWidth", near(m.length, 8, 1e-3) && near(m.width, 4, 1e-3), "\(m.length) x \(m.width)")
         c.check("b5.mergeVolume", near(m.volume, 32 * 2.5, 1e-2), "\(m.volume)")
-        let keeps = room?.id == target && room?.sectionLabel == "livingRoom" && room?.objects.count == 1
-        c.check("b5.mergeKeepsTarget", keeps && room?.openings.count == 2)
+        let keepsID = room?.id == target
+        let keepsSection = room?.sectionLabel == Optional("livingRoom")
+        let objectCount: Int = room?.objects.count ?? -1
+        let openingCount: Int = room?.openings.count ?? -1
+        c.check("b5.mergeKeepsTarget", keepsID && keepsSection && objectCount == 1 && openingCount == 2)
 
         let parts = CleanMeshBuilder.parts(for: merged, includeCeiling: true, includeHidden: false)
         let floorArea = parts.filter { $0.kind == .floor }.reduce(Float(0)) { $0 + $1.mesh.surfaceArea }
@@ -218,7 +230,11 @@ extension RoomModelSelfTest {
         var reshaped = merged
         let moveOK = reshaped.apply(.moveWallEndpoint(wall: wid(72), atStart: false, to: Vec2(x: 9, y: 4)))
         let outline = reshaped.rooms.first?.floor.mergedOutlines?.first ?? []
-        let vertexMoved = outline.contains { near($0.simd, [9, 4], 1e-5) } && !outline.contains { near($0.simd, [8, 4], 1e-5) }
+        let movedCorner = SIMD2<Float>(9, 4)
+        let oldCorner = SIMD2<Float>(8, 4)
+        let hasMovedCorner = outline.contains(where: { near($0.simd, movedCorner, 1e-5) })
+        let hasOldCorner = outline.contains(where: { near($0.simd, oldCorner, 1e-5) })
+        let vertexMoved = hasMovedCorner && !hasOldCorner
         let reshapedArea = reshaped.rooms.first?.metrics.floorArea ?? 0
         c.check("b5.mergedOutlineVertexFollows", moveOK && vertexMoved && near(reshapedArea, 34, 1e-3), "\(reshapedArea)")
     }
@@ -251,12 +267,21 @@ extension RoomModelSelfTest {
         let created = split.rooms[1]
         c.check("b5.splitAreas", near(kept.metrics.floorArea, 12, 1e-3) && near(created.metrics.floorArea, 8, 1e-3),
                 "\(kept.metrics.floorArea) \(created.metrics.floorArea)")
-        let keptWalls = Set(kept.walls.map { $0.id })
-        c.check("b5.splitWalls", keptWalls == Set([wid(1), wid(3), wid(4)]) && created.walls.map { $0.id } == [wid(2)])
-        let openingsOK = kept.openings.map { $0.id } == [wid(F.doorID)] && created.openings.map { $0.id } == [wid(F.endDoorID)]
-        c.check("b5.splitOpeningsFollowWalls", openingsOK)
-        let objectsOK = kept.objects.map { $0.id } == [wid(F.sofaID)] && created.objects.map { $0.id } == [chair.id]
-        c.check("b5.splitObjectsFollowCenters", objectsOK)
+        let keptWalls: Set<ElementID> = Set(kept.walls.map { $0.id })
+        let expectedKeptWalls: Set<ElementID> = [wid(1), wid(3), wid(4)]
+        let createdWalls: [ElementID] = created.walls.map { $0.id }
+        let expectedCreatedWalls: [ElementID] = [wid(2)]
+        c.check("b5.splitWalls", keptWalls == expectedKeptWalls && createdWalls == expectedCreatedWalls)
+        let keptOpenings: [ElementID] = kept.openings.map { $0.id }
+        let createdOpenings: [ElementID] = created.openings.map { $0.id }
+        let expectedKeptOpenings: [ElementID] = [wid(F.doorID)]
+        let expectedCreatedOpenings: [ElementID] = [wid(F.endDoorID)]
+        c.check("b5.splitOpeningsFollowWalls", keptOpenings == expectedKeptOpenings && createdOpenings == expectedCreatedOpenings)
+        let keptObjects: [ElementID] = kept.objects.map { $0.id }
+        let createdObjects: [ElementID] = created.objects.map { $0.id }
+        let expectedKeptObjects: [ElementID] = [wid(F.sofaID)]
+        let expectedCreatedObjects: [ElementID] = [chair.id]
+        c.check("b5.splitObjectsFollowCenters", keptObjects == expectedKeptObjects && createdObjects == expectedCreatedObjects)
         let identity = created.id == newID && created.id.roomPlanID == nil && created.recordID == kept.recordID
         c.check("b5.splitNewRoomIdentity", identity && created.name.isEmpty && created.sectionLabel == nil)
         let sameFloor = created.floorIndex == kept.floorIndex && created.floor.elevation == kept.floor.elevation
@@ -296,7 +321,9 @@ extension RoomModelSelfTest {
         let batchOK = batched.apply(.batch(operations: [.renameRoom(room: roomID, name: "Hall"),
                                                          .moveOpening(opening: door, offset: 2)]))
         let movedDoor = batched.rooms.first?.openings.first { $0.id == door }
-        c.check("b5.batchAppliesAll", batchOK && batched.rooms.first?.name == "Hall" && movedDoor?.offsetAlongWall == 2)
+        let batchedName: String = batched.rooms.first?.name ?? ""
+        let movedOffset: Float = movedDoor?.offsetAlongWall ?? -1
+        c.check("b5.batchAppliesAll", batchOK && batchedName == "Hall" && movedOffset == 2)
 
         var failed = base
         let failedOK = failed.apply(.batch(operations: [.renameRoom(room: roomID, name: "Hall"),
@@ -306,7 +333,9 @@ extension RoomModelSelfTest {
         var nested = base
         let inner = EditOperation.batch(operations: [.relabelObject(object: wid(F.sofaID), label: "Couch")])
         let nestedOK = nested.apply(.batch(operations: [inner, .renameRoom(room: roomID, name: "Den")]))
-        c.check("b5.batchNested", nestedOK && nested.rooms.first?.objects.first?.label == "Couch" && nested.rooms.first?.name == "Den")
+        let nestedLabel: String = nested.rooms.first?.objects.first?.label ?? ""
+        let nestedName: String = nested.rooms.first?.name ?? ""
+        c.check("b5.batchNested", nestedOK && nestedLabel == "Couch" && nestedName == "Den")
 
         var log = EditLog()
         log.append(.batch(operations: [.setScaleCorrection(room: roomID, factor: 1.1)]))
