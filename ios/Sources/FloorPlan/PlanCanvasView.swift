@@ -46,11 +46,11 @@ struct PlanCanvasView: View {
             let viewport = currentViewport(in: size)
             let dark = colorScheme == .dark
             let plan = drawing.plan
-            let highlight = selectedHit
+            let highlights = selectedHits
             Canvas { context, _ in
                 context.withCGContext { cg in
                     PlanRenderer.draw(plan, in: cg, viewport: viewport, lineWidth: 1, dark: dark)
-                    if let hit = highlight {
+                    for hit in highlights {
                         PlanRenderer.drawHighlight(hit, in: cg, viewport: viewport, lineWidth: 1)
                     }
                 }
@@ -66,10 +66,11 @@ struct PlanCanvasView: View {
         .accessibilityHint(Copy.A11y.floorPlanHint)
     }
 
-    /// Hit of the selected element, when it is drawn.
-    private var selectedHit: PlanHit? {
-        guard let id = selection else { return nil }
-        return drawing.hits.first { $0.element == id }
+    /// Hits of the selected element when it is drawn: one, or one per part of a merged or
+    /// split room (3.37c), so every part is outlined.
+    private var selectedHits: [PlanHit] {
+        guard let id = selection else { return [] }
+        return drawing.hits.filter { $0.element == id }
     }
 
     /// The viewport fitted to the plan bounds, before the user's pan and zoom.
