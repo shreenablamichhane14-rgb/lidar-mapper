@@ -408,10 +408,11 @@ import SwiftUI
                                              thermalAtEnd: ProcessInfo.processInfo.thermalState,
                                              osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
                                              uptime: ObjectScanModel.uptime())
-        let target = self.target
+        let scanTarget = target
         Task { [weak self] in
             do {
-                let result = try await ObjectScanModel.writeLogAndSeal(captureLog, folder: folder, writer: writer, target: target)
+                let result = try await ObjectScanModel.writeLogAndSeal(captureLog, folder: folder, writer: writer,
+                                                                       target: scanTarget)
                 self?.sealSucceeded(result)
             } catch {
                 self?.sealFailed(error)

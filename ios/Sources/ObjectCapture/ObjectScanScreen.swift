@@ -42,7 +42,7 @@ struct ObjectScanScreen: View {
             }
             overlay
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(Color.black)
         .environment(\.colorScheme, .dark)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .persistentSystemOverlays(.hidden)

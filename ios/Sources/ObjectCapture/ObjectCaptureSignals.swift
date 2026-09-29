@@ -90,17 +90,17 @@ enum ObjectCapturePreflight {
     @MainActor static func run() -> ObjectPreflightReport {
         let capture = ObjectCaptureSession.isSupported
         let photogrammetry = PhotogrammetrySession.isSupported
-        let free = ProjectStore.freeBytes()
+        let freeBytes = ProjectStore.freeBytes()
         let thermal = ThermalLevel(ProcessInfo.processInfo.thermalState)
         let report = evaluate(captureSupported: capture, photogrammetrySupported: photogrammetry,
-                              freeBytes: free, thermal: thermal)
+                              freeBytes: freeBytes, thermal: thermal)
         let blockingText: String
         if let blocking = report.blocking {
             blockingText = "\(blocking)"
         } else {
             blockingText = "none"
         }
-        let inputs = "capture \(capture), photogrammetry \(photogrammetry), free \(free) bytes, thermal \(thermal.rawValue)"
+        let inputs = "capture \(capture), photogrammetry \(photogrammetry), free \(freeBytes) bytes, thermal \(thermal.rawValue)"
         ObjectCaptureSignals.log("preflight: \(inputs), blocking \(blockingText), warnings \(report.warnings.count)")
         return report
     }

@@ -21,7 +21,7 @@ final class PhotogrammetryStep: ProcessingStep {
     /// Peak memory of the full variant, bytes (1 GB).
     static let fullBudgetBytes: UInt64 = 1024 * 1024 * 1024
     /// Peak memory of the reduced variant, bytes (500 MB).
-    static let reducedBudgetBytes: UInt64 = 500 * 1024 * 1024
+    static let lowMemoryBudgetBytes: UInt64 = 500 * 1024 * 1024
     /// Longest wait for a capture session to be released, seconds.
     static let captureWaitSeconds: Double = 60
     /// Poll interval while waiting for the capture, seconds.
@@ -39,7 +39,7 @@ final class PhotogrammetryStep: ProcessingStep {
     /// Full budget, 1 GB.
     var memoryBudgetBytes: UInt64 { PhotogrammetryStep.fullBudgetBytes }
     /// Reduced budget, 500 MB (the same request; see the type comment).
-    var reducedMemoryBudgetBytes: UInt64? { PhotogrammetryStep.reducedBudgetBytes }
+    var reducedMemoryBudgetBytes: UInt64? { PhotogrammetryStep.lowMemoryBudgetBytes }
 
     /// A step for one small or medium object.
     init(object: ObjectRecord) {
@@ -173,8 +173,8 @@ final class PhotogrammetryStep: ProcessingStep {
             }
             try? await Task.sleep(nanoseconds: nanoseconds)
         }
-        let waited = String(format: "%.2f", ProcessInfo.processInfo.systemUptime - start)
-        ObjectCaptureSignals.log("reconstruct \(object.id): waited \(waited) s for the capture session")
+        let waitedText = String(format: "%.2f", ProcessInfo.processInfo.systemUptime - start)
+        ObjectCaptureSignals.log("reconstruct \(object.id): waited \(waitedText) s for the capture session")
     }
 
     /// One counted session: `reconstructionStarted()` right before the session is created and

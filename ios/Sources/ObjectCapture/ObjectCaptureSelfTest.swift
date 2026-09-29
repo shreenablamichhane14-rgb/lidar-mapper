@@ -148,10 +148,10 @@ enum ObjectCaptureSelfTest {
         let finishDone = ObjectOnboarding.next(.done, .finishTapped)
         check(&failures, "onboarding.finishWhenDone", finishDone.command == .finish, "got \(finishDone.command)")
         let ignored = ObjectOnboarding.next(.done, .passCompleted)
-        check(&failures, "onboarding.doneIgnoresPass", ignored.state == .done && ignored.command == .none,
+        check(&failures, "onboarding.doneIgnoresPass", ignored.state == .done && ignored.command == ObjectPassCommand.none,
               "got \(ignored.state) \(ignored.command)")
         let lapFlip = ObjectOnboarding.next(.firstSegment, .chooseFlip)
-        check(&failures, "onboarding.lapIgnoresChoice", lapFlip.state == .firstSegment && lapFlip.command == .none,
+        check(&failures, "onboarding.lapIgnoresChoice", lapFlip.state == .firstSegment && lapFlip.command == ObjectPassCommand.none,
               "got \(lapFlip.state) \(lapFlip.command)")
 
         let passes = [ObjectOnboarding.pass(of: .firstSegment), ObjectOnboarding.pass(of: .captureFromLowerAngle),
