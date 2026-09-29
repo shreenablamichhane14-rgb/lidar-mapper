@@ -190,7 +190,10 @@ enum AppShellSelfTest {
               && ProcessingPlans.shouldEnqueue(status: .processing), "needsProcessing and processing are enqueued")
         let resumed = ProjectStatus.allCases.filter { ProcessingPlans.shouldResume(status: $0) }
         check(&failures, "resume.statuses", Set(resumed) == [.needsProcessing, .processing], "\(resumed.map { $0.rawValue })")
-        check(&failures, "outcome.completed", ProcessingPlans.statusAfter(.completed(skippedOptional: [.textureLow])) == .ready, "ready")
+        check(&failures, "outcome.completed", ProcessingPlans.statusAfter(.completed(skippedOptional: [])) == .ready, "ready")
+        let skipped = ProcessingOutcome.completed(skippedOptional: [.textureLow])
+        check(&failures, "outcome.skippedOptionalKeepsRetry", ProcessingPlans.statusAfter(skipped) == .needsAttention
+              && ProcessingPlans.marksRoomsProcessed(skipped), "a failed optional step must survive a relaunch")
         let error = MapperError.processingFailed(step: .cleanModel, reason: "test")
         check(&failures, "outcome.failed", ProcessingPlans.statusAfter(.failed(step: .cleanModel, error: error)) == .needsAttention,
               "needsAttention")

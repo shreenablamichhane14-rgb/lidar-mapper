@@ -163,6 +163,34 @@ enum ResultsSelfTest {
         failed.failed[.floorPlan] = "error"
         check(&f, "retry.modelMessage", ResultAvailability.retryMessage(processing: failed) == Copy.Errors.processingFailed.title,
               ResultAvailability.retryMessage(processing: failed))
+        settledFailureChecks(&f)
+    }
+
+    /// After a relaunch a `.needsAttention` project keeps showing what failed (no runner state).
+    private static func settledFailureChecks(_ f: inout [String]) {
+        let idle = ProjectProcessingState()
+        var captured = ResultFiles()
+        captured.hasKeyframes = true
+        captured.hasClean = true
+        captured.hasPlan = true
+        captured.hasCapturedRoom = true
+        let color = ResultAvailability.compute(.realistic, files: captured, processing: idle, degraded: .allGood,
+                                               status: .needsAttention)
+        check(&f, "relaunch.colorFailureKept", color == .failed(reason: Copy.Errors.textureFailed.title), "\(color)")
+        let raw = ResultAvailability.compute(.raw, files: captured, processing: idle, degraded: .allGood, status: .needsAttention)
+        check(&f, "relaunch.rawFailureKept", raw == .failed(reason: Copy.Errors.processingFailed.title), "\(raw)")
+        let readyColor = ResultAvailability.compute(.realistic, files: captured, processing: idle, degraded: .allGood, status: .ready)
+        check(&f, "relaunch.readyShowsFallback", readyColor == .unavailable(reason: Copy.Results.simpleModelNote), "\(readyColor)")
+        let stripped = ResultAvailability.compute(.raw, files: captured, processing: idle, degraded: .meshStripped,
+                                                  status: .needsAttention)
+        check(&f, "relaunch.meshStrippedStaysHonest", stripped == .unavailable(reason: Copy.Results.noDetailedScan), "\(stripped)")
+        var queued = ProjectProcessingState()
+        queued.isQueued = true
+        check(&f, "relaunch.retryRunning", !ResultAvailability.isSettledFailure(status: .needsAttention, processing: queued),
+              "a queued job is not a settled failure")
+        let tabs: [ResultTab: TabAvailability] = [.realistic: color, .clean: .ready, .floorPlan: .ready, .raw: .ready]
+        let message = ResultAvailability.retryMessage(processing: idle, availability: tabs)
+        check(&f, "relaunch.colorMessage", message == Copy.Errors.textureFailed.title, message)
     }
 
     // MARK: - Texts

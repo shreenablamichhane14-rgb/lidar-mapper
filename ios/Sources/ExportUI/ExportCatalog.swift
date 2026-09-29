@@ -28,6 +28,9 @@ struct ExportInputs: Equatable, Sendable {
     var hasTexture = false
     /// At least one room recorded keyframes (color was captured).
     var hasKeyframes = false
+    /// The project still waits for or runs its processing job (status `.needsProcessing` or
+    /// `.processing`), so missing color may still come.
+    var isProcessing = false
     /// `derived/clean.json` exists and has at least one room.
     var hasClean = false
     /// `derived/plan.json` exists and has a level with a room or a wall.
@@ -97,8 +100,9 @@ enum ExportCatalog {
 
     /// realistic: usdz, obj (zip), glb; clean: usdz, obj, glb; raw: usdz, obj, ply, stl, glb;
     /// floorPlan: pdf, svg, dxf, png; data: json. Unavailable ones carry a reason: Copy.Export.noColor
-    /// when no keyframes were captured, Copy.ExportUI.colorNotReady when keyframes exist but
-    /// `TextureStore.exists` is false (still running, failed or slipped), Copy.Export.noFloorPlan,
+    /// when no keyframes were captured, Copy.ExportUI.colorNotReady when keyframes exist, no
+    /// texture exists yet and the project is still processing, Copy.ExportUI.colorMissing when
+    /// processing ended without a texture (Results offers Retry), Copy.Export.noFloorPlan,
     /// Copy.ExportUI.noWalls (no clean model) and Copy.ExportUI.noRawScan (no consolidated mesh).
     static func options(for inputs: ExportInputs) -> [ExportOption] {
         var result: [ExportOption] = []
@@ -117,7 +121,8 @@ enum ExportCatalog {
         switch representation {
         case .realistic:
             if inputs.hasTexture { return nil }
-            return inputs.hasKeyframes ? Copy.ExportUI.colorNotReady : Copy.Export.noColor
+            guard inputs.hasKeyframes else { return Copy.Export.noColor }
+            return inputs.isProcessing ? Copy.ExportUI.colorNotReady : Copy.ExportUI.colorMissing
         case .clean, .data:
             return inputs.hasClean ? nil : Copy.ExportUI.noWalls
         case .raw:
@@ -267,6 +272,7 @@ enum ExportCatalog {
     static func inputs(package: ProjectPackage, manifest: ProjectManifest) -> ExportInputs {
         let fm = FileManager.default
         var result = ExportInputs()
+        result.isProcessing = manifest.status == .processing || manifest.status == .needsProcessing
         for room in manifest.rooms {
             if TextureStore.exists(package, room: room.id) { result.hasTexture = true }
             if room.keyframeCount > 0 { result.hasKeyframes = true }

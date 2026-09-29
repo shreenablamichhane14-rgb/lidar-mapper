@@ -137,7 +137,7 @@ struct ResultScreen: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
-            Text(ResultAvailability.retryMessage(processing: model.processing))
+            Text(ResultAvailability.retryMessage(processing: model.processing, availability: model.availability))
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)

@@ -53,8 +53,14 @@ enum ExportUISelfTest {
 
         var pending = noColor
         pending.hasKeyframes = true
+        pending.isProcessing = true
         let notReady = ExportCatalog.options(for: pending).filter { $0.representation == .realistic }
         log.expect("catalog.colorNotReady", notReady.allSatisfy { !$0.isAvailable && $0.reason == Copy.ExportUI.colorNotReady })
+        var ended = pending
+        ended.isProcessing = false
+        let missing = ExportCatalog.options(for: ended).filter { $0.representation == .realistic }
+        log.expect("catalog.colorMissingAfterProcessing",
+                   missing.allSatisfy { !$0.isAvailable && $0.reason == Copy.ExportUI.colorMissing })
 
         var noPlan = F.demoInputs()
         noPlan.hasPlan = false

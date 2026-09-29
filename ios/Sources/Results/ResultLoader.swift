@@ -116,6 +116,7 @@ enum ResultLoader {
             let hasLive = fm.fileExists(atPath: folder.liveCapturedRoomURL.path)
             if CapturedRoomStore.hasFinalRoom(package, room: room) || hasLive { files.hasCapturedRoom = true }
             if isDemoRoom(folder) { demoRooms += 1 }
+            if room.keyframeCount > 0 { files.hasKeyframes = true }
             if let evaluation = QualityStore.load(package, room: room.id) {
                 evidence[room.id] = evaluation.evidence
                 missing.append(contentsOf: evaluation.missingAreas)

@@ -308,7 +308,8 @@ struct ResultPlanInputs: Equatable, Sendable {
     func recomputeAvailability() {
         var map: [ResultTab: TabAvailability] = [:]
         for candidate in ResultTab.allCases {
-            map[candidate] = ResultAvailability.compute(candidate, files: files, processing: processing, degraded: degraded)
+            map[candidate] = ResultAvailability.compute(candidate, files: files, processing: processing, degraded: degraded,
+                                                        status: status)
         }
         if map != availability { availability = map }
     }
