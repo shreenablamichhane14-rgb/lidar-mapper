@@ -5,7 +5,9 @@ import CoreGraphics
 /// actor. Pure and deterministic: fixed ids, dates, locale and time zone; no files, no clock,
 /// no ARKit, camera or network. Covers `HomePresentation` (subtitles, badges, search, archive
 /// and `.capturing` filtering, rename effects, sorting, names, VoiceOver text, dates, mode
-/// picker entries, the delete wait rule) and the thumbnail size rule.
+/// picker entries, the delete wait rule) and the thumbnail size rule. The build 5 checks (mode
+/// notes and reasons, active rooms under CR-7) are in `HomeUISelfTest+B5.swift`; the fixtures
+/// below are internal so that file can use them.
 enum HomeUISelfTest {
     /// Failing checks as "name: detail"; empty when all pass.
     static func run() -> [String] {
@@ -18,39 +20,40 @@ enum HomeUISelfTest {
         dateChecks(&failures)
         modePickerChecks(&failures)
         miscChecks(&failures)
+        build5Checks(&failures)
         return failures
     }
 
     // MARK: Fixtures
 
     /// 2026-09-28 12:00 UTC.
-    private static let sep28 = Date(timeIntervalSince1970: 1_790_596_800)
+    static let sep28 = Date(timeIntervalSince1970: 1_790_596_800)
     /// 2025-09-28 12:00 UTC.
     private static let sep28LastYear = Date(timeIntervalSince1970: 1_759_060_800)
     /// Date text used by the row checks.
-    private static let day = "Sep 28"
+    static let day = "Sep 28"
     /// Fixed locale for date checks.
     private static let english = Locale(identifier: "en_US")
 
     /// Records a failure when `ok` is false.
-    private static func check(_ failures: inout [String], _ name: String, _ ok: Bool, _ detail: @autoclosure () -> String) {
+    static func check(_ failures: inout [String], _ name: String, _ ok: Bool, _ detail: @autoclosure () -> String) {
         if !ok { failures.append("\(name): \(detail())") }
     }
 
     /// A fixed UUID ending in `low` (and `high` before it).
-    private static func uuid(_ low: UInt8, high: UInt8 = 0) -> UUID {
+    static func uuid(_ low: UInt8, high: UInt8 = 0) -> UUID {
         UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, high, low))
     }
 
     /// A room record with a fixed id and the given status.
-    private static func room(_ index: UInt8, _ status: RoomStatus) -> RoomRecord {
+    static func room(_ index: UInt8, _ status: RoomStatus) -> RoomRecord {
         RoomRecord(id: uuid(index, high: 1), name: "", sessionID: uuid(1, high: 2), floorIndex: 0, status: status,
                    capturedRoomID: nil, quality: nil, hasMeshPass: false, keyframeCount: 0, capturedAt: sep28,
                    frameLink: .unaligned)
     }
 
     /// A manifest with fixed id and dates; `modified` is seconds after `sep28`.
-    private static func project(_ index: UInt8, _ name: String, kind: ScanMode = .room, status: ProjectStatus = .ready,
+    static func project(_ index: UInt8, _ name: String, kind: ScanMode = .room, status: ProjectStatus = .ready,
                                 archived: Bool = false, modified: Double = 0, rooms: [RoomStatus] = []) -> ProjectManifest {
         var records: [RoomRecord] = []
         for (offset, roomStatus) in rooms.enumerated() {
@@ -64,7 +67,7 @@ enum HomeUISelfTest {
     }
 
     /// Names of a list, for failure details.
-    private static func names(_ list: [ProjectManifest]) -> [String] {
+    static func names(_ list: [ProjectManifest]) -> [String] {
         list.map { $0.name }
     }
 
