@@ -165,7 +165,10 @@ extension QualitySelfTest {
         let expectedSeals: [SealFile?] = [roomSeal, passSeal]
         let foldersOK: Bool = joined.folders == expectedFolders
         let sealsOK: Bool = joined.seals == expectedSeals
-        let logsOK: Bool = joined.room.log != nil && joined.passes.count == 1 && joined.passes.first?.log == nil
+        let roomLogRead: Bool = joined.room.log != nil
+        let onePass: Bool = joined.passes.count == 1
+        let passLogNil: Bool = joined.passes.first?.log == nil
+        let logsOK: Bool = roomLogRead && onePass && passLogNil
         c.check("passes.foldersSealsAndRoomLog", foldersOK && sealsOK && logsOK)
 
         let sealedCount = { (list: [RawScanFolder]) -> Int in
