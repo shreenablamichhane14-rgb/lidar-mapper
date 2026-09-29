@@ -3496,6 +3496,8 @@ Depth confidence goes through CaptureCore's `ARFrameReading.meanConfidence(of:)`
 
 **TEST_PLAN ids.** LIVE-02, LIVE-05, LIVE-08, LIVE-09, QUAL-02 (live part), QUAL-03 (filled detection), PERF-01, PERF-05 (rate drops at serious), PERF-08.
 
+Lead note after wave 5a (CoverageLive as built): `beginRecording` clears everything except options and the inputs staged while idle (expected boundaries, watched sets and seeds set after the previous recording ended), because MissingAreas sets watched areas before `scan.start()`; `setExpectedRoom` is ignored while not recording.
+
 ### 3.31a Coverage revision: extra guidance conditions (wave 5a0, change request CR-9)
 
 **Purpose.** LargeObject's `SectorCoverage` decides "Capture the left side", "Capture the right side", "Capture the back", "Capture the top", "Move closer to this area" and "This section needs more detail", but Coverage's `GuidanceEngine` only shows kinds its own `conditions(for:)` produced, so those decisions could not pass through the display rules (one message, hold, minimum time, repeat cooldown). The revision lets a caller add conditions.
