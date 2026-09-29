@@ -230,7 +230,7 @@ final class LiveMeasureProbe: ScanRecorder {
         hub.queue.async { [weak self] in self?.resetGuidance() }
         hub.onStatus = { [weak self] status in self?.handleStatus(status) }
         hub.onCaptureEvent = { [weak self] event in self?.handleEvent(event) }
-        LiveMeasureProbe.log("probe installed")
+        LiveMeasureLog.write("probe installed")
     }
 
     /// Clears the two hub closures. Idempotent.
@@ -322,12 +322,12 @@ final class LiveMeasureProbe: ScanRecorder {
     private func handleEvent(_ event: CaptureEvent) {
         switch event.kind {
         case .relocalization:
-            LiveMeasureProbe.log("relocalization event: \(event.detail)")
+            LiveMeasureLog.write("relocalization event: \(event.detail)")
             guard let handler = onRelocalization else { return }
             DispatchQueue.main.async { handler() }
         case .error:
             guard event.detail.hasPrefix(ARSessionHub.sessionFailedPrefix) else { return }
-            LiveMeasureProbe.log("session failure event: \(event.detail)")
+            LiveMeasureLog.write("session failure event: \(event.detail)")
             guard let handler = onSessionFailed else { return }
             DispatchQueue.main.async { handler() }
         default:
@@ -340,10 +340,5 @@ final class LiveMeasureProbe: ScanRecorder {
         lock.lock()
         defer { lock.unlock() }
         return body()
-    }
-
-    /// One line in the app log (category "livemeasure").
-    static func log(_ message: String) {
-        LogStore.shared.write(message, category: "livemeasure")
     }
 }
