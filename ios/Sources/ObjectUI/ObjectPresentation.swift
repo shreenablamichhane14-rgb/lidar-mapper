@@ -166,12 +166,17 @@ enum ObjectPresentation {
         }
     }
 
+    /// Longest time left shown, minutes; a larger estimate is treated as no estimate (and
+    /// keeps the `Int` conversion below from trapping on an absurd value).
+    static let maxRemainingMinutes: Double = 24 * 60
+
     /// "About n min left" (minutes rounded up) or "Less than a minute left" under 60 s; nil
-    /// without an estimate (nil, negative or not finite).
+    /// without an estimate (nil, negative, not finite, or over `maxRemainingMinutes`).
     static func remainingText(seconds: Double?) -> String? {
         guard let seconds, seconds.isFinite, seconds >= 0 else { return nil }
         if seconds < 60 { return Copy.ObjectUI.remainingSoon }
         let minutes: Double = (seconds / 60).rounded(.up)
+        guard minutes <= maxRemainingMinutes else { return nil }
         return Copy.ObjectUI.remainingMinutes(Int(minutes))
     }
 

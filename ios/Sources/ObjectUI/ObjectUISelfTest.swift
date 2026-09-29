@@ -250,7 +250,10 @@ enum ObjectUISelfTest {
         let noEstimate: String? = ObjectPresentation.remainingText(seconds: nil)
         let negative: String? = ObjectPresentation.remainingText(seconds: -1)
         let notFinite: String? = ObjectPresentation.remainingText(seconds: Double.nan)
-        r.check("text.remainingNil", noEstimate == nil && negative == nil && notFinite == nil)
+        let absurd: String? = ObjectPresentation.remainingText(seconds: 1e30)
+        let invalidNil: Bool = noEstimate == nil && negative == nil && notFinite == nil
+        let absurdNil: Bool = absurd == nil
+        r.check("text.remainingNil", invalidNil && absurdNil)
         let percents: [Int] = [0.29, Double.nan, 1.5, -1].map { ObjectPresentation.percent($0) }
         r.check("text.percent", percents == [29, 0, 100, 0], "\(percents)")
         let info = PhotogrammetryInfo(objectID: fixedID(3), imageCount: 40, boundsMin: nil, boundsMax: nil, seconds: 60,
