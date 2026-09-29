@@ -160,23 +160,32 @@ enum ObjectModelSelfTest {
         if let found = record {
             let closed: Bool = found.isWatertight && found.volumeUnavailableReason == nil
             r.check("cube.watertight", closed && found.provenance == .measured && found.source == .smallMedium)
-            r.check("cube.counts", found.triangleCount == 12 && found.scaleCorrection == 1 && found.objectID == fixedID(1))
+            let twelve: Bool = found.triangleCount == 12
+            let unscaled: Bool = found.scaleCorrection == 1
+            let sameID: Bool = found.objectID == fixedID(1)
+            r.check("cube.counts", twelve && unscaled && sameID)
         }
 
         let open = measured(closedBox(.zero, SIMD3<Float>(1, 1, 1), skipping: 3))
-        r.check("open.noVolume", open != nil && open?.volume == nil && open?.volumeUnavailableReason == .notWatertight)
+        let openReason: ObjectVolumeReason? = open?.volumeUnavailableReason
+        let openVolume: Float? = open?.volume
+        r.check("open.noVolume", open != nil && openVolume == nil && openReason == ObjectVolumeReason.notWatertight)
         r.check("open.notWatertight", open?.isWatertight == false)
         r.near("open.width", open?.width, 1, 1e-3)
 
         let corners = [SIMD3<Float>(0, 0, 0), SIMD3<Float>(1, 0, 0), SIMD3<Float>(0, 0, 1)]
         let sliver = measured(TriangleMesh(positions: corners, indices: [0, 1, 2, 0, 2, 1]))
-        r.check("degenerate.reason", sliver?.volume == nil && sliver?.volumeUnavailableReason == .degenerate)
+        let sliverReason: ObjectVolumeReason? = sliver?.volumeUnavailableReason
+        let sliverVolume: Float? = sliver?.volume
+        r.check("degenerate.reason", sliverVolume == nil && sliverReason == ObjectVolumeReason.degenerate)
         r.check("degenerate.watertight", sliver?.isWatertight == true)
         r.check("empty.nil", measured(TriangleMesh()) == nil)
-        let mapsOneToOne: Bool = ObjectDimensions.volumeReason(.notWatertight) == .notWatertight
-            && ObjectDimensions.volumeReason(.degenerate) == .degenerate
-            && ObjectDimensions.volumeReason(nil) == nil
-        r.check("reason.mapping", mapsOneToOne)
+        let mappedOpen: ObjectVolumeReason? = ObjectDimensions.volumeReason(ObjectIsolation.VolumeUnavailableReason.notWatertight)
+        let mappedFlat: ObjectVolumeReason? = ObjectDimensions.volumeReason(ObjectIsolation.VolumeUnavailableReason.degenerate)
+        let mappedNone: ObjectVolumeReason? = ObjectDimensions.volumeReason(nil)
+        let openOK: Bool = mappedOpen == ObjectVolumeReason.notWatertight
+        let flatOK: Bool = mappedFlat == ObjectVolumeReason.degenerate
+        r.check("reason.mapping", openOK && flatOK && mappedNone == nil)
     }
 
     /// A cube whose faces have their own corner vertices is open until the loader's weld.
@@ -196,7 +205,8 @@ enum ObjectModelSelfTest {
         stray.indices.append(contentsOf: [0, 1, bad])
         let cleaned = ObjectModelLoader.weldedModelMesh(stray)
         let bounds = cleaned.mesh.boundingBox
-        let inside: Bool = bounds.max.x <= 1 + 1e-5 && bounds.max.y <= 1 + 1e-5 && bounds.max.z <= 1 + 1e-5
+        let edge: Float = 1.00001
+        let inside: Bool = simd_reduce_max(bounds.max) <= edge
         r.check("weld.dropsStray", inside && cleaned.triangleCount == 12 && cleaned.mesh.positions.count == 8,
                 "\(cleaned.triangleCount) triangles, bounds max \(bounds.max)")
     }
@@ -233,7 +243,10 @@ enum ObjectModelSelfTest {
         r.near("isolate.depth", result?.record.depth, 0.5, 0.01)
         if let found = result {
             let positions = found.mesh.mesh.positions
-            let noFloor: Bool = !positions.isEmpty && positions.allSatisfy { abs($0.x) <= 0.2501 && abs($0.z) <= 0.2501 }
+            let limit: Float = 0.2501
+            let noFloor: Bool = !positions.isEmpty && positions.allSatisfy { (p: SIMD3<Float>) -> Bool in
+                abs(p.x) <= limit && abs(p.z) <= limit
+            }
             r.check("isolate.floorRemoved", noFloor && found.mesh.triangleCount == 5 * 32,
                     "\(found.mesh.triangleCount) triangles")
             let record = found.record

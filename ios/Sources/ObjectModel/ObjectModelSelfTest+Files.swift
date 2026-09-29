@@ -131,7 +131,9 @@ extension ObjectModelSelfTest {
         let smallStep = ObjectMetricsStep(object: small, modelFile: noModel, reportedExtents: noExtents)
         let largeStep = ObjectMetricsStep(object: large, modelFile: noModel, reportedExtents: noExtents)
         r.check("step.id", smallStep.id == .objectMetrics)
-        r.check("step.budgets", smallStep.memoryBudgetBytes == 300_000_000 && smallStep.reducedMemoryBudgetBytes == 150_000_000)
+        let fullBudget: UInt64 = smallStep.memoryBudgetBytes
+        let reducedBudget: UInt64 = smallStep.reducedMemoryBudgetBytes ?? 0
+        r.check("step.budgets", fullBudget == 300_000_000 && reducedBudget == 150_000_000)
         r.check("step.variantRule", ObjectMetricsStep.usesReducedVariant(availableMemory: 299_999_999)
                 && !ObjectMetricsStep.usesReducedVariant(availableMemory: 300_000_000))
         r.check("step.upstream", ObjectMetricsStep.upstreamStep(for: .smallMedium) == .reconstructObject
@@ -181,7 +183,9 @@ extension ObjectModelSelfTest {
         let direct = ObjectDimensions.isolate(scene, box: crop, objectID: objectID, inputHash: "h", now: fixedDate)
         let pre = ObjectMetricsStep.preCropped(scene, box: crop)
         let reduced = ObjectDimensions.isolate(pre, box: crop, objectID: objectID, inputHash: "h", now: fixedDate)
-        let same: Bool = direct != nil && direct?.record == reduced?.record && direct?.mesh == reduced?.mesh
+        let sameRecord: Bool = direct?.record == reduced?.record
+        let sameMesh: Bool = direct?.mesh == reduced?.mesh
+        let same: Bool = direct != nil && sameRecord && sameMesh
         r.check("step.reducedSameResult", same && pre.triangleCount < scene.triangleCount)
     }
 
@@ -197,7 +201,9 @@ extension ObjectModelSelfTest {
             r.fail("export.validates", error)
         }
         let first = scene.meshes.first
-        r.check("export.oneMesh", scene.meshes.count == 1 && first?.triangleCount == 12 && first?.materialIndex == 0)
+        let triangles: Int = first?.triangleCount ?? 0
+        let materialIndex: Int = first?.materialIndex ?? -1
+        r.check("export.oneMesh", scene.meshes.count == 1 && triangles == 12 && materialIndex == 0)
         r.check("export.normals", first?.normals?.count == first?.positions.count)
         r.check("export.material", scene.materials.count == 1 && scene.materials.first?.baseColor == ObjectExportAdapter.neutralGray)
         var emptyRefused = false

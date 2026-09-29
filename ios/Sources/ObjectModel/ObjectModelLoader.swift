@@ -28,7 +28,7 @@ enum ObjectModelLoader {
     /// Evaluated once, on first use, and logged then.
     private static let usdzImportSupported: Bool = {
         let supported = MDLAsset.canImportFileExtension("usdz")
-        LogStore.shared.write("ModelIO canImportFileExtension(usdz): \(supported)", category: logCategory)
+        LogStore.shared.write("ModelIO canImportFileExtension(usdz): \(supported)", category: ObjectModelLoader.logCategory)
         return supported
     }()
 
