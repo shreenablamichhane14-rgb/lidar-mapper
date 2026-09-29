@@ -175,7 +175,7 @@ enum ExportSummaryJSON {
 
     /// One saved measurement.
     struct MeasurementEntry: Encodable {
-        /// Identity, kind, value, source, room, points and creation time.
+        /// Identity, kind, value, source, room, points, what each point snapped to and creation time.
         var id: String
         var name: String
         var kind: String
@@ -183,6 +183,7 @@ enum ExportSummaryJSON {
         var source: String
         var roomID: String?
         var points: [[Double]]
+        var snaps: [String]
         var createdAt: Date
     }
 
@@ -263,14 +264,15 @@ enum ExportSummaryJSON {
                            depth: entry(byID["\(key).depth"], fallback: size.z, provenance: object.provenance))
     }
 
-    /// One saved measurement with its value, sigma and points.
+    /// One saved measurement with its value (SI units, radians for angles), sigma, points and snaps.
     static func measurementEntry(_ record: MeasurementRecord) -> MeasurementEntry {
         let value = ValueEntry(value: finite(record.result.value), sigma: finiteOrNil(record.result.sigma),
                                provenance: record.result.provenance.rawValue,
                                lowConfidence: record.result.isLowConfidence(kind: record.kind))
         return MeasurementEntry(id: record.id.uuidString, name: record.name, kind: record.kind.rawValue, value: value,
                                 source: record.source.rawValue, roomID: record.roomID?.uuid.uuidString,
-                                points: record.points.map { numbers($0.simd) }, createdAt: record.createdAt)
+                                points: record.points.map { numbers($0.simd) }, snaps: record.snaps.map { $0.rawValue },
+                                createdAt: record.createdAt)
     }
 
     /// The value of a dimension row.
