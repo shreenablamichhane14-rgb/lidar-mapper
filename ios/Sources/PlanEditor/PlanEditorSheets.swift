@@ -15,17 +15,13 @@ struct PlanEditorPromptSheet: View {
             switch prompt {
             case .category(let id, let current):
                 PlanEditorChoiceSheet(title: Copy.ObjectMenu.changeCategory, model: model,
-                                      choices: ObjectCategory.allCases.map { PlanEditorChoice(key: $0.rawValue,
-                                                                                               title: Copy.FloorPlan.categoryName($0)) },
-                                      selected: current.rawValue) { key in
+                                      choices: PlanEditorPromptSheet.categoryChoices(), selected: current.rawValue) { key in
                     guard let category = ObjectCategory(rawValue: key) else { return }
                     model.submitCategory(category, for: id)
                 }
             case .annotation(.symbol, let at, let editing, let current):
-                PlanEditorChoiceSheet(title: editing == nil ? Copy.FloorPlan.addSymbol : Copy.PlanEditor.editText,
-                                      model: model,
-                                      choices: PlanEditorPresentation.symbols.map { PlanEditorChoice(key: $0, title: $0) },
-                                      selected: current) { key in
+                PlanEditorChoiceSheet(title: PlanEditorPromptSheet.symbolTitle(editing: editing), model: model,
+                                      choices: PlanEditorPromptSheet.symbolChoices(), selected: current) { key in
                     model.submitSymbol(key, at: at)
                 }
             default:
@@ -33,6 +29,23 @@ struct PlanEditorPromptSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    /// Every object category by its display name.
+    static func categoryChoices() -> [PlanEditorChoice] {
+        ObjectCategory.allCases.map { category in
+            PlanEditorChoice(key: category.rawValue, title: Copy.FloorPlan.categoryName(category))
+        }
+    }
+
+    /// The Add Symbol choices.
+    static func symbolChoices() -> [PlanEditorChoice] {
+        PlanEditorPresentation.symbols.map { symbol in PlanEditorChoice(key: symbol, title: symbol) }
+    }
+
+    /// Title of the symbol sheet: Add Symbol, or Edit Text when changing one.
+    static func symbolTitle(editing: ElementID?) -> String {
+        editing == nil ? Copy.FloorPlan.addSymbol : Copy.PlanEditor.editText
     }
 }
 
