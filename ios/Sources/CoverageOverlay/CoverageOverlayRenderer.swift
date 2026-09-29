@@ -61,8 +61,9 @@ import simd
     static let logIntervalSeconds: Double = 30
     /// Seconds between two checks that drop anchors CoverageLive no longer has (a finished or new recording).
     static let reconcileIntervalSeconds: Double = 5
-    /// Shortest tick interval accepted from the options, seconds.
+    /// Shortest and longest tick interval accepted from the options, seconds.
     static let minimumIntervalSeconds: Double = 0.05
+    static let maximumIntervalSeconds: Double = 10
 
     /// Where the anchors and their states come from (read only).
     let source: CoverageLiveRecorder
@@ -167,18 +168,23 @@ import simd
         if wasAttached { CoverageOverlayPacking.log("detached after \(stats.ticks) ticks, \(stats.uploads) uploads") }
     }
 
-    /// Starts the refresh loop unless it runs. The loop holds the renderer weakly and ends when it
-    /// is cancelled or the renderer is released.
+    /// Starts the refresh loop unless it runs. The loop holds the renderer and the root weakly and
+    /// ends when it is cancelled or the renderer is released; a renderer released without
+    /// `detach()` has its root taken out of the scene by the loop's last pass.
     private func startLoop() {
-        guard loop == nil else { return }
+        guard loop == nil, let anchorRef = root else { return }
         let requested = options.refreshInterval.isFinite ? options.refreshInterval : 0.33
-        let interval = max(requested, CoverageOverlayRenderer.minimumIntervalSeconds)
+        let interval = min(max(requested, CoverageOverlayRenderer.minimumIntervalSeconds),
+                           CoverageOverlayRenderer.maximumIntervalSeconds)
         let nanoseconds = UInt64(interval * 1_000_000_000)
-        loop = Task { @MainActor [weak self] in
+        loop = Task { @MainActor [weak self, weak anchorRef] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: nanoseconds)
                 if Task.isCancelled { return }
-                guard let self else { return }
+                guard let self else {
+                    if let orphan = anchorRef, let scene = orphan.scene { scene.removeAnchor(orphan) }
+                    return
+                }
                 self.tick()
             }
         }
