@@ -210,6 +210,8 @@ struct ResultChips: View {
     /// Up to two chips, stacked.
     var body: some View {
         let current = model.tab
+        let meshTab: Bool = current == .clean || current == .raw
+        let showsMissingCount: Bool = meshTab && model.showsViewer(current) && model.missingAreaCount > 0
         VStack(alignment: .leading, spacing: 6) {
             if model.showsViewer(current), let text = ResultAvailability.chipText(model.tabState(current)) {
                 chip(text, systemImage: ResultStatusCard.symbol(for: model.tabState(current)))
@@ -226,7 +228,7 @@ struct ResultChips: View {
                     }
                 }
             }
-            if (current == .clean || current == .raw) && model.showsViewer(current) && model.missingAreaCount > 0 {
+            if showsMissingCount {
                 Button {
                     model.showsLegend = true
                 } label: {
@@ -266,6 +268,8 @@ struct ResultToolButtons: View {
     var body: some View {
         let current = model.tab
         let viewer = model.showsViewer(current)
+        let hasPlan: Bool = current == .floorPlan && model.planDrawing != nil
+        let showsLegendButton: Bool = (viewer && current != .realistic) || hasPlan
         VStack(spacing: 10) {
             if viewer && (current == .realistic || current == .raw) { displayMenu(current) }
             if viewer && current == .clean {
@@ -274,8 +278,8 @@ struct ResultToolButtons: View {
                     model.hideFurniture.toggle()
                 }
             }
-            if current == .floorPlan && model.planDrawing != nil { layersMenu }
-            if (viewer && current != .realistic) || (current == .floorPlan && model.planDrawing != nil) {
+            if hasPlan { layersMenu }
+            if showsLegendButton {
                 roundButton(Copy.Results.legend, systemImage: "list.bullet.rectangle") { model.showsLegend = true }
             }
             if viewer {
