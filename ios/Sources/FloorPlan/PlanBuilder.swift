@@ -17,50 +17,75 @@ enum PlanBuilder {
     /// room); two overall dimensions per room from Rectangle2D.minimumArea; fixtures from objects.
     ///
     /// Levels are the union of `floors` and every `floorIndex` used by a room, sorted by index.
-    /// A wall whose clean normal points to the right of start->end is reversed so the room is on
-    /// its left; its opening offsets, occluded spans and door hinge ends are mirrored with it.
-    /// Openings without a host wall cannot be placed and are left out.
+    /// (3.37c) Walls are copied with a = start and b = end; opening offsets and swings unchanged,
+    /// so edits address the same wall end in the clean model and the plan (the `CleanWall`
+    /// orientation invariant). A clean wall whose normal points to the right of start -> end
+    /// (data older than the RoomModel revision) is kept as is and counted in one log line per
+    /// build; it is not reversed. A room's merged outlines are copied, and its overall
+    /// dimensions enclose every part. Openings without a host wall cannot be placed and are
+    /// left out.
     static func build(from model: CleanModel, floors: [FloorRecord]) -> PlanModel {
         var indices = Set(floors.map { $0.id })
         for room in model.rooms { indices.insert(room.floorIndex) }
         var levels: [PlanLevel] = []
+        var rightNormals = 0
         for index in indices.sorted() {
             let record = floors.first { $0.id == index }
             let rooms = model.rooms.filter { $0.floorIndex == index }
             let lowest = rooms.map { $0.floor.elevation }.min() ?? 0
             var level = PlanLevel(id: index, name: record?.name ?? "", elevation: record?.elevation ?? lowest,
                                   rooms: [], walls: [], openings: [], fixtures: [], annotations: [], dimensions: [])
-            for room in rooms { add(room, to: &level) }
+            for room in rooms { rightNormals += add(room, to: &level) }
             levels.append(level)
+        }
+        if rightNormals > 0 {
+            LogStore.shared.write("planBuilder: \(rightNormals) walls with the normal on the right kept as stored "
+                                  + "(clean model older than cleanModel-rules=2)", category: "floorplan")
         }
         return PlanModel(levels: levels, northAngle: 0, stamp: nil)
     }
 
+    /// Sum of the polygon areas of `outline` and every merged outline, square meters.
+    static func totalArea(_ room: PlanRoom) -> Float {
+        var total = Polygon2D(points: room.outline.map { $0.simd }).area
+        for part in room.mergedOutlines ?? [] {
+            total += Polygon2D(points: part.map { $0.simd }).area
+        }
+        return total
+    }
+
+    /// Every part of a plan room (`outline` first, then the merged outlines), plan meters.
+    static func parts(of room: PlanRoom) -> [[SIMD2<Float>]] {
+        var result = [room.outline.map { $0.simd }]
+        for part in room.mergedOutlines ?? [] {
+            result.append(part.map { $0.simd })
+        }
+        return result
+    }
+
     /// Adds one clean room (outline, walls, openings, fixtures and dimensions) to a level.
-    private static func add(_ room: CleanRoom, to level: inout PlanLevel) {
+    /// Returns the number of its walls whose normal points to the right of start -> end.
+    private static func add(_ room: CleanRoom, to level: inout PlanLevel) -> Int {
         let outline = roomOutline(room)
         let labelPoint = interiorPoint(of: outline)
-        let polygonArea = Polygon2D(points: outline).area
-        let area = room.metrics.floorArea > 0 ? room.metrics.floorArea : polygonArea
-        level.rooms.append(PlanRoom(id: room.id, name: room.name, outline: outline.map { Vec2($0) },
-                                    labelAt: Vec2(labelPoint), area: area))
+        let merged = mergedOutlines(room)
+        var planRoom = PlanRoom(id: room.id, name: room.name, outline: outline.map { Vec2($0) },
+                                labelAt: Vec2(labelPoint), area: 0)
+        planRoom.mergedOutlines = merged.isEmpty ? nil : merged.map { part in part.map { Vec2($0) } }
+        planRoom.area = room.metrics.floorArea > 0 ? room.metrics.floorArea : totalArea(planRoom)
+        level.rooms.append(planRoom)
 
-        var flipped: Set<ElementID> = []
+        var rightNormals = 0
         var lengths: [ElementID: Float] = [:]
         for wall in room.walls {
-            var a = PlanAxes.toPlan(wall.start.simd)
-            var b = PlanAxes.toPlan(wall.end.simd)
+            let a = PlanAxes.toPlan(wall.start.simd)
+            let b = PlanAxes.toPlan(wall.end.simd)
             let length = simd_distance(a, b)
-            var spans = wall.occludedSpans
-            if !roomIsOnLeft(a: a, b: b, wallNormal: wall.normal.simd, labelPoint: labelPoint) {
-                swap(&a, &b)
-                spans = mirrored(spans, length: length)
-                flipped.insert(wall.id)
-            }
+            if normalPointsRight(a: a, b: b, wallNormal: wall.normal.simd) { rightNormals += 1 }
             lengths[wall.id] = length
             level.walls.append(PlanWall(id: wall.id, a: Vec2(a), b: Vec2(b), thickness: max(0, wall.thickness),
                                         thicknessSource: wall.thicknessSource, arc: wall.arc,
-                                        provenance: wall.provenance, occludedSpans: spans))
+                                        provenance: wall.provenance, occludedSpans: wall.occludedSpans))
             if length > 0.01 {
                 level.dimensions.append(PlanDimension(id: wallDimensionID(wall.id), a: Vec2(a), b: Vec2(b),
                                                       offset: wallDimensionOffset, isUser: false))
@@ -70,12 +95,8 @@ enum PlanBuilder {
         for opening in room.openings {
             guard let wallID = opening.wallID, let length = lengths[wallID] else { continue }
             let width = min(max(opening.width, 0), length)
-            var offset = min(max(opening.offsetAlongWall, 0), max(0, length - width))
+            let offset = min(max(opening.offsetAlongWall, 0), max(0, length - width))
             var swing = opening.swing
-            if flipped.contains(wallID) {
-                offset = max(0, length - offset - width)
-                swing?.hingeAtStart.toggle()
-            }
             let isDoor = opening.kind == .door || opening.kind == .openDoor
             if swing == nil && isDoor {
                 swing = defaultSwing(offset: offset, width: width, wallLength: length)
@@ -87,27 +108,56 @@ enum PlanBuilder {
         for object in room.objects {
             level.fixtures.append(fixture(from: object))
         }
-        level.dimensions.append(contentsOf: overallDimensions(room: room, outline: outline))
+        let thickness = room.walls.map { max(0, $0.thickness) }.max() ?? 0
+        let points = outline + merged.flatMap { $0 }
+        level.dimensions.append(contentsOf: overallDimensions(roomID: room.id, points: points,
+                                                              offset: overallOffset(thickness: thickness)))
+        return rightNormals
     }
 
-    /// Two overall dimensions along the sides of the room's minimum-area rectangle, drawn
-    /// outside the room beyond its thickest wall.
-    private static func overallDimensions(room: CleanRoom, outline: [SIMD2<Float>]) -> [PlanDimension] {
-        guard let rect = Rectangle2D.minimumArea(enclosing: outline),
+    /// The merged outlines of a clean room in plan coordinates, each counter-clockwise without
+    /// a closing duplicate; parts with fewer than 3 points are left out.
+    static func mergedOutlines(_ room: CleanRoom) -> [[SIMD2<Float>]] {
+        var result: [[SIMD2<Float>]] = []
+        for part in room.floor.mergedOutlines ?? [] {
+            let ring = normalizedRing(part.map { $0.simd })
+            if ring.count >= 3 { result.append(ring) }
+        }
+        return result
+    }
+
+    /// A ring without a closing duplicate, counter-clockwise.
+    static func normalizedRing(_ input: [SIMD2<Float>]) -> [SIMD2<Float>] {
+        var points = input
+        if points.count >= 2, let first = points.first, let last = points.last, simd_distance(first, last) < 1e-5 {
+            points.removeLast()
+        }
+        if Polygon2D(points: points).signedArea < 0 { points.reverse() }
+        return points
+    }
+
+    /// Offset of a room's overall dimensions: outside the room (negative, the room is on the
+    /// left of both dimension lines) beyond its thickest wall.
+    static func overallOffset(thickness: Float) -> Float {
+        -((thickness.isFinite ? max(0, thickness) : 0) + overallDimensionGap)
+    }
+
+    /// Two overall dimensions along the sides of the minimum-area rectangle of `points` (every
+    /// part of a room), with the stable identifiers of `roomID`; empty for a thin rectangle.
+    static func overallDimensions(roomID: ElementID, points: [SIMD2<Float>], offset: Float) -> [PlanDimension] {
+        guard let rect = Rectangle2D.minimumArea(enclosing: points),
               rect.halfExtents.x > minimumOverallHalfExtent, rect.halfExtents.y > minimumOverallHalfExtent
         else { return [] }
         let u = rect.axis
         let v = SIMD2<Float>(-u.y, u.x)
         let hx = rect.halfExtents.x
         let hy = rect.halfExtents.y
-        let thickness = room.walls.map { max(0, $0.thickness) }.max() ?? 0
         // The room lies on the left of both sides below, so a negative offset is outside.
-        let offset = -(thickness + overallDimensionGap)
         let p0 = rect.center - u * hx - v * hy
         let p1 = rect.center + u * hx - v * hy
         let p2 = rect.center + u * hx + v * hy
-        return [PlanDimension(id: overallDimensionID(room.id, 0), a: Vec2(p0), b: Vec2(p1), offset: offset, isUser: false),
-                PlanDimension(id: overallDimensionID(room.id, 1), a: Vec2(p1), b: Vec2(p2), offset: offset, isUser: false)]
+        return [PlanDimension(id: overallDimensionID(roomID, 0), a: Vec2(p0), b: Vec2(p1), offset: offset, isUser: false),
+                PlanDimension(id: overallDimensionID(roomID, 1), a: Vec2(p1), b: Vec2(p2), offset: offset, isUser: false)]
     }
 
     /// The room outline in plan coordinates, counter-clockwise, without a closing duplicate.
@@ -157,8 +207,18 @@ enum PlanBuilder {
         return best ?? centroid
     }
 
+    /// True when the clean wall normal (into the room) points to the right of a->b, measurably
+    /// (data older than the RoomModel revision 3.37b). Such walls are counted, never reversed.
+    static func normalPointsRight(a: SIMD2<Float>, b: SIMD2<Float>, wallNormal: SIMD3<Float>) -> Bool {
+        let d = b - a
+        let left = SIMD2<Float>(-d.y, d.x)
+        let byNormal = simd_dot(left, PlanAxes.toPlan(wallNormal))
+        return byNormal < -1e-3 * simd_length(d)
+    }
+
     /// True when the room is on the left of a->b: decided by the clean wall normal (into the
-    /// room), or by the side of the room label point when the normal is unusable.
+    /// room), or by the side of the room label point when the normal is unusable. Kept for
+    /// callers; the builder no longer reverses walls (3.37c).
     static func roomIsOnLeft(a: SIMD2<Float>, b: SIMD2<Float>, wallNormal: SIMD3<Float>, labelPoint: SIMD2<Float>) -> Bool {
         let d = b - a
         let left = SIMD2<Float>(-d.y, d.x)
@@ -167,7 +227,8 @@ enum PlanBuilder {
         return simd_dot(left, labelPoint - (a + b) * 0.5) >= 0
     }
 
-    /// Occluded spans measured from the other end of a wall of `length`.
+    /// Occluded spans measured from the other end of a wall of `length` (kept for callers; the
+    /// builder no longer mirrors spans since 3.37c).
     static func mirrored(_ spans: [ClosedRange<Float>], length: Float) -> [ClosedRange<Float>] {
         var result: [ClosedRange<Float>] = []
         for span in spans.reversed() {
