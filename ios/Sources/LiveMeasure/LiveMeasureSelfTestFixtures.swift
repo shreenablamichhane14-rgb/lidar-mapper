@@ -63,6 +63,12 @@ enum LiveMeasureSelfTestFixtures {
         return [first.record(), second.record()]
     }
 
+    /// True when `resolution` exists with this source and snapped flag.
+    static func matches(_ resolution: LiveMeasureResolution?, _ source: LiveMeasureSnapSource, snapped: Bool) -> Bool {
+        guard let resolution else { return false }
+        return resolution.source == source && resolution.isSnapped == snapped
+    }
+
     /// True when `points` has a point within 1e-4 m of `p`.
     static func contains(_ points: [SIMD3<Float>], _ p: SIMD3<Float>) -> Bool {
         points.contains { simd_distance($0, p) < 1e-4 }

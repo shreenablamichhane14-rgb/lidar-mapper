@@ -75,7 +75,7 @@ import simd
     /// Hub recorder: planes and center samples.
     private let probe = LiveMeasureProbe()
     /// VoiceOver announcements and warning haptics of guidance.
-    private let announcer = GuidanceAnnouncer()
+    private let announcer: GuidanceAnnouncer
     /// The reticle loop.
     private var loopTask: Task<Void, Never>?
     /// Ticks run, and the tick of the last corner refresh.
@@ -94,6 +94,7 @@ import simd
         let profile = ScanProfile(mode: .quickMeasure, settings: ScanSettings.defaults(for: .quickMeasure))
         hub = ARSessionHub(profile: profile)
         prefs = UnitPreferences.load()
+        announcer = GuidanceAnnouncer()
         LiveMeasureLog.write("model init, plane detection \(profile.wantsPlaneDetection)")
     }
 

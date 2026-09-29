@@ -202,6 +202,11 @@ struct LiveMeasureListSheet: View {
     /// Closes the sheet.
     @Environment(\.dismiss) private var dismiss
 
+    /// Creates the sheet for `model`.
+    init(model: LiveMeasureModel) {
+        _model = ObservedObject(wrappedValue: model)
+    }
+
     /// The list in a navigation stack with Done.
     var body: some View {
         NavigationStack {

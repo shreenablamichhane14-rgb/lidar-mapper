@@ -6,7 +6,7 @@ import simd
 /// Plain-Swift checks for LiveMeasure (no XCTest), run from the Diagnostics suite list off the
 /// main actor. Deterministic (fixed identifiers, dates and samples), no ARKit session, camera,
 /// clock or network; the store checks write only under `FileManager.default.temporaryDirectory`
-/// and remove what they wrote. 57 checks.
+/// and remove what they wrote. 66 checks.
 enum LiveMeasureSelfTest {
     /// Failing checks as "name: detail"; empty when all pass.
     static func run() -> [String] {
@@ -60,8 +60,8 @@ enum LiveMeasureSelfTest {
         c.check("corners.extentDistance", inside < 1e-4, "\(inside)")
 
         let parallel = F.wallX(at: SIMD3<Float>(2, 1, 0), id: 5)
-        let none = LiveMeasureSnapping.intersectionCorners([wallX, parallel, floor])
-        c.check("corners.parallel", none.isEmpty, "\(none)")
+        let noCorners = LiveMeasureSnapping.intersectionCorners([wallX, parallel, floor])
+        c.check("corners.parallel", noCorners.isEmpty, "\(noCorners)")
         let farWall = F.wallZ(at: SIMD3<Float>(3, 1, 0), id: 6)
         let outside = LiveMeasureSnapping.intersectionCorners([wallX, farWall, floor])
         c.check("corners.outsideExtent", outside.isEmpty, "\(outside)")
@@ -72,10 +72,10 @@ enum LiveMeasureSelfTest {
         let room = LiveMeasureSnapping.cornerPoints([wallX, wallZ, floor], camera: SIMD3<Float>(1, 1, 1))
         c.check("corners.roomIncludesIntersection", F.contains(room, SIMD3<Float>(0, 0, 0)), "\(room.count)")
 
-        var copy = wallX
-        c.check("plane.equal", copy == wallX, "copy differs")
-        copy.transform = F.moved(copy.transform, SIMD3<Float>(0, 1.5, 0))
-        c.check("plane.notEqual", copy != wallX, "moved plane equals the original")
+        var twin = wallX
+        c.check("plane.equal", twin == wallX, "copy differs")
+        twin.transform = F.moved(twin.transform, SIMD3<Float>(0, 1.5, 0))
+        c.check("plane.notEqual", twin != wallX, "moved plane equals the original")
     }
 
     // MARK: Resolution (checks 5 to 9)
@@ -87,39 +87,44 @@ enum LiveMeasureSelfTest {
         let existing = F.candidate(0.05, screen: CGPoint(x: 106, y: 100), source: .existingPoint, snap: .corner, tag: .corner)
         let corner3 = F.candidate(0.03, screen: CGPoint(x: 103, y: 100), source: .planeCorner, snap: .corner, tag: .corner)
         let first = LiveMeasureSnapping.resolve(hit: hit, fallback: nil, candidates: [corner3, existing], reticle: reticle)
-        let existingWins = first.map { $0.source == .existingPoint && $0.isSnapped && $0.point == existing.point } ?? false
-        c.check("resolve.existingWins", existingWins, "\(String(describing: first))")
-        let inherits = first.map { $0.measurementSnap == .plane && $0.snap == .corner } ?? false
-        c.check("resolve.existingInherits", inherits, "\(String(describing: first))")
+        let firstPoint = first?.point == existing.point
+        c.check("resolve.existingWins", F.matches(first, .existingPoint, snapped: true) && firstPoint,
+                "\(String(describing: first))")
+        let firstKinds = first?.measurementSnap == MeasurementSnapKind.plane && first?.snap == SnapKind.corner
+        c.check("resolve.existingInherits", firstKinds, "\(String(describing: first))")
 
         let corner12 = F.candidate(0.12, screen: CGPoint(x: 112, y: 100), source: .planeCorner, snap: .corner, tag: .corner)
         let far = LiveMeasureSnapping.resolve(hit: hit, fallback: nil, candidates: [corner12], reticle: reticle)
-        let farOK = far.map { !$0.isSnapped && $0.source == .planeGeometry && $0.point == hit.point } ?? false
-        c.check("resolve.worldRadius", farOK, "\(String(describing: far))")
-        let farTag = far.map { $0.tag == .wall && $0.measurementSnap == .plane && $0.snap == .plane } ?? false
-        c.check("resolve.planeHitKinds", farTag, "\(String(describing: far))")
+        let farPoint = far?.point == hit.point
+        c.check("resolve.worldRadius", F.matches(far, .planeGeometry, snapped: false) && farPoint, "\(String(describing: far))")
+        let farTag = far?.tag == LiveMeasureSnapTag.wall && far?.snap == SnapKind.plane
+        let farKind = far?.measurementSnap == MeasurementSnapKind.plane
+        c.check("resolve.planeHitKinds", farTag && farKind, "\(String(describing: far))")
         let corner8Far = F.candidate(0.08, screen: CGPoint(x: 140, y: 100), source: .planeCorner, snap: .corner, tag: .corner)
         let offScreen = LiveMeasureSnapping.resolve(hit: hit, fallback: nil, candidates: [corner8Far], reticle: reticle)
-        c.check("resolve.screenRadius", offScreen?.source == .planeGeometry, "\(String(describing: offScreen))")
+        c.check("resolve.screenRadius", F.matches(offScreen, .planeGeometry, snapped: false), "\(String(describing: offScreen))")
         let corner8Near = F.candidate(0.08, screen: CGPoint(x: 110, y: 100), source: .planeCorner, snap: .corner, tag: .corner)
         let snapped = LiveMeasureSnapping.resolve(hit: hit, fallback: nil, candidates: [corner8Near], reticle: reticle)
-        let snappedOK = snapped.map { $0.source == .planeCorner && $0.isSnapped && $0.tag == .corner } ?? false
-        c.check("resolve.cornerSnaps", snappedOK, "\(String(describing: snapped))")
+        let snappedTag = snapped?.tag == LiveMeasureSnapTag.corner
+        c.check("resolve.cornerSnaps", F.matches(snapped, .planeCorner, snapped: true) && snappedTag,
+                "\(String(describing: snapped))")
         let unprojected = F.candidate(0.03, screen: nil, source: .planeCorner, snap: .corner, tag: .corner)
         let worldOnly = LiveMeasureSnapping.resolve(hit: hit, fallback: nil, candidates: [unprojected], reticle: reticle)
-        c.check("resolve.unprojected", worldOnly?.source == .planeCorner, "\(String(describing: worldOnly))")
+        c.check("resolve.unprojected", F.matches(worldOnly, .planeCorner, snapped: true), "\(String(describing: worldOnly))")
 
         let fallback = F.candidate(0, screen: reticle, source: .estimatedPlane, snap: SnapKind.none, tag: nil)
         let estimated = LiveMeasureSnapping.resolve(hit: nil, fallback: fallback, candidates: [], reticle: reticle)
-        let freeKinds = estimated.map { $0.snap == SnapKind.none && $0.measurementSnap == MeasurementSnapKind.none } ?? false
-        let freeSource = estimated.map { $0.source == .estimatedPlane && !$0.isSnapped } ?? false
-        c.check("resolve.fallback", freeKinds && freeSource, "\(String(describing: estimated))")
+        let freeSnap = estimated?.snap == SnapKind.none
+        let freeKind = estimated?.measurementSnap == MeasurementSnapKind.none
+        c.check("resolve.fallback", F.matches(estimated, .estimatedPlane, snapped: false) && freeSnap && freeKind,
+                "\(String(describing: estimated))")
         let fallbackSnap = LiveMeasureSnapping.resolve(hit: nil, fallback: fallback, candidates: [corner3], reticle: reticle)
-        c.check("resolve.fallbackReference", fallbackSnap?.source == .planeCorner, "\(String(describing: fallbackSnap))")
+        c.check("resolve.fallbackReference", F.matches(fallbackSnap, .planeCorner, snapped: true),
+                "\(String(describing: fallbackSnap))")
         let nothing = LiveMeasureSnapping.resolve(hit: nil, fallback: nil, candidates: [corner3, existing], reticle: reticle)
         c.check("resolve.nothing", nothing == nil, "\(String(describing: nothing))")
         let noSnapping = LiveMeasureSnapping.resolve(hit: hit, fallback: fallback, candidates: [], reticle: reticle)
-        c.check("resolve.snappingOff", noSnapping?.source == .planeGeometry, "\(String(describing: noSnapping))")
+        c.check("resolve.snappingOff", F.matches(noSnapping, .planeGeometry, snapped: false), "\(String(describing: noSnapping))")
 
         let behind = F.candidate(1.0, screen: reticle, source: .planeGeometry, snap: .plane, tag: .wall)
         let camera = SIMD3<Float>(0, 0, 1)
