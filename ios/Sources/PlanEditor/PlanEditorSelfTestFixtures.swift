@@ -137,8 +137,8 @@ enum PlanEditorSelfTestFixtures {
 
     /// The plan with one operation applied, nil when the plan refuses it.
     static func applied(_ op: EditOperation, to plan: PlanModel) -> PlanModel? {
-        var copy = plan
-        return copy.apply(op) ? copy : nil
+        var edited = plan
+        return edited.apply(op) ? edited : nil
     }
 
     /// The clean model with a one-entry log applied (`applyingEdits`), nil when it is orphaned.

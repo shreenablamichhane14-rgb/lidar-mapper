@@ -24,7 +24,7 @@ struct PlanEditorScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
-                .alert(Copy.FloorPlan.resetTitle, isPresented: resetShown) {
+                .alert(Copy.FloorPlan.resetTitle, isPresented: $model.isResetConfirmationShown) {
                     Button(Copy.FloorPlan.resetConfirm, role: .destructive) {
                         model.submit(.resetConfirmation, text: "")
                     }
@@ -40,10 +40,10 @@ struct PlanEditorScreen: View {
         }
         .background(Color(uiColor: .systemBackground))
         .task { await model.load() }
-        .sheet(item: sheetPrompt) { prompt in
+        .sheet(item: $model.sheetPrompt) { prompt in
             PlanEditorPromptSheet(prompt: prompt, model: model)
         }
-        .alert(model.message ?? "", isPresented: messageShown) {
+        .alert(model.message ?? "", isPresented: $model.isMessageShown) {
             Button(Copy.Errors.ok) { model.message = nil }
         }
     }
@@ -195,7 +195,8 @@ struct PlanEditorScreen: View {
     private func commandButton(_ command: PlanEditorCommand) -> some View {
         let title = PlanEditorPresentation.title(command, item: model.selectedItem)
         let destructive = PlanEditorScreen.isDestructive(command)
-        return Button(role: destructive ? .destructive : nil) {
+        let role: ButtonRole? = destructive ? ButtonRole.destructive : nil
+        return Button(role: role) {
             model.run(command)
         } label: {
             Text(title)
@@ -210,33 +211,5 @@ struct PlanEditorScreen: View {
         case .deleteWall, .deleteOpening, .deleteFixture, .deleteAnnotation, .deleteMeasurement: return true
         default: return false
         }
-    }
-
-    // MARK: - Presentation bindings
-
-    /// The prompt shown as a sheet (every prompt but the reset confirmation).
-    private var sheetPrompt: Binding<PlanEditorPrompt?> {
-        Binding(get: {
-            guard let prompt = model.prompt, prompt != .resetConfirmation else { return nil }
-            return prompt
-        }, set: { newValue in
-            guard newValue == nil, let shown = model.prompt, shown != .resetConfirmation else { return }
-            model.prompt = nil
-            model.promptError = nil
-        })
-    }
-
-    /// The reset confirmation alert.
-    private var resetShown: Binding<Bool> {
-        Binding(get: { model.prompt == .resetConfirmation }, set: { shown in
-            if !shown, model.prompt == .resetConfirmation { model.prompt = nil }
-        })
-    }
-
-    /// The message alert (a refused action or a failed write).
-    private var messageShown: Binding<Bool> {
-        Binding(get: { model.message != nil }, set: { shown in
-            if !shown { model.message = nil }
-        })
     }
 }

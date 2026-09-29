@@ -87,7 +87,9 @@ extension PlanEditorModel {
             finishAnnotation(changed)
             return
         }
-        finishAnnotation(PlanAnnotation(id: ElementID(), kind: kind, at: at, text: trimmed, symbol: nil))
+        let isSymbol = kind == .symbol
+        finishAnnotation(PlanAnnotation(id: ElementID(), kind: kind, at: at, text: isSymbol ? "" : trimmed,
+                                        symbol: isSymbol ? trimmed : nil))
     }
 
     /// Performs Add Text, Symbol or Note (or its change) and selects it.
@@ -129,5 +131,37 @@ extension PlanEditorModel {
     /// The starting text of a length field for a prompt value.
     func lengthText(_ meters: Float) -> String {
         PlanEditorPresentation.lengthText(meters, prefs: prefs)
+    }
+
+    // MARK: - Presentation state (bound by the screen as `$model.<name>`)
+
+    /// The prompt shown as a sheet: every prompt but the reset confirmation (an alert). Setting
+    /// nil (the sheet was swiped away) closes the prompt and clears its error.
+    var sheetPrompt: PlanEditorPrompt? {
+        get {
+            guard let shown = prompt, shown != .resetConfirmation else { return nil }
+            return shown
+        }
+        set {
+            guard newValue == nil, let shown = prompt, shown != .resetConfirmation else { return }
+            prompt = nil
+            promptError = nil
+        }
+    }
+
+    /// True while the Reset to Scan confirmation shows; setting false closes it.
+    var isResetConfirmationShown: Bool {
+        get { prompt == .resetConfirmation }
+        set {
+            if !newValue, prompt == .resetConfirmation { prompt = nil }
+        }
+    }
+
+    /// True while a refusal or write failure message shows; setting false clears it.
+    var isMessageShown: Bool {
+        get { message != nil }
+        set {
+            if !newValue { message = nil }
+        }
     }
 }
