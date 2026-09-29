@@ -124,11 +124,11 @@ extension MissingAreasModel {
         fallback.hasMeshPass = true
         let roomID = target.room.id
         do {
-            let manifest = try ProjectLibrary.shared.update(target.projectID) { manifest in
+            let written = try ProjectLibrary.shared.update(target.projectID) { (manifest: inout ProjectManifest) throws -> Void in
                 guard let index = manifest.rooms.firstIndex(where: { $0.id == roomID }) else { return }
                 manifest.rooms[index].hasMeshPass = true
             }
-            if let stored = manifest.rooms.first(where: { $0.id == roomID }) {
+            if let stored = written.rooms.first(where: { $0.id == roomID }) {
                 MissingAreasLog.write("room \(roomID) marked with a mesh pass")
                 return stored
             }

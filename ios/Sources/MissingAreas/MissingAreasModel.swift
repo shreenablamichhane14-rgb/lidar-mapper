@@ -82,6 +82,13 @@ enum MissingAreasPhase: Equatable {
     /// True after the cancel was confirmed, until the pass stopped.
     @Published private(set) var isCancelling = false
 
+    /// The alert's `isPresented` binding (`$model.isAlertShown`): true while `alert` is set;
+    /// setting false clears it.
+    var isAlertShown: Bool {
+        get { alert != nil }
+        set { if !newValue { alert = nil } }
+    }
+
     /// What the tour runs on.
     let target: MissingAreasTarget
     /// The patch pass.

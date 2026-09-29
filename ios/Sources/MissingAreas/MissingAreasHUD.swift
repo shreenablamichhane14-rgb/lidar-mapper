@@ -54,20 +54,13 @@ struct MissingAreasHUD: View {
             } message: {
                 Text(Copy.MissingAreas.cancelBody)
             }
-            .alert(model.alert?.title ?? "", isPresented: alertPresented, presenting: model.alert) { _ in
+            .alert(model.alert?.title ?? "", isPresented: $model.isAlertShown, presenting: model.alert) { _ in
                 Button(Copy.Errors.ok, role: .cancel) {
                     model.alert = nil
                 }
             } message: { current in
                 Text(current.body)
             }
-    }
-
-    /// True while the model has an alert; dismissing clears it.
-    private var alertPresented: Binding<Bool> {
-        Binding(get: { model.alert != nil }, set: { shown in
-            if !shown { model.alert = nil }
-        })
     }
 }
 

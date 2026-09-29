@@ -117,7 +117,7 @@ enum MissingAreasSelfTest {
 
     /// `MissingAreasModel.isOffered`: false after a system stop, without areas, or with windows only.
     private static func offerChecks() -> Bool {
-        let base = QualityEvaluation(roomID: UUID(uuidString: "4D495353-494E-4700-8000-000000000001") ?? UUID(),
+        let base = QualityEvaluation(roomID: fixedID(2),
                                      summary: QualitySummary(shape: 0.5, walls: 0.5, floor: 0.5, ceiling: 0.5, texture: 0.5,
                                                              missingAreas: 1),
                                      missingAreas: [wallAhead(1, x: 0)], degraded: .allGood,
@@ -171,9 +171,13 @@ enum MissingAreasSelfTest {
         for (name, viewpoint, bearing, direction) in targets {
             let area = record(1, centroid: viewpoint + SIMD3<Float>(0, 0, -1), viewpoint: viewpoint)
             let arrow = MissingAreaTour.arrow(cameraToWorld: origin, record: area)
-            let bearingOK = name == "behind" ? abs(abs(arrow.bearing) - Float.pi) <= 1e-4 : abs(arrow.bearing - bearing) <= 1e-4
+            let isBehind: Bool = name == "behind"
+            let behindError: Float = abs(abs(arrow.bearing) - Float.pi)
+            let bearingError: Float = abs(arrow.bearing - bearing)
+            let bearingOK: Bool = isBehind ? behindError <= 1e-4 : bearingError <= 1e-4
             let found = MissingAreaTour.direction(arrow)
-            c.check("arrow.\(name)", bearingOK && found == direction && !arrow.atViewpoint,
+            let directionOK: Bool = found == direction
+            c.check("arrow.\(name)", bearingOK && directionOK && !arrow.atViewpoint,
                     "bearing \(arrow.bearing), \(found)")
         }
         let aheadArrow = MissingAreaTour.arrow(cameraToWorld: origin, record: record(1, centroid: SIMD3<Float>(0, 0, -3),
@@ -198,8 +202,9 @@ enum MissingAreasSelfTest {
                                                                                      viewpoint: SIMD3<Float>(0, 0, -2)))
         let downRight = MissingAreaTour.arrow(cameraToWorld: looking, record: record(5, centroid: SIMD3<Float>(3, 0, 0),
                                                                                      viewpoint: SIMD3<Float>(2, 0, 0)))
-        c.check("arrow.lookingDownUsesTopEdge", abs(downAhead.bearing) <= 1e-4 && abs(downRight.bearing - halfPi) <= 1e-4,
-                "\(downAhead.bearing) \(downRight.bearing)")
+        let topAhead: Bool = abs(downAhead.bearing) <= 1e-4
+        let topRight: Bool = abs(downRight.bearing - halfPi) <= 1e-4
+        c.check("arrow.lookingDownUsesTopEdge", topAhead && topRight, "\(downAhead.bearing) \(downRight.bearing)")
 
         let degree = Float.pi / 180
         let cases: [(Float, MissingAreaDirection)] = [(44, .ahead), (46, .right), (-46, .left), (134, .right),
@@ -221,35 +226,46 @@ enum MissingAreasSelfTest {
         let far = camera(at: farAway)
         var single = MissingAreaTour(records: [wallAhead(3, x: 0)], start: .zero)
         let below = single.update(fractions: [3: 0.79], cameraToWorld: far, seconds: 0.1, trackingNormal: true)
-        c.check("update.belowFilledStaysPending", below.isEmpty && single.stops.first?.status == .pending
-                && single.stops.first?.fraction == 0.79)
+        let stillPending: Bool = single.stops.first?.status == .pending
+        let keptFraction: Bool = single.stops.first?.fraction == Float(0.79)
+        c.check("update.belowFilledStaysPending", below.isEmpty && stillPending && keptFraction)
         let filled = single.update(fractions: [3: 0.8], cameraToWorld: far, seconds: 0.1, trackingNormal: true)
-        c.check("update.fillsAtThreshold", filled.contains(.filled(3)) && single.stops.first?.status == .filled, "\(filled)")
+        let nowFilled: Bool = single.stops.first?.status == .filled
+        c.check("update.fillsAtThreshold", filled.contains(.filled(3)) && nowFilled, "\(filled)")
 
         var tour = threeStops()
-        c.check("update.walkingOrder", tour.stops.map { $0.id } == [10, 11, 12] && tour.currentStop?.id == 10)
+        let walkingIDs: [Int] = tour.stops.map { $0.id }
+        let firstCurrent: Bool = tour.currentStop?.id == 10
+        c.check("update.walkingOrder", walkingIDs == [10, 11, 12] && firstCurrent)
         let advanced = tour.update(fractions: [10: 0.95], cameraToWorld: camera(at: SIMD3<Float>(5, eye, 0)), seconds: 0.1,
                                    trackingNormal: true)
-        c.check("update.advancesToNearestPending", advanced == [.filled(10), .advanced(12)] && tour.currentStop?.id == 12,
-                "\(advanced)")
+        let advancedEvents: [MissingAreaTourEvent] = [.filled(10), .advanced(12)]
+        let nearestCurrent: Bool = tour.currentStop?.id == 12
+        c.check("update.advancesToNearestPending", advanced == advancedEvents && nearestCurrent, "\(advanced)")
 
         var other = threeStops()
         let side = other.update(fractions: [11: 0.9], cameraToWorld: far, seconds: 0.1, trackingNormal: true)
-        c.check("update.fillsNonCurrent", side == [.filled(11)] && other.currentStop?.id == 10
-                && other.stops[1].status == .filled, "\(side)")
+        let sideEvents: [MissingAreaTourEvent] = [.filled(11)]
+        let sameCurrent: Bool = other.currentStop?.id == 10
+        let sideFilled: Bool = other.stops[1].status == .filled
+        c.check("update.fillsNonCurrent", side == sideEvents && sameCurrent && sideFilled, "\(side)")
 
         var skipping = threeStops()
         let passed = skipping.next()
-        c.check("next.passesAndAdvances", passed == [.advanced(11)] && skipping.stops[0].status == .passed
-                && skipping.currentStop?.id == 11, "\(passed)")
+        let passedEvents: [MissingAreaTourEvent] = [.advanced(11)]
+        let firstPassed: Bool = skipping.stops[0].status == .passed
+        let nextCurrent: Bool = skipping.currentStop?.id == 11
+        c.check("next.passesAndAdvances", passed == passedEvents && firstPassed && nextCurrent, "\(passed)")
         let clamped = skipping.update(fractions: [11: 7, 12: -3], cameraToWorld: far, seconds: 0.1, trackingNormal: true)
-        c.check("update.clampsFractions", clamped.contains(.filled(11)) && skipping.stops[2].fraction == 0)
+        let clampedLow: Bool = skipping.stops[2].fraction == 0
+        c.check("update.clampsFractions", clamped.contains(.filled(11)) && clampedLow)
         var broken = threeStops()
         var nan = matrix_identity_float4x4
         nan.columns.3 = SIMD4<Float>(Float.nan, 0, 0, 1)
         let nothing = broken.update(fractions: [:], cameraToWorld: nan, seconds: 0.1, trackingNormal: true)
-        c.check("update.nonFiniteCameraIgnored", nothing.isEmpty && broken.currentStop?.id == 10
-                && broken.stops[0].facingSeconds == 0)
+        let unchangedCurrent: Bool = broken.currentStop?.id == 10
+        let noFacing: Bool = broken.stops[0].facingSeconds == 0
+        c.check("update.nonFiniteCameraIgnored", nothing.isEmpty && unchangedCurrent && noFacing)
     }
 
     // MARK: - Unscannable
@@ -266,8 +282,9 @@ enum MissingAreasSelfTest {
             early += glass.update(fractions: [4: 0.2], cameraToWorld: standing, seconds: 1, trackingNormal: true)
         }
         let last = glass.update(fractions: [4: 0.2], cameraToWorld: standing, seconds: 1, trackingNormal: true)
-        c.check("unscannable.after8Seconds", early.isEmpty && last.contains(.unscannable(4)) && last.contains(.finished)
-                && glass.stops[0].status == .unscannable && glass.isFinished, "\(early) \(last)")
+        let gaveUp: Bool = last.contains(.unscannable(4)) && last.contains(.finished)
+        let glassStatus: Bool = glass.stops[0].status == .unscannable
+        c.check("unscannable.after8Seconds", early.isEmpty && gaveUp && glassStatus && glass.isFinished, "\(early) \(last)")
 
         var partial = MissingAreaTour(records: [area], start: .zero)
         for _ in 0..<10 {
@@ -279,7 +296,9 @@ enum MissingAreasSelfTest {
         for _ in 0..<10 {
             _ = limited.update(fractions: [4: 0.1], cameraToWorld: standing, seconds: 1, trackingNormal: false)
         }
-        c.check("facing.needsNormalTracking", limited.stops[0].facingSeconds == 0 && limited.stops[0].status == .pending)
+        let limitedNoTime: Bool = limited.stops[0].facingSeconds == 0
+        let limitedPending: Bool = limited.stops[0].status == .pending
+        c.check("facing.needsNormalTracking", limitedNoTime && limitedPending)
 
         let back = camera(at: SIMD3<Float>(0, eye, 1.5))
         c.check("facing.notFrom1_5m", !MissingAreaTour.isFacing(cameraToWorld: back, record: area))
@@ -315,16 +334,21 @@ enum MissingAreasSelfTest {
         let afterPass = tour.remainingCount
         let lastEvents = tour.next()
         let statuses = tour.stops.map { $0.status }
-        c.check("finish.remainingCountsPending", afterFill == 2 && afterPass == 1 && tour.remainingCount == 0,
-                "\(afterFill) \(afterPass) \(tour.remainingCount)")
-        c.check("finish.whenAllResolved", tour.isFinished && tour.currentIndex == nil && lastEvents.contains(.finished)
-                && !statuses.contains(.pending), "\(lastEvents)")
-        c.check("finish.nextAfterFinishIsEmpty", tour.next().isEmpty
-                && tour.update(fractions: [:], cameraToWorld: far, seconds: 0.1, trackingNormal: true).isEmpty)
+        let remaining: [Int] = [afterFill, afterPass, tour.remainingCount]
+        c.check("finish.remainingCountsPending", remaining == [2, 1, 0], "\(remaining)")
+        let noCurrent: Bool = tour.currentIndex == nil
+        let finishedEvent: Bool = lastEvents.contains(.finished)
+        let nonePending: Bool = !statuses.contains(.pending)
+        c.check("finish.whenAllResolved", tour.isFinished && noCurrent && finishedEvent && nonePending, "\(lastEvents)")
+        let nextAfter = tour.next()
+        let updateAfter = tour.update(fractions: [:], cameraToWorld: far, seconds: 0.1, trackingNormal: true)
+        c.check("finish.nextAfterFinishIsEmpty", nextAfter.isEmpty && updateAfter.isEmpty)
 
         var empty = MissingAreaTour(records: [], start: .zero)
-        c.check("finish.emptyAtOnce", empty.isFinished && empty.remainingCount == 0 && empty.currentIndex == nil
-                && empty.update(fractions: [:], cameraToWorld: far, seconds: 0.1, trackingNormal: true).isEmpty)
+        let emptyEvents = empty.update(fractions: [:], cameraToWorld: far, seconds: 0.1, trackingNormal: true)
+        let emptyCount: Bool = empty.remainingCount == 0
+        let emptyCurrent: Bool = empty.currentIndex == nil
+        c.check("finish.emptyAtOnce", empty.isFinished && emptyCount && emptyCurrent && emptyEvents.isEmpty)
         let doorsOnly = MissingAreaTour(records: [record(1, centroid: .zero, surface: .door, viewpoint: .zero)], start: .zero)
         c.check("finish.doorsOnlyIsEmpty", doorsOnly.isFinished && doorsOnly.stops.isEmpty)
     }
@@ -346,22 +370,25 @@ enum MissingAreasSelfTest {
         let arrived = MissingAreaArrow(bearing: 0, pitch: 1.2, horizontalDistance: 0, atViewpoint: true)
         c.check("hud.noDistanceAtViewpoint", MissingAreasPresentation.distanceText(arrived, units: metric) == nil)
         let lowered = MissingAreaArrow(bearing: 0, pitch: -1.2, horizontalDistance: 0, atViewpoint: true)
-        let hints = [MissingAreasPresentation.hintText(arrived), MissingAreasPresentation.hintText(lowered),
-                     MissingAreasPresentation.hintText(walking), MissingAreasPresentation.hintText(nil)]
-        c.check("hud.upAndDownHints", hints == [GuidanceKind.scanCeiling.message.text, GuidanceKind.pointAtFloor.message.text,
-                                                Copy.Quality.missingAreaHint, Copy.Quality.missingAreaHint])
+        let hints: [String] = [MissingAreasPresentation.hintText(arrived), MissingAreasPresentation.hintText(lowered),
+                               MissingAreasPresentation.hintText(walking), MissingAreasPresentation.hintText(nil)]
+        let expectedHints: [String] = [GuidanceKind.scanCeiling.message.text, GuidanceKind.pointAtFloor.message.text,
+                                       Copy.Quality.missingAreaHint, Copy.Quality.missingAreaHint]
+        c.check("hud.upAndDownHints", hints == expectedHints)
         var tour = threeStops()
         let firstStep = MissingAreasPresentation.stepText(tour)
         _ = tour.next()
         let secondStep = MissingAreasPresentation.stepText(tour)
-        c.check("hud.stepLine", firstStep == Copy.Quality.missingAreaStep(1, of: 3)
-                && secondStep == Copy.Quality.missingAreaStep(2, of: 3))
+        let firstOK: Bool = firstStep == Copy.Quality.missingAreaStep(1, of: 3)
+        let secondOK: Bool = secondStep == Copy.Quality.missingAreaStep(2, of: 3)
+        c.check("hud.stepLine", firstOK && secondOK)
         c.check("hud.noStepWhenEmpty", MissingAreasPresentation.stepText(MissingAreaTour(records: [], start: .zero)) == nil)
         let directions: [MissingAreaDirection] = [.ahead, .left, .right, .behind, .up, .down]
         let spoken = Set(directions.map { MissingAreasPresentation.spokenText($0) })
         c.check("hud.spokenTextsDistinct", spoken.count == 6 && !spoken.contains(""))
-        c.check("hud.upDownNotRotated", MissingAreasPresentation.rotationRadians(arrived) == 0
-                && MissingAreasPresentation.symbolName(lowered) == "arrow.down.circle.fill")
+        let notRotated: Bool = MissingAreasPresentation.rotationRadians(arrived) == 0
+        let downSymbol: Bool = MissingAreasPresentation.symbolName(lowered) == "arrow.down.circle.fill"
+        c.check("hud.upDownNotRotated", notRotated && downSymbol)
 
         var announcer = MissingAreasAnnouncer()
         let first = announcer.shouldAnnounce(.left, now: 10)
@@ -387,9 +414,15 @@ enum MissingAreasSelfTest {
                                            suggestedViewpoint: .zero)]
         input.overallComplete = true
         MissingAreasModel.tourGuidance(&input)
-        let cleared = input.viewCoverage == nil && input.nearbyMissing.isEmpty && !input.overallComplete
-        let kept = input.tracking == .excessiveMotion && input.angularSpeed == 2 && input.linearSpeed == 1.5
-            && input.centerDistance == 0.2 && input.ambientIntensity == 100 && input.deviceHot
+        let coverageCleared: Bool = input.viewCoverage == nil
+        let cleared: Bool = coverageCleared && input.nearbyMissing.isEmpty && !input.overallComplete
+        let trackingKept: Bool = input.tracking == .excessiveMotion
+        let angularKept: Bool = input.angularSpeed == Float(2)
+        let linearKept: Bool = input.linearSpeed == Float(1.5)
+        let distanceKept: Bool = input.centerDistance == Float(0.2)
+        let lightKept: Bool = input.ambientIntensity == Float(100)
+        let speedsKept: Bool = trackingKept && angularKept && linearKept
+        let kept: Bool = speedsKept && distanceKept && lightKept && input.deviceHot
         c.check("guidance.tourClearsCoverageKeepsSafety", cleared && kept)
     }
 }
