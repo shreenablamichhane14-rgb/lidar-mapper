@@ -6,7 +6,7 @@ This file is the lead session's handoff. It says what is on the `integration` br
 
 | Branch | Content | CI |
 |---|---|---|
-| `integration` | main plus Core contracts (with design review fixes), RESEARCH.md (final check done), REUSE.md, THIRD_PARTY_NOTICES.md, ARCHITECTURE.md, MODULES.md, docs/design/review.md, Texturing, Coverage, MeshProcessing, all self-tests wired | green, run 36485459310 |
+| `integration` | build 4 (0.4) room MVP: every build 4 module, 27 self-test suites, docs (RESEARCH, REUSE, ARCHITECTURE, MODULES with build 5 contracts, design review) | green, run 36505904465 (IPA artifact `Mapper-ipa` on that run) |
 | `impl/core` | Core contracts, merged | green, run 36466990651 |
 | `impl/texturing` | texturing completion, merged | green, run 36468628757 |
 | `impl/coverage` | coverage completion, merged | green, run 36468934774 |
@@ -47,7 +47,7 @@ The stopped routine sessions' branches (`design/architecture`, `docs/research-md
 
 ### What to test first on the phone
 
-1. Install the IPA from the latest green `integration` run and open the app. Wait about a minute, then pull the log (`python tools/phone_log.py usb`) and report every `self-test FAIL` line and each suite's time. None of the 27 suites has run on a device yet.
+1. Install the IPA from run 36505904465 (or any later green `integration` run) and open the app. Wait about a minute, then pull the log (`python tools/phone_log.py usb`) and report every `self-test FAIL` line and each suite's time. None of the 27 suites has run on a device yet.
 2. Settings > Diagnostics > Demo Mode on, then run New Scan > Room through to the result screen and an export. This checks every screen without the camera.
 3. Demo Mode off. Scan one real room (TEST_PLAN ROOM-01 to ROOM-05), finish, and wait for the result screen. The log answers the open device questions: whether scene depth and the LiDAR mesh keep arriving under RoomCaptureView (lines from the capture watchdog and `degraded` mode), mesh anchor counts, keyframe counts and skips, memory, and the RoomPlan callback thread.
 4. Then the build 4 acceptance list in `docs/TEST_PLAN.md` section 0.3 ("Build 4 (0.4) notes"). TextureLowStep made it into build 4, so TEX-01 and EXP-02 run with textures. PROJ-02 (rename) also works in build 4.
