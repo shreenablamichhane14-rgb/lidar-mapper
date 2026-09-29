@@ -1,6 +1,14 @@
 import Foundation
 import simd
 
+/// One entry of the Plan Items menu (VoiceOver selection of any plan element).
+struct PlanEditorListItem: Identifiable, Equatable {
+    /// The element.
+    let id: ElementID
+    /// Its title (`PlanEditorPresentation.itemTitle`).
+    let title: String
+}
+
 /// Tools, taps, commands, the inspector and prompts of the plan editor (docs/MODULES.md 3.37,
 /// rules "Taps" and "Prompts"). Drags are in `PlanEditorModel+Drag.swift`.
 extension PlanEditorModel {
@@ -25,7 +33,7 @@ extension PlanEditorModel {
 
     /// Clears the snap marker and line.
     func clearSnap() {
-        setSnapKind(nil)
+        setSnap(nil, at: nil)
     }
 
     // MARK: - Taps
@@ -149,15 +157,16 @@ extension PlanEditorModel {
         let radius = max(PlanEditorSnapping.endpointRadius, tolerance.isFinite ? tolerance : 0)
         let result = PlanEditorSnapping.snap(point, anchor: anchor, targets: targets, radius: radius,
                                              grid: PlanEditorSnapping.gridStep(prefs), enabled: snappingEnabled)
-        showSnap(result.kind)
+        showSnap(result.kind, at: result.point)
         return result.point
     }
 
-    /// Publishes a snap kind; a new end, wall or angle snap plays the selection haptic.
-    func showSnap(_ kind: PlanSnapKind) {
+    /// Publishes a snap kind and its point; a new end, wall or angle snap plays the selection
+    /// haptic.
+    func showSnap(_ kind: PlanSnapKind, at point: SIMD2<Float>? = nil) {
         let shown: PlanSnapKind? = kind == PlanSnapKind.none ? nil : kind
         if let now = shown, now != snapKind, now != .grid { Haptics.selection() }
-        setSnapKind(shown)
+        setSnap(shown, at: point)
     }
 
     /// Merge Rooms: joins the tapped rooms into the tool's room.
@@ -344,7 +353,7 @@ extension PlanEditorModel {
     }
 
     /// Selectable items of the level with their titles, for the VoiceOver Plan Items menu.
-    var itemList: [(id: ElementID, title: String)] {
+    var itemList: [PlanEditorListItem] {
         guard plan.levels.indices.contains(levelIndex) else { return [] }
         let level = plan.levels[levelIndex]
         var items: [PlanEditorItem] = []
@@ -359,7 +368,8 @@ extension PlanEditorModel {
         items += level.annotations.map { PlanEditorItem.annotation($0) }
         items += level.dimensions.filter { $0.isUser }.map { PlanEditorItem.dimension($0) }
         return items.map { item in
-            (id: PlanEditorModel.itemID(item), title: PlanEditorPresentation.itemTitle(item, level: level, roomTitles: roomTitles))
+            PlanEditorListItem(id: PlanEditorModel.itemID(item),
+                               title: PlanEditorPresentation.itemTitle(item, level: level, roomTitles: roomTitles))
         }
     }
 

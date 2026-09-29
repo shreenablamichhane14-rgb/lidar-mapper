@@ -170,7 +170,7 @@ extension PlanEditorModel {
         let targets = PlanSnapTargets(endpoints: [], segments: [], axis: PlanEditorSnapping.referenceAxis(level))
         let result = PlanEditorSnapping.snap(p, anchor: nil, targets: targets, radius: 0,
                                              grid: PlanEditorSnapping.gridStep(prefs), enabled: snappingEnabled)
-        showSnap(result.kind)
+        showSnap(result.kind, at: result.point)
         return result.point
     }
 }

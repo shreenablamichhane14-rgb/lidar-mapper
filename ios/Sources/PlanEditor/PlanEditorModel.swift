@@ -49,6 +49,8 @@ struct PlanEditorLoadResult: Sendable {
     @Published private(set) var mergeSelection: [ElementID]
     /// What the last drawn or dragged point snapped to (nil when nothing snapped).
     @Published private(set) var snapKind: PlanSnapKind?
+    /// Where it snapped (the snap marker), when the snap was to a point.
+    @Published private(set) var snapMarker: SIMD2<Float>?
     /// Snapping toggle (More menu).
     @Published var snappingEnabled: Bool
     /// Undo and Redo availability.
@@ -70,6 +72,8 @@ struct PlanEditorLoadResult: Sendable {
     /// Plan bounds the canvas fits to; changed only on load, level change and `refit()`, so the
     /// view does not jump while editing.
     @Published private(set) var fitBounds: (min: SIMD2<Double>, max: SIMD2<Double>)?
+    /// Increases on every Reset View request; the canvas resets its zoom and pan on a change.
+    @Published private(set) var viewResets: Int
 
     /// The project being edited.
     let projectID: UUID
@@ -105,6 +109,7 @@ struct PlanEditorLoadResult: Sendable {
         pendingPoints = []
         mergeSelection = []
         snapKind = nil
+        snapMarker = nil
         snappingEnabled = true
         canUndo = false
         canRedo = false
@@ -116,6 +121,7 @@ struct PlanEditorLoadResult: Sendable {
         promptError = nil
         notice = nil
         fitBounds = nil
+        viewResets = 0
     }
 
     // MARK: - Loading
@@ -327,9 +333,10 @@ struct PlanEditorLoadResult: Sendable {
         mergeSelection = rooms
     }
 
-    /// Publishes what the last point snapped to (nil for nothing).
-    func setSnapKind(_ kind: PlanSnapKind?) {
+    /// Publishes what the last point snapped to and where (nil for nothing).
+    func setSnap(_ kind: PlanSnapKind?, at point: SIMD2<Float>?) {
         snapKind = kind
+        snapMarker = kind == nil ? nil : point
     }
 
     /// Shows a drag preview of the plan and draws it.
@@ -376,9 +383,15 @@ struct PlanEditorLoadResult: Sendable {
                                    name: PlanEditorPresentation.levelTitle(level))
     }
 
-    /// Fits the canvas to the current drawing again (Reset View).
+    /// Fits the canvas to the current drawing again.
     func refit() {
         fitBounds = drawing?.plan.bounds()
+    }
+
+    /// Reset View from the More menu: fits again and asks the canvas to drop its zoom and pan.
+    func requestViewReset() {
+        refit()
+        viewResets += 1
     }
 
     /// Shows another level: clears the selection and the tool, redraws and refits.
