@@ -4,8 +4,9 @@ import RealityKit
 // overlay, so every file naming them imports both (docs/MODULES.md rule 0.2.13).
 import SwiftUI
 
-// State, error and feedback mapping, the Object Capture preflight and the capture versus
-// reconstruction counters (docs/MODULES.md 3.33; RESEARCH 3.3 gotchas 1, 3, 10 and 15).
+// The capture value types, state, error and feedback mapping, the Object Capture preflight and
+// the capture versus reconstruction counters (docs/MODULES.md 3.33; RESEARCH 3.3 gotchas 1, 3,
+// 10 and 15).
 
 /// Mapper's copy of `ObjectCaptureSession.CaptureState` without the error payload.
 enum ObjectCaptureStage: String, Equatable, Sendable {
@@ -17,6 +18,39 @@ enum ObjectScanFailure: Equatable, Sendable {
     case cancelled, directoryNotEmpty, insufficientStorage(requiredBytes: Int64), sensorFailed, trackingFailed
     /// Any other error; the payload is for the log only.
     case other(String)
+}
+
+/// What an object scan becomes: the project, its package and the object id.
+struct ObjectScanTarget: Equatable, Sendable {
+    /// The project the object belongs to.
+    var projectID: UUID
+    /// The project's package.
+    var package: ProjectPackage
+    /// The `ObjectRecord.id` the scan will become (also `InProgressScanInfo.roomID`, which
+    /// carries the object id for `kind == .object`).
+    var objectID: UUID
+}
+
+/// A sealed object scan.
+struct ObjectScanResult: Equatable, Sendable {
+    /// The object id.
+    var objectID: UUID
+    /// `raw/objects/<id>/` after sealing.
+    var sealedFolder: URL
+    /// Image files sealed under `Images/`.
+    var imageCount: Int
+    /// The `objectlog.json` written before sealing.
+    var log: ObjectCaptureLog
+}
+
+/// Where the capture model is.
+enum ObjectScanPhase: Equatable, Sendable {
+    case idle, capturing, reviewing, finishing, sealing
+    case done(ObjectScanResult)
+    /// The session failed; `imageCount` photos are on disk (Use These Photos needs at least
+    /// `ObjectScanFolders.minimumImages`).
+    case failed(ObjectScanFailure, imageCount: Int)
+    case cancelled
 }
 
 /// One preflight finding. `unsupported`, `lowStorage` and `deviceHot` block; `deviceWarm` warns.

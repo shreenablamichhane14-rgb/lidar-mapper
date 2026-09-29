@@ -185,6 +185,55 @@ extension ObjectScanModel {
         ObjectCaptureSignals.log("object \(object): session started, \(settings), \(device)")
     }
 
+    // MARK: Start helpers
+
+    /// `InProgressScans.create` with `InProgressScanInfo(scanID: objectID, projectID:, sessionID: nil,
+    /// roomID: objectID, kind: .object, mode: .object, startedAt:)` (no ARKit session; the object id
+    /// in `roomID` as for large objects), then `ObjectScanFolders.prepare`; a failing prepare
+    /// removes the new folder before rethrowing.
+    nonisolated static func makeScanFolder(for target: ObjectScanTarget) throws -> (folder: RawScanFolder, images: URL, checkpoint: URL) {
+        let scanID = target.objectID
+        let info = InProgressScanInfo(scanID: scanID, projectID: target.projectID, sessionID: nil, roomID: scanID,
+                                      kind: .object, mode: .object, startedAt: Date())
+        let created = try InProgressScans.create(info)
+        do {
+            let paths = try ObjectScanFolders.prepare(created)
+            return (folder: created, images: paths.images, checkpoint: paths.checkpoint)
+        } catch {
+            do {
+                try InProgressScans.discard(scanID: scanID)
+            } catch {
+                ObjectCaptureSignals.log("object \(scanID): removing the new folder failed (\(StoreFiles.describe(error)))")
+            }
+            throw error
+        }
+    }
+
+    /// Records the start state (time, heat, free space, memory, photogrammetry limits).
+    func beginDiagnostics() {
+        diagnostics.begin(startedAt: Date(), uptime: ObjectScanModel.uptime(), thermal: ProcessInfo.processInfo.thermalState,
+                          freeBytes: ProjectStore.freeBytes(), availableMemory: ProcessingGuards.availableMemory(),
+                          photogrammetryLimits: PhotogrammetryStore.deviceLimits())
+    }
+
+    // MARK: Helpers
+
+    /// Images currently in the scan's `Images/` folder (0 before `start`).
+    func currentImageCount() -> Int {
+        guard let folder else { return 0 }
+        return ObjectScanFolders.imageCount(in: ObjectScanFolders.imagesURL(in: folder))
+    }
+
+    /// Stages in which `pause()` is meaningful.
+    nonisolated static func canPause(_ stage: ObjectCaptureStage) -> Bool {
+        stage == .ready || stage == .detecting || stage == .capturing
+    }
+
+    /// Monotonic seconds for durations and the announcer.
+    nonisolated static func uptime() -> Double {
+        ProcessInfo.processInfo.systemUptime
+    }
+
     // MARK: Quiet guidance
 
     /// The announcer's defaults: the `quietGuidanceSuite` suite with `SettingsKey.guidanceHaptics`

@@ -4,43 +4,6 @@ import RealityKit
 // `ObjectCaptureSession` lives in the RealityKit + SwiftUI cross-import overlay (rule 0.2.13).
 import SwiftUI
 
-// MARK: Types
-
-/// What an object scan becomes: the project, its package and the object id.
-struct ObjectScanTarget: Equatable, Sendable {
-    /// The project the object belongs to.
-    var projectID: UUID
-    /// The project's package.
-    var package: ProjectPackage
-    /// The `ObjectRecord.id` the scan will become (also `InProgressScanInfo.roomID`, which
-    /// carries the object id for `kind == .object`).
-    var objectID: UUID
-}
-
-/// A sealed object scan.
-struct ObjectScanResult: Equatable, Sendable {
-    /// The object id.
-    var objectID: UUID
-    /// `raw/objects/<id>/` after sealing.
-    var sealedFolder: URL
-    /// Image files sealed under `Images/`.
-    var imageCount: Int
-    /// The `objectlog.json` written before sealing.
-    var log: ObjectCaptureLog
-}
-
-/// Where the capture model is.
-enum ObjectScanPhase: Equatable, Sendable {
-    case idle, capturing, reviewing, finishing, sealing
-    case done(ObjectScanResult)
-    /// The session failed; `imageCount` photos are on disk (Use These Photos needs at least
-    /// `ObjectScanFolders.minimumImages`).
-    case failed(ObjectScanFailure, imageCount: Int)
-    case cancelled
-}
-
-// MARK: Capture model
-
 /// Main actor. Owns at most one `ObjectCaptureSession` (RESEARCH 3.3; REUSE 2.5). Stored Tasks
 /// iterate `stateUpdates`, `feedbackUpdates`, `cameraTrackingUpdates`,
 /// `userCompletedScanPassUpdates`, `numberOfShotsTakenUpdates` and `isPausedUpdates` with
@@ -137,26 +100,10 @@ enum ObjectScanPhase: Equatable, Sendable {
             ObjectCaptureSignals.log("object \(target.objectID): start refused, a reconstruction is still counted")
             throw MapperError.objectCaptureFailed("a reconstruction is still running")
         }
-        let scanID = target.objectID
-        let info = InProgressScanInfo(scanID: scanID, projectID: target.projectID, sessionID: nil, roomID: scanID,
-                                      kind: .object, mode: .object, startedAt: Date())
-        let created = try InProgressScans.create(info)
-        let paths: (images: URL, checkpoint: URL)
-        do {
-            paths = try ObjectScanFolders.prepare(created)
-        } catch {
-            do {
-                try InProgressScans.discard(scanID: scanID)
-            } catch {
-                ObjectCaptureSignals.log("object \(scanID): removing the new folder failed (\(StoreFiles.describe(error)))")
-            }
-            throw error
-        }
-        folder = created
-        writer = RawScanWriter(folder: created)
-        diagnostics.begin(startedAt: Date(), uptime: ObjectScanModel.uptime(), thermal: ProcessInfo.processInfo.thermalState,
-                          freeBytes: ProjectStore.freeBytes(), availableMemory: ProcessingGuards.availableMemory(),
-                          photogrammetryLimits: PhotogrammetryStore.deviceLimits())
+        let paths = try ObjectScanModel.makeScanFolder(for: target)
+        folder = paths.folder
+        writer = RawScanWriter(folder: paths.folder)
+        beginDiagnostics()
         let newSession = ObjectCaptureSession()
         sessionToken.acquire()
         session = newSession
@@ -518,21 +465,5 @@ enum ObjectScanPhase: Equatable, Sendable {
         let callback = onEnded
         onEnded = nil
         callback?()
-    }
-
-    /// Images currently in the scan's `Images/` folder.
-    private func currentImageCount() -> Int {
-        guard let folder else { return 0 }
-        return ObjectScanFolders.imageCount(in: ObjectScanFolders.imagesURL(in: folder))
-    }
-
-    /// Stages in which `pause()` is meaningful.
-    private static func canPause(_ stage: ObjectCaptureStage) -> Bool {
-        stage == .ready || stage == .detecting || stage == .capturing
-    }
-
-    /// Monotonic seconds for durations and the announcer.
-    nonisolated static func uptime() -> Double {
-        ProcessInfo.processInfo.systemUptime
     }
 }
