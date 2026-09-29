@@ -251,7 +251,8 @@ import simd
             let message = failure
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    self?.didPersist(failure: message)
+                    guard let model = self else { return }
+                    model.didPersist(failure: message)
                 }
             }
         }

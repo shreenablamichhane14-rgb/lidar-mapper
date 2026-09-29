@@ -71,9 +71,9 @@ enum MeasureToolSelfTest {
         let normal = MeasureMath.polygonNormal(rectangle)
         var normalOK = false
         if let unit = normal {
-            let vertical: Bool = near(abs(unit.y), 1)
+            let upright: Bool = near(abs(unit.y), 1)
             let level: Bool = near(unit.x, 0) && near(unit.z, 0)
-            normalOK = vertical && level
+            normalOK = upright && level
         }
         log.check("area.centerAndNormal", near(center, SIMD3<Float>(1, 0, -1.5)) && normalOK,
                   "center \(center), normal \(String(describing: normal))")
