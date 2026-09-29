@@ -332,6 +332,8 @@ Core changes for build 4 (CR-2, CR-4, CR-5 and CR-6 below) were applied on `inte
 - CR-10 (Quality revision, wave 5a0; specified in 3.31b): `QualityEvaluator.evaluateSealedRoom(package:record:passes:now:)`, `QualityEvaluator.doneInputHash(seals:)` and `QualityStep(room:passes:)` (default `[]`), so a room's sealed mesh-pass folders count in its quality.
 - Other revisions of build 4 modules in wave 5a0 (no change request number, each specified in its own section): RoomModel (3.37b), FloorPlan (3.37c), CaptureCore `run(options:initialWorldMap:)` and `ScanConfigurationFactory.make(_:initialWorldMap:)` (3.30b), RoomCapture `makeCaptureView` keeps a running session (3.30c), Viewer3D `loadModel` (3.34a). The build 4 screens are revised in wave 5c (3.43a to 3.43d) and AppShell in 5d (3.43e).
 
+Lead decision after the build 4 end-to-end review (E3): the CR-2 low-confidence rule (2 sigma above max(4 cm, 3 percent of the length)) applies to lengths; an area or volume takes its low-confidence flag from its sides (wall area from length and height, floor area from length and width, total wall area from the wall areas, volume from floor area and ceiling height). `MeasureDisplay` has row overloads that use the row's own flag.
+
 ### 3.1 Derived and raw file contract (all modules)
 
 Paths below are relative to the project package (`ProjectPackage.root`). Core names the top-level ones; the producing module owns the others and exposes a loader. A consumer in a later wave calls the loader; a consumer in the same wave gets the data through an injected closure.
