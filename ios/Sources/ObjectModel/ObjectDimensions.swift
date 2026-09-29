@@ -207,6 +207,7 @@ enum ObjectDimensions {
         let source = record.source
         let provenance = record.provenance
         let relative: Double = 2 * Double(sigmaParameters(source).relative)
+        /// A length value with the size class's sigma and the record's provenance.
         func length(_ value: Float) -> MeasuredValue {
             MeasuredValue(value: Double(value), sigma: sigma(length: value, source: source), provenance: provenance)
         }

@@ -112,13 +112,15 @@ extension ObjectModelLoader {
     }
 
     /// The elements of a position buffer (empty for none). Taking an optional lets the call
-    /// compile whether the SDK declares the buffer optional or not.
-    private static func vectors(_ buffer: MeshBuffer<SIMD3<Float>>?) -> [SIMD3<Float>] {
+    /// compile whether the SDK declares the buffer optional or not. Main actor like its only
+    /// caller, so a main-actor RealityKit accessor is never reached from nonisolated code.
+    @MainActor private static func vectors(_ buffer: MeshBuffer<SIMD3<Float>>?) -> [SIMD3<Float>] {
         buffer?.elements ?? []
     }
 
-    /// The elements of a triangle index buffer (empty for none; parts without triangles have none).
-    private static func corners(_ buffer: MeshBuffer<UInt32>?) -> [UInt32] {
+    /// The elements of a triangle index buffer (empty for none; parts without triangles have
+    /// none). Main actor like its only caller.
+    @MainActor private static func corners(_ buffer: MeshBuffer<UInt32>?) -> [UInt32] {
         buffer?.elements ?? []
     }
 }

@@ -155,7 +155,7 @@ enum ObjectModelLoader {
                 collected.skipped.append("\(label): index bit depth \(submesh.indexType.rawValue)")
                 continue
             }
-            let buffer = submesh.indexBuffer
+            let buffer: any MDLMeshBuffer = submesh.indexBuffer
             let map = buffer.map()
             let found: [UInt32]? = withExtendedLifetime(map) {
                 let bytes = UnsafeRawBufferPointer(start: UnsafeRawPointer(map.bytes), count: buffer.length)

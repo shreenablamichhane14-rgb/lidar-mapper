@@ -310,7 +310,10 @@ enum ObjectModelSelfTest {
         estimated.provenance = .estimated
         estimated.source = .large
         let large = ObjectDimensions.measuredValues(estimated)
-        r.check("values.estimatedLarge", large.depth.provenance == .estimated && abs((large.depth.sigma ?? 0) - 0.02) < 1e-6)
+        let largeEstimated: Bool = large.depth.provenance == Provenance.estimated
+        let largeSigma: Double = large.depth.sigma ?? 0
+        let largeSigmaOK: Bool = abs(largeSigma - 0.02) < 1e-6
+        r.check("values.estimatedLarge", largeEstimated && largeSigmaOK)
     }
 
     // MARK: - Index buffers
