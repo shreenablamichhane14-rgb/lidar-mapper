@@ -58,6 +58,13 @@ struct ExportRequest: Identifiable, Equatable {
     /// True while the recovery error alert shows.
     @Published var showsRecoveryError = false
 
+    /// Binding target of the recovery sheet (`$router.showsRecoverySheet`): shown while the
+    /// queue is not empty. Writes are ignored; the sheet closes through Keep Scan or Discard.
+    var showsRecoverySheet: Bool {
+        get { !recoveryQueue.isEmpty }
+        set { _ = newValue }
+    }
+
     /// The project to open once the scan cover has closed (set by a finished scan).
     private var pendingResult: UUID?
     /// True once the launch sequence ran (the root view's task can run again after the cover).
