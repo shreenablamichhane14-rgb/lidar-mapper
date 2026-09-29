@@ -186,8 +186,8 @@ final class MergeStructureStep: ProcessingStep {
                 finalOutcome = .builderFailed
                 finalDetail = "structure.json not written: \(error)"
                 finalMerged = []
-                try? saveResult(ctx, outcome: finalOutcome, merged: finalMerged, active: active, provisional: provisional,
-                                detail: finalDetail, hash: hash, started: started)
+                _ = try? saveResult(ctx, outcome: finalOutcome, merged: finalMerged, active: active, provisional: provisional,
+                                    detail: finalDetail, hash: hash, started: started)
                 throw error
             }
         } else {
@@ -198,15 +198,21 @@ final class MergeStructureStep: ProcessingStep {
         ctx.progress(1)
         let seconds = Date().timeIntervalSince(started)
         let after = UInt64(clamping: os_proc_available_memory())
-        var line = "merge \(finalOutcome.rawValue): \(finalMerged.count) of \(active.count) active rooms merged, "
-            + "\(provisional.count) provisional, \(String(format: "%.1f", seconds)) s, "
-            + "memory before \(ctx.availableMemory / 1_000_000) MB, after \(after / 1_000_000) MB"
+        let secondsText: String = String(format: "%.1f", seconds)
+        let beforeMB: UInt64 = ctx.availableMemory / 1_000_000
+        let afterMB: UInt64 = after / 1_000_000
+        var parts: [String] = []
+        parts.append("merge \(finalOutcome.rawValue): \(finalMerged.count) of \(active.count) active rooms merged")
+        parts.append("\(provisional.count) provisional")
+        parts.append("\(secondsText) s")
+        parts.append("memory before \(beforeMB) MB, after \(afterMB) MB")
         if finalOutcome == .merged, let structure {
-            line += ", surfaces: \(structure.rooms.count) rooms, \(structure.walls.count) walls, \(structure.doors.count) doors, "
-                + "\(structure.windows.count) windows, \(structure.openings.count) openings, \(structure.objects.count) objects"
+            parts.append("surfaces: \(structure.rooms.count) rooms, \(structure.walls.count) walls")
+            parts.append("\(structure.doors.count) doors, \(structure.windows.count) windows")
+            parts.append("\(structure.openings.count) openings, \(structure.objects.count) objects")
         }
-        if let finalDetail { line += ", detail: \(finalDetail)" }
-        log(line)
+        if let finalDetail { parts.append("detail: \(finalDetail)") }
+        log(parts.joined(separator: ", "))
     }
 
     /// Writes merge.json for this run.

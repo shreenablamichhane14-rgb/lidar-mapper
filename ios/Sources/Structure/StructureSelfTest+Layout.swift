@@ -102,14 +102,17 @@ extension StructureSelfTest {
         let firstLow = placed(SIMD2<Float>(0, 0), parked[F.uuid(70)])
         let firstHigh = placed(SIMD2<Float>(2, 2), parked[F.uuid(70)])
         let secondLow = placed(SIMD2<Float>(0, 0), parked[F.uuid(71)])
-        let apartOK = F.near(firstLow, SIMD2<Float>(5, 0), 1e-5) && secondLow.x >= firstHigh.x + StructureLayout.parkingGap - 1e-4
-        c.check("parking.groupsNeverOverlap", apartOK, "\(firstLow) \(firstHigh) \(secondLow)")
+        let firstAtBuilding = F.near(firstLow, SIMD2<Float>(5, 0), 1e-5)
+        let clearX: Float = firstHigh.x + StructureLayout.parkingGap - 1e-4
+        c.check("parking.groupsNeverOverlap", firstAtBuilding && secondLow.x >= clearX, "\(firstLow) \(firstHigh) \(secondLow)")
         let layout = placed(SIMD2<Float>(4, 0), parked[F.uuid(72)]) - secondLow
         c.check("parking.keepsGroupLayout", F.near(layout, SIMD2<Float>(4, 0), 1e-5), "\(layout)")
         let alone = StructureLayout.parking([first, second], placed: [])
-        let aloneOK = F.near(placed(SIMD2<Float>(0, 0), alone[F.uuid(70)]), SIMD2<Float>(0, 0), 1e-6)
-            && F.near(placed(SIMD2<Float>(0, 0), alone[F.uuid(71)]), SIMD2<Float>(3, 0), 1e-5)
-        c.check("parking.firstGroupStaysWithoutBuilding", aloneOK)
+        let aloneFirst = placed(SIMD2<Float>(0, 0), alone[F.uuid(70)])
+        let aloneSecond = placed(SIMD2<Float>(0, 0), alone[F.uuid(71)])
+        let firstStays = F.near(aloneFirst, SIMD2<Float>(0, 0), 1e-6)
+        let secondFollows = F.near(aloneSecond, SIMD2<Float>(3, 0), 1e-5)
+        c.check("parking.firstGroupStaysWithoutBuilding", firstStays && secondFollows)
     }
 
     // MARK: Walls and doorways
@@ -143,9 +146,12 @@ extension StructureSelfTest {
         c.check("walls.exteriorEstimated", outsideThick && outside?.thicknessSource == Provenance.estimated)
         var single = CleanModel(rooms: [roomA], sourceIsStructure: false, stamp: nil)
         StructureWalls.applyThickness([], exteriorThickness: exterior, to: &single)
-        let singleOK = !single.rooms[0].walls.isEmpty
-            && single.rooms[0].walls.allSatisfy { F.near($0.thickness, 0.115, 1e-6) && $0.thicknessSource == .estimated }
-        c.check("walls.singleRoomFloorKeepsDefault", singleOK)
+        let singleWalls = single.rooms[0].walls
+        let defaultKept = singleWalls.allSatisfy { wall -> Bool in
+            let thin = F.near(wall.thickness, 0.115, 1e-6)
+            return thin && wall.thicknessSource == Provenance.estimated
+        }
+        c.check("walls.singleRoomFloorKeepsDefault", !singleWalls.isEmpty && defaultKept)
         let far = F.cleanRoom(F.rectangle(82, SIMD2<Float>(4.8, 0), SIMD2<Float>(8, 5), wallBase: 220), record: F.uuid(82))
         let apart = CleanModel(rooms: [roomA, far], sourceIsStructure: true, stamp: nil)
         c.check("walls.facesTooFarNoPair", StructureWalls.sharedWalls(in: apart).isEmpty)
@@ -217,7 +223,9 @@ extension StructureSelfTest {
         let unsnapped = StructureSnapping.snap(farRoom, rotation: 0.5, translation: SIMD2<Float>(1, 1), others: [])
         let pivot = farRoom.centroid
         let unsnappedPivot = StructureAlignment.planTransform(pivot, by: unsnapped.delta)
-        let gestureKept = F.near(unsnapped.delta.yaw, 0.5, 1e-6) && F.near(unsnappedPivot, pivot + SIMD2<Float>(1, 1), 1e-5)
+        let movedPivot: SIMD2<Float> = pivot + SIMD2<Float>(1, 1)
+        let gestureYawKept = F.near(unsnapped.delta.yaw, 0.5, 1e-6)
+        let gestureKept = gestureYawKept && F.near(unsnappedPivot, movedPivot, 1e-5)
         let noSnap = unsnapped.snap == AlignSnapKind.none && unsnapped.delta.source == Provenance.user
         c.check("snap.noneKeepsGesture", noSnap && gestureKept)
 

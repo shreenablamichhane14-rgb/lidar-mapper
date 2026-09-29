@@ -69,8 +69,12 @@ enum StructureSelfTest {
             swapped[i].afterEnd = start
         }
         let fixed = StructureAlignment.solve(swapped)
-        let swappedOK = F.near(fixed?.yaw ?? 9, truth.yaw, 1e-3) && F.near(fixed?.translation ?? far, truth.translation.simd, 1e-3)
-        c.check("solve.swappedEnds", swappedOK && (fixed?.rms ?? 1) < 1e-3, "\(String(describing: fixed))")
+        let fixedYaw: Float = fixed?.yaw ?? 9
+        let fixedShift: SIMD3<Float> = fixed?.translation ?? far
+        let fixedRMS: Float = fixed?.rms ?? 1
+        let swappedYawOK = F.near(fixedYaw, truth.yaw, 1e-3)
+        let swappedShiftOK = F.near(fixedShift, truth.translation.simd, 1e-3)
+        c.check("solve.swappedEnds", swappedYawOK && swappedShiftOK && fixedRMS < 1e-3, "\(String(describing: fixed))")
 
         c.check("solve.onePairNil", StructureAlignment.solve([pairs[0]]) == nil)
         let crossing = [
@@ -127,8 +131,11 @@ enum StructureSelfTest {
                      F.solution(yaw: 0.1, translation: SIMD3<Float>(3, 0.1, 4)),
                      F.solution(yaw: 0.2, translation: SIMD3<Float>(2, 0.2, 6))]
         let middle = StructureAlignment.median(three)
-        let medianOK = F.near(middle?.yaw ?? 9, 0.2, 1e-6) && F.near(middle?.translation ?? SIMD3<Float>.zero, SIMD3<Float>(2, 0.1, 5), 1e-6)
-        c.check("median.three", medianOK, "\(String(describing: middle))")
+        let middleYaw: Float = middle?.yaw ?? 9
+        let middleShift: SIMD3<Float> = middle?.translation ?? SIMD3<Float>.zero
+        let medianYawOK = F.near(middleYaw, 0.2, 1e-6)
+        let medianShiftOK = F.near(middleShift, SIMD3<Float>(2, 0.1, 5), 1e-6)
+        c.check("median.three", medianYawOK && medianShiftOK, "\(String(describing: middle))")
         c.check("median.emptyNil", StructureAlignment.median([]) == nil)
     }
 
@@ -156,19 +163,25 @@ enum StructureSelfTest {
 
         let w0 = room.walls[0]
         let m0 = moved.walls[0]
-        c.check("apply.wallEnds", F.near(m0.start.simd, expected(w0.start.simd), 1e-4) && F.near(m0.end.simd, expected(w0.end.simd), 1e-4))
+        let startMoved = F.near(m0.start.simd, expected(w0.start.simd), 1e-4)
+        let endMoved = F.near(m0.end.simd, expected(w0.end.simd), 1e-4)
+        c.check("apply.wallEnds", startMoved && endMoved)
         let n = w0.normal
         c.check("apply.normal", F.near(m0.normal.simd, SIMD3<Float>(n.z, n.y, -n.x), 1e-5), "\(m0.normal)")
         let quarterTurn: Float = Float.pi / 2
         let startWanted: Float = 0.2 + quarterTurn
         let endWanted: Float = 1.2 + quarterTurn
-        let arcCenterOK = F.near(m0.arc?.center.simd ?? SIMD3<Float>.zero, expected(SIMD3<Float>(2, 0, -1)), 1e-4)
-        let arcAnglesOK = F.near(m0.arc?.startAngle ?? 0, startWanted, 1e-5) && F.near(m0.arc?.endAngle ?? 0, endWanted, 1e-5)
+        let arcCenter: SIMD3<Float> = m0.arc?.center.simd ?? SIMD3<Float>.zero
+        let arcStart: Float = m0.arc?.startAngle ?? 0
+        let arcEnd: Float = m0.arc?.endAngle ?? 0
+        let arcCenterOK = F.near(arcCenter, expected(SIMD3<Float>(2, 0, -1)), 1e-4)
+        let arcAnglesOK = F.near(arcStart, startWanted, 1e-5) && F.near(arcEnd, endWanted, 1e-5)
         c.check("apply.arc", arcCenterOK && arcAnglesOK, "\(String(describing: m0.arc))")
-        let outlineOK = room.floor.outline.count == moved.floor.outline.count
-            && zip(room.floor.outline, moved.floor.outline).allSatisfy { before, after in
-                F.near(after.simd, SIMD2<Float>(1 - before.y, before.x - 2), 1e-4)
-            }
+        var outlineOK = room.floor.outline.count == moved.floor.outline.count && !room.floor.outline.isEmpty
+        for (before, after) in zip(room.floor.outline, moved.floor.outline) {
+            let wanted = SIMD2<Float>(1 - before.y, before.x - 2)
+            if !F.near(after.simd, wanted, 1e-4) { outlineOK = false }
+        }
         c.check("apply.floorOutline", outlineOK)
         c.check("apply.elevation", F.near(moved.floor.elevation, room.floor.elevation + 0.5, 1e-6))
         let objectOK = moved.objects.count == 1

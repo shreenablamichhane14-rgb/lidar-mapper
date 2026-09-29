@@ -68,14 +68,15 @@ extension StructureAlignment {
         let larger = smallerIsFirst ? second : first
         let box = smallerIsFirst ? boxA : boxB
         let size = box.max - box.min
-        var step = (cell.isFinite && cell > 0) ? cell : 0.05
-        var columns = Swift.max(1, Int((size.x / step).rounded(.up)))
-        var rows = Swift.max(1, Int((size.y / step).rounded(.up)))
-        while columns * rows > maximumOverlapCells {
+        guard size.x.isFinite, size.y.isFinite else { return 0 }
+        var step: Float = (cell.isFinite && cell > 0) ? cell : 0.05
+        // Coarsen in Double first so a huge outline never overflows the Int conversion.
+        let limit = Double(maximumOverlapCells)
+        while Double(Swift.max(1, size.x / step)) * Double(Swift.max(1, size.y / step)) > limit {
             step *= 2
-            columns = Swift.max(1, Int((size.x / step).rounded(.up)))
-            rows = Swift.max(1, Int((size.y / step).rounded(.up)))
         }
+        let columns = Swift.max(1, Int((size.x / step).rounded(.up)))
+        let rows = Swift.max(1, Int((size.y / step).rounded(.up)))
         var inSmaller = 0
         var inBoth = 0
         for row in 0..<rows {

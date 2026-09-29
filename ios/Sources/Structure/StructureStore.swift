@@ -126,7 +126,8 @@ enum StructureStore {
 
     /// A file inside derived/structure/.
     private static func file(_ package: ProjectPackage, _ name: String) -> URL {
-        package.structureURL.appendingPathComponent(name, isDirectory: false)
+        let folder: URL = package.structureURL
+        return folder.appendingPathComponent(name, isDirectory: false)
     }
 
     /// `ProjectStore.ensureDirectory(package.structureURL, inside: package.root)` (CR-6).
