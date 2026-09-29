@@ -40,7 +40,7 @@ import AVFoundation
     nonisolated static let presentationGapSeconds: Double = 0.35
 
     /// What closing the current alert does next.
-    private enum FollowUp {
+    private enum FollowUp: Sendable {
         /// Nothing (the flow continues by itself).
         case stay
         /// End the flow with `onDismiss`.

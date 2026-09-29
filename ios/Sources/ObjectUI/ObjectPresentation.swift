@@ -92,7 +92,10 @@ enum ObjectPresentation {
         if processing.isRunning || processing.isQueued {
             return processingAvailability(processing, progress: progress)
         }
-        if status == .needsAttention || !processing.failed.isEmpty || status == .ready {
+        let needsAttention: Bool = status == .needsAttention || !processing.failed.isEmpty
+        // A ready project whose files are missing: Retry rebuilds them.
+        let readyWithoutFiles: Bool = status == .ready
+        if needsAttention || readyWithoutFiles {
             return .failed(reason: Copy.Errors.processingFailed.body)
         }
         return .processing(text: Copy.ObjectUI.waiting, percent: nil, remaining: nil)
