@@ -5,7 +5,11 @@ import SwiftUI
 /// `dataSection`) with their plain explanations and, when unavailable, the reason; the options
 /// that apply to the chosen format; the Export button with "Preparing file..." and "Ready to
 /// share"; and the share sheet with the finished file. Errors show `Copy.Errors.exportFailed`
-/// with Try Again.
+/// with Try Again. Build 5: while an export runs the bar shows its progress
+/// (`ProgressView(value:)` with `Copy.Export.preparing`) and a Cancel button
+/// (`Copy.Project.cancel`) that cancels the run's task; a cancelled export leaves no file and
+/// returns to the list without a share sheet (EXP-09). Object and Quick Measure projects list
+/// only their own formats (`ExportCatalog.options(for:)` by kind).
 ///
 /// AppShell presents it with `.sheet(item:)` from the result screen and passes the result
 /// screen's `ExportViewState` (Hide Furniture, plan toggles), which every export follows. The
@@ -28,6 +32,8 @@ struct ExportSheet: View {
     @State private var settings = ExportSettings()
     /// True while an export runs.
     @State private var isPreparing = false
+    /// Progress of the running export, 0...1.
+    @State private var progressValue: Double = 0
     /// Drives the share sheet.
     @State private var shareItem: ExportShareItem?
     /// The item the share sheet was opened with (its folder is removed when it closes).
@@ -113,7 +119,7 @@ struct ExportSheet: View {
 
     /// One format: label, explanation, and the reason or the simplified note; a checkmark when chosen.
     private func optionRow(_ option: ExportOption, inputs: ExportInputs) -> some View {
-        let text = ExportCatalog.label(for: option.format)
+        let text = ExportCatalog.label(for: option)
         let isSelected = option.id == selectedID
         let simplified = ExportCatalog.isSimplified(option, inputs: inputs)
         return Button {
@@ -161,7 +167,7 @@ struct ExportSheet: View {
 
     /// The options that apply to the chosen format, when there are any.
     @ViewBuilder private var optionsSection: some View {
-        if let option = selectedOption, option.isAvailable, hasControls(for: option) {
+        if let option = selectedOption, let inputs, option.isAvailable, hasControls(for: option, inputs: inputs) {
             Section {
                 optionControls(for: option)
             } header: {
@@ -170,9 +176,20 @@ struct ExportSheet: View {
         }
     }
 
-    /// True when the format has at least one option.
-    private func hasControls(for option: ExportOption) -> Bool {
-        option.representation != .raw
+    /// True when the format has at least one option: none for raw scans and objects, and the
+    /// data JSON of objects and Quick Measure projects is always complete.
+    private func hasControls(for option: ExportOption, inputs: ExportInputs) -> Bool {
+        switch option.representation {
+        case .raw, .object:
+            return false
+        case .data:
+            switch inputs.kind {
+            case .room, .advancedSpace, .house: return true
+            case .object, .advancedObject, .quickMeasure: return false
+            }
+        case .realistic, .clean, .floorPlan:
+            return true
+        }
     }
 
     /// Include textures (realistic), Include hidden objects (clean and plan), Include
@@ -216,31 +233,44 @@ struct ExportSheet: View {
 
     // MARK: - Export bar
 
-    /// Status line and the Export button, pinned to the bottom.
+    /// Status line and the Export button (Cancel while an export runs), pinned to the bottom.
     private var exportBar: some View {
         VStack(spacing: 10) {
             statusLine
-            Button {
-                startExport()
-            } label: {
-                Text(Copy.Export.button)
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
+            if isPreparing {
+                Button(role: .cancel) {
+                    exportTask?.cancel()
+                } label: {
+                    Text(Copy.Project.cancel)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            } else {
+                Button {
+                    startExport()
+                } label: {
+                    Text(Copy.Export.button)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(!canExport)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(!canExport)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.bar)
     }
 
-    /// "Preparing file..." with a spinner while exporting, "Ready to share" while sharing.
+    /// "Preparing file..." with the export's progress while exporting, "Ready to share" while sharing.
     @ViewBuilder private var statusLine: some View {
         if isPreparing {
-            HStack(spacing: 8) {
-                ProgressView()
+            VStack(alignment: .leading, spacing: 6) {
+                ProgressView(value: progressValue)
+                    .progressViewStyle(.linear)
                 Text(Copy.Export.preparing)
             }
             .font(.subheadline)
@@ -285,6 +315,7 @@ struct ExportSheet: View {
     private func startExport() {
         guard let option = selectedOption, option.isAvailable, !isPreparing else { return }
         isPreparing = true
+        progressValue = 0
         shareItem = nil
         let exportSettings = settings
         let state = viewState
@@ -296,7 +327,11 @@ struct ExportSheet: View {
                 }.value
                 let prefs = UnitPreferences.load()
                 let url = try await ExportRunner.run(option, settings: exportSettings, viewState: state, projectID: id,
-                                                     package: package, prefs: prefs)
+                                                     package: package, prefs: prefs, progress: { value in
+                    Task { @MainActor in
+                        if isPreparing { progressValue = Swift.max(progressValue, value) }
+                    }
+                })
                 isPreparing = false
                 let folder = url.deletingLastPathComponent()
                 if Task.isCancelled {
