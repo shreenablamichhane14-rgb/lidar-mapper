@@ -203,22 +203,9 @@ enum MeshAbandonKind: String, Equatable, Sendable {
 
 /// Log lines of the LiveMeshView module (category `MeshScanEngine.logCategory`). Thread-safe.
 enum MeshScanLog {
-    /// Guards `loggedKeys`.
-    private static let lock = NSLock()
-    /// Keys already written by `once`.
-    private static var loggedKeys = Set<String>()
-
     /// Writes one line.
     static func write(_ message: String) {
         LogStore.shared.write(message, category: MeshScanEngine.logCategory)
-    }
-
-    /// Writes `message` the first time `key` is seen in this app run.
-    static func once(_ key: String, _ message: String) {
-        lock.lock()
-        let isNew = loggedKeys.insert(key).inserted
-        lock.unlock()
-        if isNew { write(message) }
     }
 
     /// Thermal level, available memory and (unless `storage` is false, as on the hub queue,

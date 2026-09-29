@@ -146,7 +146,7 @@ extension MeshScanEngine {
         guard let folder = q.folder, let writer = q.writer else {
             MeshScanLog.write("finish (\(reason)) without a pass folder; nothing to seal")
             q.phase = MeshScanStats.next(q.phase, on: .failure)
-            publish(state: .failed, events: [.stateChanged(.failed), .failed(.ioFailed("mesh pass folder missing at finish"))])
+            publish(state: .failed, events: [.failed(.ioFailed("mesh pass folder missing at finish"))])
             return
         }
         q.phase = MeshScanStats.next(q.phase, on: .finish)

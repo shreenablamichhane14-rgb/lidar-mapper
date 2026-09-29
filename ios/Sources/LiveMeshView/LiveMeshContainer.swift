@@ -61,6 +61,9 @@ struct LiveMeshContainer: UIViewRepresentable {
             overlay.session = hub.session
             overlay.goal = .tracking
             overlay.activatesAutomatically = true
+            // Without a delegate that implements the reset request, Start Over would run the
+            // session with `.resetTracking` and drop the shared world frame.
+            overlay.delegate = coordinator
             overlay.translatesAutoresizingMaskIntoConstraints = false
             arView.addSubview(overlay)
             NSLayoutConstraint.activate([
@@ -102,6 +105,7 @@ struct LiveMeshContainer: UIViewRepresentable {
         }
         if let overlay = coordinator.coachingOverlay {
             overlay.setActive(false, animated: false)
+            overlay.delegate = nil
             overlay.session = nil
             overlay.removeFromSuperview()
             coordinator.coachingOverlay = nil
@@ -151,5 +155,16 @@ struct LiveMeshContainer: UIViewRepresentable {
         guard recognizer.state == .ended, let arView = recognizer.view as? ARView else { return }
         let point = recognizer.location(in: arView)
         onTap?(point, arView)
+    }
+}
+
+/// The coaching overlay's delegate (RESEARCH 3.10: `coachingOverlayViewDidRequestSessionReset(_:)`).
+/// ARKit's protocol is not actor-isolated, so the witness is `nonisolated` and touches only the log.
+extension LiveMeshCoordinator: ARCoachingOverlayViewDelegate {
+    /// The user tapped Start Over. Implementing this stops the overlay from resetting the session
+    /// itself (its default is a run with `.resetTracking`, which would drop the world frame a
+    /// borrowed room session shares); ARKit keeps relocalizing instead. Never resets anything.
+    nonisolated func coachingOverlayViewDidRequestSessionReset(_ coachingOverlayView: ARCoachingOverlayView) {
+        MeshScanLog.write("coaching overlay Start Over ignored: the shared session is never reset")
     }
 }

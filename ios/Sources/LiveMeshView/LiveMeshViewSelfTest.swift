@@ -1,4 +1,7 @@
 import Foundation
+// For the `ScanRecorder` requirements (ARFrame, ARAnchor) the stub recorder below inherits
+// defaults for; nothing here runs a session.
+import ARKit
 
 // Self-test of the LiveMeshView module (docs/MODULES.md 3.32, section 0.5): the engine's pure
 // rules, the target factories, the recorder set, the sealed mesh-pass lookup (in a temporary

@@ -151,7 +151,6 @@ import Combine
             let shown: GuidanceKind? = engine.state == .scanning ? newSnapshot.guidance : nil
             announcer.present(shown, now: newSnapshot.timestamp)
         case .stateChanged(let newState):
-            if newState != .scanning { announcer.present(nil, now: snapshot.timestamp) }
             syncState()
             if newState == .idle { onIdle?() }
             return
@@ -171,9 +170,12 @@ import Combine
         syncState()
     }
 
-    /// Copies the engine's state (written in the same main hop as the event).
+    /// Copies the engine's state (written in the same main hop as the event) and hides the
+    /// announced guidance whenever the engine is not scanning (`.roomFinished` and `.failed`
+    /// change the state without a `.stateChanged` event).
     private func syncState() {
         let current = engine.state
+        if current != .scanning { announcer.present(nil, now: snapshot.timestamp) }
         if state != current { state = current }
         let paused = current == .paused
         if isPaused != paused { isPaused = paused }

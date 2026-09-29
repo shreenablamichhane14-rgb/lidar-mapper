@@ -193,14 +193,16 @@ final class MeshScanEngine: ScanEngine {
     /// root before the seal (names checked by `MeshScanStats.isSafeAttachmentName`), for example
     /// LargeObject's log. Unsafe names are dropped and logged.
     func finish(attachments: [String: Data]) {
-        var safe: [String: Data] = [:]
+        var checked: [String: Data] = [:]
         for (name, data) in attachments {
             if MeshScanStats.isSafeAttachmentName(name) {
-                safe[name] = data
+                checked[name] = data
             } else {
                 MeshScanLog.write("attachment refused: unsafe or reserved name (\(name.utf8.count) bytes)")
             }
         }
+        // A let copy: the hub-queue closure must not capture a mutable local.
+        let safe = checked
         hub.queue.async { [weak self] in
             self?.beginFinish(systemStop: nil, reason: "finish()", attachments: safe)
         }

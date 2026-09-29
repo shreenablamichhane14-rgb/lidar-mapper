@@ -184,7 +184,7 @@ extension MeshScanEngine {
     func failSeal(_ context: MeshFinishContext, reason: String) async {
         if context.systemStop != nil { await onMain { self.hub.pause() } }
         await onHubQueue { self.q.phase = MeshScanStats.next(self.q.phase, on: .failure) }
-        publish(state: .failed, events: [.stateChanged(.failed), .failed(.ioFailed("seal: \(reason)"))])
+        publish(state: .failed, events: [.failed(.ioFailed("seal: \(reason)"))])
     }
 
     /// Step 9: `lastResult`, `.finished` and `.roomFinished(roomID: passID)`, then the notice
@@ -209,7 +209,9 @@ extension MeshScanEngine {
                                     keyframeCount: stats.keyframes, photoCount: stats.photos,
                                     meshFaceCount: stats.meshFaces, frameLink: .projectFrame(sessionID: target.sessionID),
                                     capturedAt: Date(), stoppedBySystem: context.systemStop != nil)
-        var events: [ScanEngineEvent] = [.stateChanged(.finished), .roomFinished(roomID: target.passID)]
+        // As specified (and as RoomCapture): `.roomFinished` then the notice; the state becomes
+        // `.finished` in the same main hop, without a separate `.stateChanged` event.
+        var events: [ScanEngineEvent] = [.roomFinished(roomID: target.passID)]
         if let notice = context.notice { events.append(.failed(notice)) }
         let counts = "\(stats.meshFaces) faces, \(stats.keyframes) keyframes, \(stats.photos) photos"
         let ending = "degraded \(context.log.degraded.rawValue), system stop \(context.systemStop?.copyKey ?? "none")"
