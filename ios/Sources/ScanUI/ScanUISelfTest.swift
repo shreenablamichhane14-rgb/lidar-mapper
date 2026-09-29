@@ -7,9 +7,9 @@ import Foundation
 // files only under FileManager.default.temporaryDirectory, removed afterwards. The demo room is
 // one small mesh consolidation and one quality evaluation (a few hundred ms on an A15).
 //
-// CHECK COUNT (61 when every group runs to the end):
+// CHECK COUNT (62 when every group runs to the end):
 //   preflight decision          14
-//   phase reducer               13
+//   phase reducer               14
 //   time rules                   6
 //   alerts and copy             11
 //   settings, tips, names        6
@@ -108,6 +108,10 @@ enum ScanUISelfTest {
         c.check("reducer.permissionPath", asked == .permission && granted == .tips, "\(asked) \(granted)")
         c.check("reducer.permissionDenied", ScanFlowModel.nextPhase(.permission, on: .permissionDenied) == .cancelled)
         c.check("reducer.preflightBlocked", ScanFlowModel.nextPhase(.preflight, on: .preflightBlocked) == .cancelled)
+        let tipsCancelled: ScanFlowPhase = ScanFlowModel.nextPhase(.tips, on: .cancelConfirmed)
+        let permissionCancelled: ScanFlowPhase = ScanFlowModel.nextPhase(.permission, on: .cancelConfirmed)
+        c.check("reducer.cancelBeforeCapture", tipsCancelled == .cancelled && permissionCancelled == .cancelled,
+                "\(tipsCancelled) \(permissionCancelled)")
         c.check("reducer.cancelWhileCapturing", ScanFlowModel.nextPhase(.capturing, on: .cancelConfirmed) == .cancelled)
         c.check("reducer.cancelWhileStopping", ScanFlowModel.nextPhase(.stopping, on: .cancelConfirmed) == .cancelled)
         c.check("reducer.discardOnSheet", ScanFlowModel.nextPhase(.quality, on: .discarded) == .cancelled)
