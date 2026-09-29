@@ -6,7 +6,7 @@ import simd
 /// `run()` returns one line per failing check ("name: detail"); empty means all passed.
 enum MeasureCoreSelfTest {
     /// Number of checks `run()` performs.
-    static let checkCount = 52
+    static let checkCount = 60
 
     /// Runs every check.
     static func run() -> [String] {
@@ -14,6 +14,7 @@ enum MeasureCoreSelfTest {
         confidenceChecks(log)
         displayChecks(log)
         dimensionChecks(log)
+        productChecks(log)
         snapChecks(log)
         var failures = log.failures
         if log.count != checkCount {
@@ -230,6 +231,42 @@ enum MeasureCoreSelfTest {
         let noneLow: Bool = !objectRows.contains { $0.isLowConfidence }
         log.check("objectRows.floorAndNotLow", floorOK && noneLow,
                   objectRows.map { "\($0.id) \(String(describing: $0.value.sigma))" }.joined(separator: ", "))
+    }
+
+    // MARK: - Products and estimated values (8 checks)
+
+    /// Areas and volumes take their flag from their factors; estimated values read differently.
+    static func productChecks(_ log: MeasureCoreSelfTestLog) {
+        let fixtures = MeasureCoreSelfTestFixtures.self
+        let rows = RoomDimensions.rows(for: fixtures.closet(), evidence: fixtures.closetEvidence())
+        let shortWall = rows.first { $0.id == "wall.\(fixtures.id(61).uuid.uuidString).area" }
+        let shortFlagged: Bool = shortWall?.isLowConfidence ?? true
+        let areaRuleAlone: Bool = shortWall.map { MeasureDisplay.isLowConfidence($0.value, kind: .area) } ?? false
+        log.check("products.shortWallAreaNotLow", !shortFlagged && areaRuleAlone,
+                  "\(String(describing: shortWall?.value)) flagged \(shortFlagged), area rule \(areaRuleAlone)")
+        let floor = rows.first { $0.id == "room.floorArea" }
+        log.check("products.smallFloorAreaNotLow", floor.map { !$0.isLowConfidence } ?? false, "\(String(describing: floor?.value))")
+        log.check("products.closetNothingLow", rows.allSatisfy { !$0.isLowConfidence },
+                  rows.filter { $0.isLowConfidence }.map { $0.id }.joined(separator: ","))
+        let shortText: String? = shortWall.flatMap { MeasureDisplay.accuracyText($0, prefs: imperial) }
+        log.check("products.rowTextFollowsRowFlag", shortText != nil && shortText != Copy.Measure.lowConfidence,
+                  shortText ?? "nil")
+
+        let estimated = MeasuredValue(value: 2.4, sigma: floorSigma, provenance: .estimated)
+        let body = MeasureDisplay.toleranceText(sigma: floorSigma, kind: .height, prefs: imperial) ?? "?"
+        let estimatedText = MeasureDisplay.accuracyText(estimated, kind: .height, prefs: imperial)
+        let measuredText = MeasureDisplay.accuracyText(MeasuredValue(value: 2.4, sigma: floorSigma, provenance: .measured),
+                                                       kind: .height, prefs: imperial)
+        log.check("estimated.text", estimatedText == Copy.MeasureCore.estimatedAccuracy(body) && estimatedText != measuredText,
+                  "\(String(describing: estimatedText)) / \(String(describing: measuredText))")
+        let spoken = MeasureDisplay.spokenAccuracy(estimated, kind: .height, prefs: imperial)
+        log.check("estimated.spoken", spoken == Copy.MeasureCore.estimatedAccuracySpoken(MeasureSpoken.text(body)),
+                  spoken ?? "nil")
+        let weak = MeasuredValue(value: 3, sigma: ConfidenceAdapter.lowConfidenceSigma(length: 3), provenance: .estimated)
+        log.check("estimated.lowConfidenceWins",
+                  MeasureDisplay.accuracyText(weak, kind: .height, prefs: imperial) == Copy.Measure.lowConfidence)
+        let rowText = shortWall.map { $0.accessibilityText(prefs: imperial) } ?? ""
+        log.check("products.spokenFollowsRowFlag", !rowText.isEmpty && !rowText.contains(Copy.Measure.lowConfidence), rowText)
     }
 
     // MARK: - Snapping (10 checks)

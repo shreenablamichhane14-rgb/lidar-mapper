@@ -145,8 +145,10 @@ struct ResultDimensionsPanel: View {
 }
 
 /// One measurement: its name (and element name above the first row of an element), the value in
-/// the user's units and its confidence text (accuracy, low confidence or "Estimated, not
-/// measured"). VoiceOver reads the whole row with units spoken in full.
+/// the user's units and its confidence text (accuracy, low confidence, "Not measured directly,
+/// estimated" or "Estimated, not measured"), with the row's own low-confidence flag. A value that
+/// was not measured directly also shows a dashed circle, so it reads differently without color.
+/// VoiceOver reads the whole row with units spoken in full.
 struct ResultDimensionRowView: View {
     /// The row.
     let row: DimensionRow
@@ -203,10 +205,16 @@ struct ResultDimensionRowView: View {
         VStack(alignment: alignment, spacing: 2) {
             Text(MeasureDisplay.valueText(row.value, kind: row.kind, prefs: prefs))
                 .font(.body.weight(.semibold).monospacedDigit())
-            if let accuracy = MeasureDisplay.accuracyText(row.value, kind: row.kind, prefs: prefs) {
-                Text(accuracy)
-                    .font(.caption)
-                    .foregroundStyle(row.isLowConfidence ? Color.orange : Color.secondary)
+            if let accuracy = MeasureDisplay.accuracyText(row, prefs: prefs) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    if row.isNotMeasured && !row.isLowConfidence {
+                        Image(systemName: "circle.dashed")
+                            .accessibilityHidden(true)
+                    }
+                    Text(accuracy)
+                }
+                .font(.caption)
+                .foregroundStyle(row.isLowConfidence ? Color.orange : Color.secondary)
             }
         }
     }

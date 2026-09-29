@@ -28,6 +28,12 @@ extension Copy {
         /// Note shown with the Walls group.
         static let wallAreaNote = "Doors and windows are not counted in wall area."
 
+        /// Accuracy line of an estimated value (filled in from nearby surfaces or RoomPlan's own
+        /// numbers, not measured directly): "Not measured directly, estimated ±1 1/4\"".
+        static func estimatedAccuracy(_ value: String) -> String { "Not measured directly, estimated \u{00B1}\(value)" }
+        /// Spoken form of `estimatedAccuracy`.
+        static func estimatedAccuracySpoken(_ value: String) -> String { "Not measured directly, estimated plus or minus \(value)" }
+
         /// Row name read as one phrase: "Wall 1, Wall length".
         static func rowName(element: String, measure: String) -> String { "\(element), \(measure)" }
         /// A spoken measurement followed by its spoken accuracy.

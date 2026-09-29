@@ -372,9 +372,18 @@ ceiling, door, window, object edge. Snapping toggle: **Snap to corners and edges
 | lowConfidence | Low confidence, rescan this section |
 | rescan | Rescan This Section |
 | notMeasured | Estimated, not measured |
+| estimatedAccuracy (`Copy.MeasureCore`) | Not measured directly, estimated ±{value} |
+| estimatedAccuracySpoken (`Copy.MeasureCore`) | Not measured directly, estimated plus or minus {value} |
 | disclaimer | Measurements are estimates from your iPhone's sensors. Check critical dimensions with a tape measure. |
 
 The spec writes this with a dash; Mapper uses a comma instead.
+
+Display rules: a measured value shows `accuracy`; an estimated value (for example a ceiling
+height taken from RoomPlan because the ceiling was barely scanned) shows `estimatedAccuracy` with
+a dashed circle icon, so it never reads like a measured one, in text, color or VoiceOver; an
+inferred value shows `notMeasured` with the same icon; low confidence wins over all of them. An
+area or volume shows `lowConfidence` only when one of its sides (or the floor area and ceiling
+height of a volume) is low confidence, so small, well scanned walls and closets are not flagged.
 
 ### Measured vs estimated geometry
 
