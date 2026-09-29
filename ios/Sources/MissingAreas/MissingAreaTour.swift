@@ -273,7 +273,9 @@ struct MissingAreaTour: Equatable {
         let step: Float = spacing.isFinite && spacing > 0.01 ? spacing : sampleSpacing
         let area: Float = record.area.isFinite && record.area > 0 ? record.area : 0
         let radius: Float = Swift.max(minSampleRadius, (area / Float.pi).squareRoot())
-        let steps: Int = Swift.min(maxSampleSteps, Int((radius / step).rounded(.down)))
+        // Capped as a Float first: Int(_:) traps on a value out of range (a huge finite area).
+        let stepCount: Float = Swift.min(Float(maxSampleSteps), (radius / step).rounded(.down))
+        let steps: Int = stepCount.isFinite && stepCount > 0 ? Int(stepCount) : 0
         let basis = planeBasis(normal: record.normal.simd)
         let limit: Float = radius + 1e-5
         var out: [SIMD3<Float>] = [center]
