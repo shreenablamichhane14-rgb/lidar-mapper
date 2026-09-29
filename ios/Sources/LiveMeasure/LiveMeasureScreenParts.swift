@@ -1,8 +1,9 @@
 import SwiftUI
 
 // Pieces of the Quick Measure screen: the drawing layer over the camera (lines, end dots,
-// labels, the reticle, the "Snapped to" tag and the live label), the value label, and the
-// measurement list sheet. Every number comes from the model's MeasureDisplay helpers (Units).
+// labels, the reticle, the "Snapped to" tag and the live label), the value label, the
+// measurement list sheet, and the model's MeasureDisplay text helpers that every number on the
+// screen comes from (Units).
 
 /// Drawing layer in the ARView's coordinate space (full screen, safe area ignored): distance
 /// lines with end dots, value labels at their midpoints, the dashed line from the pending point
@@ -252,5 +253,29 @@ struct LiveMeasureListSheet: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.accessibilityText(label: title, value: segment.value))
+    }
+}
+
+/// Value, accuracy and VoiceOver texts of a distance through MeasureDisplay (Units formatting,
+/// the one low-confidence rule); part of the model API used by every label on the screen.
+extension LiveMeasureModel {
+    /// Value text of a distance in the user's units.
+    func valueText(_ value: MeasuredValue) -> String {
+        MeasureDisplay.valueText(value, kind: .distance, prefs: prefs)
+    }
+
+    /// Accuracy line (or the low-confidence line) of a distance, nil when there is none.
+    func accuracyText(_ value: MeasuredValue) -> String? {
+        MeasureDisplay.accuracyText(value, kind: .distance, prefs: prefs)
+    }
+
+    /// VoiceOver text of a distance named `label` (value and accuracy spoken in full).
+    func accessibilityText(label: String, value: MeasuredValue) -> String {
+        MeasureDisplay.accessibilityText(label: label, value: value, kind: .distance, prefs: prefs)
+    }
+
+    /// The one low-confidence rule (CR-2) for a distance.
+    func isLowConfidence(_ value: MeasuredValue) -> Bool {
+        MeasureDisplay.isLowConfidence(value, kind: .distance)
     }
 }

@@ -8,7 +8,8 @@ import simd
 // Quick Measure's model (MODULES 3.36, ARCHITECTURE 4.6): owns its own `ARSessionHub` (plane
 // detection on, the only mode where it is, D14), the probe recorder, the 15 Hz reticle loop
 // on main (raycasts and projections run on main only), the points and segments, guidance and
-// the idle timer token. Saving lives in LiveMeasureModel+Save.swift.
+// the idle timer token. Saving lives in LiveMeasureModel+Save.swift; the value, accuracy and
+// VoiceOver texts (through MeasureDisplay) are in LiveMeasureScreenParts.swift.
 //
 // Members beyond MODULES 3.36 (additive): `pendingScreen`, `hasFoundSurfaces`, `alertMessage`,
 // `isAlertShown` (alert binding), `viewDismantled(_:)`, `removeSegments(at:)`, `dismissAlert()`,
@@ -259,28 +260,6 @@ import simd
     /// Hides the alert.
     func dismissAlert() {
         isAlertShown = false
-    }
-
-    // MARK: - Text (through MeasureDisplay and Units)
-
-    /// Value, accuracy and VoiceOver texts through MeasureDisplay.
-    func valueText(_ value: MeasuredValue) -> String {
-        MeasureDisplay.valueText(value, kind: .distance, prefs: prefs)
-    }
-
-    /// Accuracy line (or the low-confidence line) of a distance, nil when there is none.
-    func accuracyText(_ value: MeasuredValue) -> String? {
-        MeasureDisplay.accuracyText(value, kind: .distance, prefs: prefs)
-    }
-
-    /// VoiceOver text of a distance named `label` (value and accuracy spoken in full).
-    func accessibilityText(label: String, value: MeasuredValue) -> String {
-        MeasureDisplay.accessibilityText(label: label, value: value, kind: .distance, prefs: prefs)
-    }
-
-    /// The one low-confidence rule (CR-2) for a distance.
-    func isLowConfidence(_ value: MeasuredValue) -> Bool {
-        MeasureDisplay.isLowConfidence(value, kind: .distance)
     }
 
     // MARK: - Save outcome

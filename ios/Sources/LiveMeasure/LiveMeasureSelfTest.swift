@@ -220,9 +220,9 @@ enum LiveMeasureSelfTest {
         c.check("confidence.good", sigma > 0 && !MeasureDisplay.isLowConfidence(value, kind: .distance), "sigma \(sigma)")
         var shaky = good
         shaky.trackingNormalFraction = 0.3
-        let weak = ConfidenceAdapter.distance(start: shaky, end: shaky, length: 1)
-        c.check("confidence.lowTracking", MeasureDisplay.isLowConfidence(weak, kind: .distance),
-                "sigma \(String(describing: weak.sigma))")
+        let shakyValue = ConfidenceAdapter.distance(start: shaky, end: shaky, length: 1)
+        c.check("confidence.lowTracking", MeasureDisplay.isLowConfidence(shakyValue, kind: .distance),
+                "sigma \(String(describing: shakyValue.sigma))")
 
         let start = LiveMeasurePoint(position: SIMD3<Float>(0, 0, 0), snap: .corner, evidence: good)
         let end = LiveMeasurePoint(position: SIMD3<Float>(1, 0, 0), snap: .plane, evidence: good, tag: .wall)
@@ -230,9 +230,12 @@ enum LiveMeasureSelfTest {
         let lengthOK = abs(segment.value.value - 1) < 1e-6
         c.check("segment.value", lengthOK && segment.value.provenance == .measured, "\(segment.value.value)")
         let record = segment.record()
-        let shapeOK = record.kind == .distance && record.points.count == 2 && record.snaps == [.corner, .plane]
-        let sourceOK = record.source == .live && record.roomID == nil && record.name.isEmpty
-        c.check("record.shape", shapeOK && sourceOK && record.id == segment.id, "\(record.kind) \(record.snaps)")
+        let expectedSnaps: [SnapKind] = [SnapKind.corner, SnapKind.plane]
+        let kindOK: Bool = record.kind == MeasurementKind.distance && record.points.count == 2
+        let snapsOK: Bool = record.snaps == expectedSnaps
+        let sourceOK: Bool = record.source == MeasurementSource.live && record.roomID == nil
+        let identityOK: Bool = record.name.isEmpty && record.id == segment.id
+        c.check("record.shape", kindOK && snapsOK && sourceOK && identityOK, "\(record.kind) \(record.snaps)")
         let lastPoint = record.points.last == Vec3(x: 1, y: 0, z: 0)
         c.check("record.points", lastPoint && record.result == segment.value, "\(record.points)")
         let line = LiveMeasureLog.describe(record)
