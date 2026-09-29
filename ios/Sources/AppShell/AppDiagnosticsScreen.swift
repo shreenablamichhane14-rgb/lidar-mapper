@@ -92,6 +92,7 @@ struct DiagnosticsScreen: View {
         SelfTestSuite(name: "Coverage live", run: CoverageLiveSelfTest.run),
         SelfTestSuite(name: "Structure", run: StructureSelfTest.run),
         SelfTestSuite(name: "Measure tool", run: MeasureToolSelfTest.run),
+        SelfTestSuite(name: "Plan editor", run: PlanEditorSelfTest.run),
     ]
 
     /// The shared self-test runner (the launch run and this screen show the same results).
