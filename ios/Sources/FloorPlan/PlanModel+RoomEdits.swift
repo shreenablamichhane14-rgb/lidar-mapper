@@ -11,10 +11,12 @@ extension PlanModel {
     static let minimumOpeningWidth: Float = 0.05
     /// A split that leaves less than this on either side of the line changes nothing, square meters.
     static let minimumSplitArea: Float = 0.01
-    /// Split line end points closer than this count as one point, meters.
-    static let splitPointTolerance: Float = 1e-4
-    /// Pieces of a split with less area than this are slivers and are dropped, square meters.
-    static let splitSliverArea: Float = 1e-6
+    /// Split line end points this close or closer count as one point, meters (RoomModel's
+    /// `RoomEditLimits.coincidentPoints`, so both models refuse the same lines).
+    static let splitPointTolerance: Float = 1e-6
+    /// Pieces of a split with less area than this are rounding slivers and are dropped, square
+    /// meters (RoomModel's `RoomEditLimits.sliverArea`, so both models keep the same pieces).
+    static let splitSliverArea: Float = 1e-4
     /// Log category of plan edits.
     static let editLogCategory = "floorplan"
 
@@ -192,7 +194,7 @@ extension PlanModel {
         var result: [[SIMD2<Float>]] = []
         for part in parts {
             let clipped = Polygon2D(points: part).clipped(leftOf: a, b)
-            guard clipped.points.count >= 3, clipped.area > splitSliverArea else { continue }
+            guard clipped.points.count >= 3, clipped.area >= splitSliverArea else { continue }
             result.append(clipped.signedArea < 0 ? Array(clipped.points.reversed()) : clipped.points)
         }
         return result

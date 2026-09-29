@@ -74,15 +74,16 @@ extension FloorPlanSelfTest {
         /// The fixture door after one operation.
         func door(_ op: EditOperation) -> (ok: Bool, opening: PlanOpening?) {
             let result = applying(op, to: base)
-            return (result.ok, result.plan.levels.first?.openings.first { $0.id == F.door })
+            return (result.ok, result.plan.levels.first?.openings.first(where: { $0.id == F.door }))
         }
         let far = door(.moveOpening(opening: F.door, offset: 3.5))
-        log.expect("b5.moveOpening.clampEnd", far.ok && abs((far.opening?.offset ?? -1) - 3.1) < 1e-4,
-                   "got \(String(describing: far.opening?.offset))")
+        let farOffset: Float = far.opening?.offset ?? -1
+        log.expect("b5.moveOpening.clampEnd", far.ok && abs(farOffset - 3.1) < 1e-4, "got \(farOffset)")
         let before = door(.moveOpening(opening: F.door, offset: -1))
         log.expect("b5.moveOpening.clampStart", before.ok && before.opening?.offset == 0)
         let moved = door(.moveOpening(opening: F.door, offset: 2))
-        let movedWidth = moved.opening?.width == 0.9 && moved.opening?.swing == base.levels.first?.openings.first?.swing
+        let baseSwing: DoorSwing? = base.levels.first?.openings.first(where: { $0.id == F.door })?.swing
+        let movedWidth: Bool = moved.opening?.width == 0.9 && moved.opening?.swing == baseSwing
         log.expect("b5.moveOpening.keepsWidthAndSwing", moved.ok && moved.opening?.offset == 2 && movedWidth)
         let missingMove = applying(.moveOpening(opening: F.id(990), offset: 1), to: base)
         log.expect("b5.moveOpening.missing", !missingMove.ok && missingMove.plan == base)

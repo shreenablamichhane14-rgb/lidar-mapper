@@ -6,6 +6,7 @@ import simd
 extension FloorPlanSelfTestFixtures {
     /// Room B (3 x 4 m, 0.12 m east of the 4 x 5 room) and its walls, counter-clockwise.
     static let roomB = id(2)
+    /// Room B's south, east, north and west walls.
     static let bSouth = id(40), bEast = id(41), bNorth = id(42), bWest = id(43)
     /// A stray partition inside the 4 x 5 room, and the room a split creates.
     static let partition = id(44), splitNewRoom = id(70)
