@@ -185,6 +185,13 @@ struct AppRecoverySheet: View {
     /// True after a button was tapped (both disable, a spinner shows).
     @State private var isWorking = false
 
+    /// Creates the sheet for one unfinished scan.
+    init(info: InProgressScanInfo, onKeep: @escaping () -> Void, onDiscard: @escaping () -> Void) {
+        self.info = info
+        self.onKeep = onKeep
+        self.onDiscard = onDiscard
+    }
+
     /// The sheet.
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

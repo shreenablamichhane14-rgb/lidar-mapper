@@ -40,7 +40,7 @@ enum AppInfo {
     /// Runs `DiagnosticsScreen.suites` in order, each in a detached task at `priority`. Before
     /// each suite, `shouldWait` is polled once a second (the launch run pauses while the scan
     /// cover is up). A second call while running returns at once.
-    func runAll(priority: TaskPriority, shouldWait: () -> Bool = { false }) async {
+    func runAll(priority: TaskPriority, shouldWait: @MainActor () -> Bool = { false }) async {
         guard !isRunning else { return }
         isRunning = true
         hasRun = true
