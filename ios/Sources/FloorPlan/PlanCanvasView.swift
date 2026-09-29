@@ -3,7 +3,9 @@ import UIKit
 import simd
 
 /// SwiftUI Canvas via GraphicsContext.withCGContext; DragGesture pans, MagnifyGesture zooms
-/// about its anchor, SpatialTapGesture hit-tests in model space (12 pt tolerance).
+/// about its anchor, SpatialTapGesture hit-tests in model space (12 pt tolerance). A double tap,
+/// the VoiceOver action Reset View (`Copy.Viewer.resetView`) or a change of `resetCount` brings
+/// the plan back to its fitted view, so it is never lost off screen (TEST_PLAN EDIT3D-06).
 ///
 /// The plan starts fitted to the view; pan and zoom are kept relative to that fit, so a new
 /// drawing of the same project keeps the user's view. A tap sets `selection` to the element
@@ -22,6 +24,8 @@ struct PlanCanvasView: View {
     private let drawing: PlanDrawingResult
     @Binding private var selection: ElementID?
     private let onTap: ((PlanHit?) -> Void)?
+    /// Each change resets pan and zoom (a Reset View button outside the canvas).
+    private let resetCount: Int
 
     /// Light or dark appearance.
     @Environment(\.colorScheme) private var colorScheme
@@ -32,11 +36,14 @@ struct PlanCanvasView: View {
     @State private var lastMagnification: CGFloat = 1
     @State private var lastTranslation: CGSize = .zero
 
-    /// Creates a canvas for a drawing with a selection binding and an optional tap callback.
-    init(drawing: PlanDrawingResult, selection: Binding<ElementID?>, onTap: ((PlanHit?) -> Void)? = nil) {
+    /// Creates a canvas for a drawing with a selection binding, an optional tap callback and a
+    /// reset counter (any change resets the view).
+    init(drawing: PlanDrawingResult, selection: Binding<ElementID?>, onTap: ((PlanHit?) -> Void)? = nil,
+         resetCount: Int = 0) {
         self.drawing = drawing
         self._selection = selection
         self.onTap = onTap
+        self.resetCount = resetCount
     }
 
     /// Canvas filling the available space with pan, zoom and tap gestures.
@@ -57,13 +64,31 @@ struct PlanCanvasView: View {
             }
             .contentShape(Rectangle())
             .gesture(panAndZoom(in: size))
-            .simultaneousGesture(tapGesture(in: size))
+            .simultaneousGesture(resetGesture.exclusively(before: tapGesture(in: size)))
         }
         .background(Color(uiColor: .systemBackground))
         .clipped()
+        .onChange(of: resetCount) { _, _ in resetView() }
         .accessibilityElement()
         .accessibilityLabel(Copy.A11y.floorPlan)
         .accessibilityHint(Copy.A11y.floorPlanHint)
+        .accessibilityAction(named: Copy.Viewer.resetView) { resetView() }
+    }
+
+    /// Double tap: back to the fitted view.
+    private var resetGesture: some Gesture {
+        SpatialTapGesture(count: 2, coordinateSpace: .local)
+            .onEnded { _ in resetView() }
+    }
+
+    /// Back to the fitted view (zoom 1, no pan).
+    private func resetView() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            zoom = 1
+            offset = .zero
+        }
+        lastMagnification = 1
+        lastTranslation = .zero
     }
 
     /// Hit of the selected element, when it is drawn.

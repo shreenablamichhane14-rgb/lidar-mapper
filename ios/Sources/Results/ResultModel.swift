@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 /// Inputs of the plan drawing; the drawing is rebuilt only when they change.
 struct ResultPlanInputs: Equatable, Sendable {
@@ -78,6 +79,8 @@ struct ResultPlanInputs: Equatable, Sendable {
     @Published var simpleModelFailed = false
     /// True while a tab's content is built off main.
     @Published private(set) var isBuildingContent = false
+    /// Incremented by `resetPlanView()`; the plan canvas resets its pan and zoom on each change.
+    @Published private(set) var planResetCount = 0
 
     // State shared with ResultModel+Loading.swift (internal because extensions in other files
     // cannot see private members; nothing outside the Results module uses it).
@@ -271,12 +274,17 @@ struct ResultPlanInputs: Equatable, Sendable {
 
     // MARK: - Applying loads
 
-    /// Applies a snapshot read off main (nil: the project could not be read).
+    /// Applies a snapshot read off main (nil: the project could not be read). When the
+    /// processing view gives way to the result without a failure, `announceReady()` runs.
     func apply(_ result: ResultLoadSnapshot?) {
         guard let snap = result else {
             if snapshot == nil { loadFailed = true }
             hasLoaded = true
             return
+        }
+        let wasProcessing = showsProcessingView
+        defer {
+            if wasProcessing && !showsProcessingView && processing.failed.isEmpty { announceReady() }
         }
         loadFailed = false
         snapshot = snap
@@ -290,6 +298,19 @@ struct ResultPlanInputs: Equatable, Sendable {
         reconcileSelection(with: snap.clean)
         if !hasLoaded { hasLoaded = true }
         chooseInitialTabIfNeeded()
+    }
+
+    /// The model is ready after the processing view (LIVE-10): a success haptic and a VoiceOver
+    /// announcement (`Copy.Processing.done`), for a user who put the phone down while it built.
+    private func announceReady() {
+        Haptics.success()
+        UIAccessibility.post(notification: .announcement, argument: Copy.Processing.done)
+        LogStore.shared.write("result ready: haptic and announcement", category: ResultLoader.logCategory)
+    }
+
+    /// Floor Plan's Reset View button: the canvas goes back to its fitted view.
+    func resetPlanView() {
+        planResetCount += 1
     }
 
     /// Picks the first ready tab (Realistic, 3D Clean, Floor Plan, Raw Scan) once, when the tabs
