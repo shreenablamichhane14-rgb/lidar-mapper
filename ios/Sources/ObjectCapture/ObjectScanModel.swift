@@ -5,22 +5,24 @@ import RealityKit
 import SwiftUI
 
 /// Main actor. Owns at most one `ObjectCaptureSession` (RESEARCH 3.3; REUSE 2.5). Stored Tasks
-/// iterate `stateUpdates`, `feedbackUpdates`, `cameraTrackingUpdates`,
-/// `userCompletedScanPassUpdates`, `numberOfShotsTakenUpdates` and `isPausedUpdates` with
-/// `for await`, capturing `[weak self]`; `teardown()` cancels them. The listeners, the log and
-/// the sealing work are in `ObjectScanModel+Session.swift`; every published change is made here.
-/// The model never writes the manifest (ObjectUI does).
+/// iterate `stateUpdates`, `feedbackUpdates`, `cameraTrackingUpdates`, `userCompletedScanPassUpdates`,
+/// `numberOfShotsTakenUpdates` and `isPausedUpdates` with `for await`, capturing `[weak self]`;
+/// `teardown()` cancels them. Listeners, log and sealing are in `ObjectScanModel+Session.swift`;
+/// every published change is made here. The model never writes the manifest (ObjectUI does).
 @MainActor final class ObjectScanModel: ObservableObject {
+    /// Where the scan is, the session's stage, the lap, and the photos taken.
     @Published private(set) var phase: ObjectScanPhase = .idle
     @Published private(set) var stage: ObjectCaptureStage = .initializing
     @Published private(set) var onboarding: ObjectOnboardingState = .firstSegment
     @Published private(set) var shotCount = 0
     /// `maximumNumberOfInputImages`, never a constant (RESEARCH 3.3 recommended 1).
     @Published private(set) var shotLimit = 0
+    /// Camera tracking is `.normal`, and the session is paused (controls show only when normal, unpaused).
     @Published private(set) var trackingNormal = true
     @Published private(set) var isPaused = false
     /// `.overCapturing` present: the shot counter turns red.
     @Published private(set) var overCapturing = false
+    /// False once `.objectNotFlippable` was reported (the review leads with the no-flip choice).
     @Published private(set) var flipRecommended = true
     /// `startDetecting()` returned false: the hint `Copy.ObjectCapture.notFoundHint` shows.
     @Published private(set) var detectionFailed = false
@@ -80,13 +82,11 @@ import SwiftUI
     // MARK: Start
 
     /// Main. `ObjectCapturePreflight.run()` (throws `.unsupportedDevice`, `.lowStorage(freeBytes:)`
-    /// or `.deviceTooHot` for its three blocking issues), `InProgressScans.create` with
-    /// `InProgressScanInfo(scanID: objectID, projectID:, sessionID: nil, roomID: objectID, kind: .object,
-    /// mode: .object, startedAt:)`, `ObjectScanFolders.prepare`, then `ObjectCaptureSession()`
-    /// (`ObjectCaptureActivity.captureStarted()`) and `start(imagesDirectory:configuration:)` with
-    /// `checkpointDirectory` set and `isOverCaptureEnabled = false`. Logs the limits. Throws
-    /// before creating a session when a check fails (also `MapperError.objectCaptureFailed` while
-    /// a reconstruction is still counted) and removes the folder it made. A second call is ignored.
+    /// or `.deviceTooHot`), `makeScanFolder` (InProgress folder, `Images/`, `Checkpoint/`), then
+    /// `ObjectCaptureSession()` (counted) and `start(imagesDirectory:configuration:)` with
+    /// `checkpointDirectory` set and `isOverCaptureEnabled = false`. Logs the limits. Throws before
+    /// creating a session when a check fails (also `MapperError.objectCaptureFailed` while a
+    /// reconstruction is still counted) and removes the folder it made. A second call is ignored.
     func start() throws {
         guard phase == .idle, session == nil, folder == nil else {
             ObjectCaptureSignals.log("object \(target.objectID): start ignored in phase \(phase)")

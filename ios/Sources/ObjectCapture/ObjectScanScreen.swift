@@ -24,7 +24,7 @@ struct ObjectScanScreen: View {
     @State private var pausedForBackground = false
     /// Mirror of `model.reviewPresented` for the sheet.
     @State private var showsReview = false
-    /// The too-few-photos alert over the camera, or over the review sheet.
+    /// The too-few-photos alert over the camera (it holds one overlay pause), or over the review sheet.
     @State private var tooFewOnScreen = false
     @State private var tooFewInReview = false
 
@@ -50,7 +50,10 @@ struct ObjectScanScreen: View {
             reviewSheet
         }
         .alert(Copy.ObjectCapture.tooFewPhotos.title, isPresented: $tooFewOnScreen) {
-            Button(Copy.Errors.ok) { model.showsTooFewPhotos = false }
+            Button(Copy.Errors.ok) {
+                model.showsTooFewPhotos = false
+                model.resumeFromOverlay()
+            }
         } message: {
             Text(Copy.ObjectCapture.tooFewPhotos.body)
         }
@@ -68,6 +71,9 @@ struct ObjectScanScreen: View {
             if model.reviewPresented {
                 tooFewInReview = true
             } else {
+                // An alert over the camera pauses the session like a sheet (RESEARCH 3.3 gotcha 5);
+                // the review sheet already holds a pause.
+                model.pauseForOverlay()
                 tooFewOnScreen = true
             }
         }

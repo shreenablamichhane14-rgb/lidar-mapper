@@ -209,7 +209,9 @@ enum ObjectCaptureSelfTest {
 
         let first = ObjectOnboarding.reviewChoices(for: .reviewFirst, flipRecommended: true)
         let firstNoFlip = ObjectOnboarding.reviewChoices(for: .reviewFirst, flipRecommended: false)
-        check(&failures, "review.firstLeadsWithFlip", first.first?.event == .chooseFlip && first.first?.isPrimary == true,
+        let firstEvent: ObjectOnboardingEvent? = first.first?.event
+        let firstPrimary: Bool = first.first?.isPrimary ?? false
+        check(&failures, "review.firstLeadsWithFlip", firstEvent == .chooseFlip && firstPrimary,
               "got \(first.map(\.title))")
         let leadsWithLower = firstNoFlip.first?.event == .chooseNoFlip
         let offersFlipAnyway = firstNoFlip.contains(where: { $0.title == Copy.ObjectCapture.flipAnyway })
@@ -238,8 +240,9 @@ enum ObjectCaptureSelfTest {
                                                           freeBytes: plenty, thermal: .nominal)
         let noPhotogrammetry = ObjectCapturePreflight.evaluate(captureSupported: true, photogrammetrySupported: false,
                                                                freeBytes: plenty, thermal: .nominal)
-        check(&failures, "preflight.unsupported",
-              unsupported.blocking == .unsupported && noPhotogrammetry.blocking == .unsupported,
+        let captureBlocked: Bool = unsupported.blocking == ObjectPreflightIssue.unsupported
+        let photogrammetryBlocked: Bool = noPhotogrammetry.blocking == ObjectPreflightIssue.unsupported
+        check(&failures, "preflight.unsupported", captureBlocked && photogrammetryBlocked,
               "got \(String(describing: unsupported.blocking)), \(String(describing: noPhotogrammetry.blocking))")
         let low = ObjectCapturePreflight.evaluate(captureSupported: true, photogrammetrySupported: true,
                                                   freeBytes: 2_900_000_000, thermal: .nominal)
@@ -250,7 +253,9 @@ enum ObjectCaptureSelfTest {
         check(&failures, "preflight.critical", hot.blocking == .deviceHot, "got \(String(describing: hot.blocking))")
         let warm = ObjectCapturePreflight.evaluate(captureSupported: true, photogrammetrySupported: true,
                                                    freeBytes: plenty, thermal: .serious)
-        check(&failures, "preflight.serious", warm.blocking == nil && warm.warnings == [.deviceWarm],
+        let warmWarnings: [ObjectPreflightIssue] = [.deviceWarm]
+        let warmOK: Bool = warm.blocking == nil && warm.warnings == warmWarnings
+        check(&failures, "preflight.serious", warmOK,
               "got \(String(describing: warm.blocking)) \(warm.warnings)")
         let fine = ObjectCapturePreflight.evaluate(captureSupported: true, photogrammetrySupported: true,
                                                    freeBytes: plenty, thermal: .fair)

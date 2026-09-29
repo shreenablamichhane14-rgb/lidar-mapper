@@ -43,7 +43,9 @@ extension ObjectCaptureSelfTest {
         let box = BoundingBox(min: SIMD3<Float>(-0.1, 0, -0.2), max: SIMD3<Float>(0.3, 0.25, 0.2))
         let bounds = PhotogrammetryOutputs.event(.requestComplete(.bounds, .bounds(box)))
         let written = PhotogrammetryOutputs.event(.requestComplete(modelRequest, .modelFile(URL(fileURLWithPath: "/nonexistent/m.usdz"))))
-        check(&failures, "photogrammetry.event.requestComplete", bounds == .boundsReceived && written == .modelWritten,
+        let boundsOK: Bool = bounds == PhotogrammetryEvent.boundsReceived
+        let writtenOK: Bool = written == PhotogrammetryEvent.modelWritten
+        check(&failures, "photogrammetry.event.requestComplete", boundsOK && writtenOK,
               "bounds \(String(describing: bounds)), model \(String(describing: written))")
         let failed = PhotogrammetryOutputs.event(.requestError(modelRequest, NSError(domain: "mapper.selftest", code: 3)))
         var isFailure = false
@@ -69,7 +71,9 @@ extension ObjectCaptureSelfTest {
         var staged = PhotogrammetryProgress(objectID: id)
         staged = PhotogrammetryOutputs.reduce(staged, .stage(.meshGeneration, remaining: 90))
         staged = PhotogrammetryOutputs.reduce(staged, .stage(nil, remaining: nil))
-        check(&failures, "reduce.stageKept", staged.stage == .meshGeneration && staged.remainingSeconds == 90,
+        let stageKept: Bool = staged.stage == PhotogrammetryStage.meshGeneration
+        let remainingKept: Bool = staged.remainingSeconds == 90.0
+        check(&failures, "reduce.stageKept", stageKept && remainingKept,
               "stage \(String(describing: staged.stage)), remaining \(String(describing: staged.remainingSeconds))")
 
         var counted = PhotogrammetryProgress(objectID: id)
@@ -123,8 +127,10 @@ extension ObjectCaptureSelfTest {
         check(&failures, "diagnostics.feedbackSeconds", fast == 3 && far == 8, "movingTooFast \(fast), objectTooFar \(far)")
         check(&failures, "diagnostics.trackingSeconds", log.trackingLimitedSeconds == 3,
               "got \(log.trackingLimitedSeconds)")
-        let fieldsOK = log.seconds == 10 && log.photogrammetryMaxImages == 300 && log.thermalAtEnd == "fair"
-        check(&failures, "diagnostics.log", fieldsOK && log.thermalAtStart == "nominal" && log.shotCount == 55,
+        let secondsOK: Bool = log.seconds == 10
+        let limitsOK: Bool = log.photogrammetryMaxImages == 300 && log.shotCount == 55
+        let thermalOK: Bool = log.thermalAtStart == "nominal" && log.thermalAtEnd == "fair"
+        check(&failures, "diagnostics.log", secondsOK && limitsOK && thermalOK,
               "seconds \(log.seconds), thermal \(log.thermalAtStart) -> \(log.thermalAtEnd)")
         let stillLimited = diagnostics.limitedSince == 109
         let stillFar = diagnostics.feedbackSince["objectTooFar"] == 102
@@ -181,7 +187,9 @@ extension ObjectCaptureSelfTest {
             box.set(idle)
             done.signal()
         }
-        _ = done.wait(timeout: .now() + timeout + 2)
+        let limit: Double = timeout + 2
+        let deadline: DispatchTime = DispatchTime.now() + limit
+        _ = done.wait(timeout: deadline)
         return box.value
     }
 
