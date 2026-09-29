@@ -347,7 +347,7 @@ enum ObjectCaptureSignals {
     static func startError(for issue: ObjectPreflightIssue) -> MapperError? {
         switch issue {
         case .unsupported: return .unsupportedDevice
-        case .lowStorage(let free): return .lowStorage(freeBytes: free)
+        case .lowStorage(let bytes): return .lowStorage(freeBytes: bytes)
         case .deviceHot: return .deviceTooHot
         case .deviceWarm: return nil
         }

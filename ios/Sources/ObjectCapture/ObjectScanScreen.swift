@@ -40,7 +40,7 @@ struct ObjectScanScreen: View {
             if showsLiveControls {
                 ObjectScanGuidanceLayer(announcer: model.announcer)
             }
-            overlay
+            phaseOverlay
         }
         .background(Color.black)
         .environment(\.colorScheme, .dark)
@@ -98,7 +98,7 @@ struct ObjectScanScreen: View {
     }
 
     /// The overlay for the current phase.
-    @ViewBuilder private var overlay: some View {
+    @ViewBuilder private var phaseOverlay: some View {
         switch model.phase {
         case .failed(let failure, let count):
             failurePanel(failure, imageCount: count)

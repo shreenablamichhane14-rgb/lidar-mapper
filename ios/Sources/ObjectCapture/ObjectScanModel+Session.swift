@@ -81,8 +81,8 @@ struct ObjectScanDiagnostics: Equatable, Sendable {
 
     /// The feedback now present: closes the intervals of names that went away and opens new ones.
     mutating func noteFeedback(_ names: Set<String>, now: Double) {
-        let open = feedbackSince
-        for (name, since) in open where !names.contains(name) {
+        let openIntervals = feedbackSince
+        for (name, since) in openIntervals where !names.contains(name) {
             feedbackSeconds[name, default: 0] += Swift.max(0, now - since)
             feedbackSince[name] = nil
         }
