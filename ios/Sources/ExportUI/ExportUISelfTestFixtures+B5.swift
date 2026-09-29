@@ -5,8 +5,9 @@ import simd
 /// Measure inputs, measurements, a two-level plan and temporary packages of each kind. Fixed
 /// identifiers and dates, no RoomPlan, files only under the temporary directory.
 extension ExportUISelfTestFixtures {
-    /// Session of the temporary House, its superseded room and the project identifiers.
+    /// Session of the temporary House and its superseded room.
     static let houseSession = uuid(910), supersededRoom = uuid(911)
+    /// Project identifiers of the temporary House, Object and Quick Measure packages.
     static let houseProjectID = uuid(912), objectProjectID = uuid(913), quickProjectID = uuid(916)
     /// The large object of the Object package and a small object with a stand-in model file.
     static let largeObjectID = uuid(914), smallObjectID = uuid(915)
