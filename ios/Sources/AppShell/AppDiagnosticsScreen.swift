@@ -88,6 +88,7 @@ struct DiagnosticsScreen: View {
         SelfTestSuite(name: "Object model", run: ObjectModelSelfTest.run),
         SelfTestSuite(name: "Live mesh view", run: LiveMeshViewSelfTest.run),
         SelfTestSuite(name: "Live measure", run: LiveMeasureSelfTest.run),
+        SelfTestSuite(name: "Object capture", run: ObjectCaptureSelfTest.run),
     ]
 
     /// The shared self-test runner (the launch run and this screen show the same results).
