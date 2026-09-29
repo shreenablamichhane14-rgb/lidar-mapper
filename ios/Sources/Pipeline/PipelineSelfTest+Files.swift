@@ -141,7 +141,9 @@ extension PipelineSelfTest {
         r.check("files.syncNeverRecreates", !nothing && PipelineAttempt.load(from: package) == nil)
 
         let reducedHash = PipelineStepExecutor.stampHash("tex", variant: .reduced)
-        r.check("files.fullStampUnchanged", PipelineStepExecutor.stampHash("tex", variant: .full) == "tex" && reducedHash != "tex")
+        let afterDeathHash = PipelineStepExecutor.stampHash("tex", variant: .reduced, afterDeath: true)
+        r.check("files.fullStampUnchanged", PipelineStepExecutor.stampHash("tex", variant: .full) == "tex" && reducedHash != "tex"
+                && afterDeathHash == "tex")
         _ = PipelineStepExecutor.recordSuccess(stepID: .textureLow, subject: roomA, inputHash: reducedHash, package: package,
                                                now: fixedDate)
         let afterReduced = PipelineStepExecutor.prepare(box: textureBox, stepID: .textureLow, subject: roomA, package: package, flag: flag)

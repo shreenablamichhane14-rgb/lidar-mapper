@@ -16,8 +16,9 @@ import Combine
 /// App lifecycle: a step keeps running when the app leaves the foreground (iOS suspends the
 /// process and the step continues on return), but the runner records that in the running
 /// step's marker (`PipelineForeground`), so an app that iOS or the user ends while out of the
-/// foreground is not counted as a death by the crash-loop guard. A reduced run is stamped with
-/// `PipelineStepExecutor.stampHash`, so it is never fresh and the next job redoes it.
+/// foreground is not counted as a death by the crash-loop guard. A reduced run chosen for memory
+/// or heat is stamped with `PipelineStepExecutor.stampHash`, so it is never fresh and the next
+/// job redoes it.
 @MainActor final class ProcessingRunner: ObservableObject {
     /// The app's runner.
     static let shared = ProcessingRunner()
@@ -307,7 +308,7 @@ import Combine
                                    memory: launch.passedMemory, flag: flag)
         switch result {
         case .success(let elapsed, let memoryAfter):
-            let hash = PipelineStepExecutor.stampHash(launch.inputHash, variant: launch.variant)
+            let hash = PipelineStepExecutor.stampHash(launch.inputHash, variant: launch.variant, afterDeath: launch.attempt > 1)
             let now = Date()
             let written = await Task.detached(priority: .userInitiated) {
                 PipelineStepExecutor.recordSuccess(stepID: stepID, subject: subject, inputHash: hash, package: package,

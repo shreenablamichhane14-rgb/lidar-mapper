@@ -160,15 +160,17 @@ enum PipelineStepExecutor {
         case failure(MapperError, detail: String, seconds: Double, memoryAfter: UInt64)
     }
 
-    /// Suffix added to the stamped input hash of a reduced run, so a reduced result is never
-    /// fresh: the next job for the project (Retry, a resume) runs the step again, full when
-    /// memory allows, and the steps that hash this stamp follow.
+    /// Suffix added to the stamped input hash of a reduced run chosen for memory or heat, so
+    /// that result is never fresh: the next job for the project (Retry, a resume) runs the step
+    /// again, full when memory allows, and the steps that hash this stamp follow.
     static let reducedStampSuffix = "+reduced"
 
     /// The hash to stamp for a run of `variant`: the input hash, plus `reducedStampSuffix` for
-    /// a reduced run.
-    static func stampHash(_ inputHash: String, variant: StepVariant) -> String {
-        variant == .reduced ? inputHash + reducedStampSuffix : inputHash
+    /// a reduced run. `afterDeath` (the run followed a death in this step, attempt 2 or more)
+    /// keeps the plain hash: the full variant already killed the app once, so a Retry must not
+    /// try it again.
+    static func stampHash(_ inputHash: String, variant: StepVariant, afterDeath: Bool = false) -> String {
+        variant == .reduced && !afterDeath ? inputHash + reducedStampSuffix : inputHash
     }
 
     /// Reads the manifest, computes the input hash, checks the stamp and the crash-loop marker.
