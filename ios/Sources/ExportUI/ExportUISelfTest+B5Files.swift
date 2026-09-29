@@ -143,8 +143,9 @@ extension ExportUISelfTest {
         typealias F = ExportUISelfTestFixtures
         let inputs = ExportCatalog.inputs(package: package, manifest: manifest)
         let options = ExportCatalog.options(for: inputs)
-        log.expect("b5.object.inputs", inputs.kind == .object && inputs.hasObjectModel && inputs.hasObjectDimensions
-                   && options.count == 2 && options.allSatisfy { $0.isAvailable }, "\(inputs)")
+        let objectReady: Bool = inputs.kind == .object && inputs.hasObjectModel && inputs.hasObjectDimensions
+        let allAvailable: Bool = options.count == 2 && options.allSatisfy { $0.isAvailable }
+        log.expect("b5.object.inputs", objectReady && allAvailable, "\(inputs)")
         do {
             let usdz = try b5Export(package, manifest: manifest, .object, .usdz)
             log.expect("b5.run.objectUSDZ", b5Head(usdz, 2) == "PK" && usdz.lastPathComponent.hasPrefix("Chair_Object_"),
@@ -152,7 +153,8 @@ extension ExportUISelfTest {
             let json = try b5Export(package, manifest: manifest, .data, .json)
             let parsed = (try? JSONSerialization.jsonObject(with: Data(contentsOf: json))) as? [String: Any]
             let objects = parsed?["objects"] as? [[String: Any]] ?? []
-            log.expect("b5.run.objectJSON", objects.count == 1 && parsed?["format"] as? String == ExportSummaryJSON.objectFormatName)
+            let format = parsed?["format"] as? String
+            log.expect("b5.run.objectJSON", objects.count == 1 && format == ExportSummaryJSON.objectFormatName)
             let small = ObjectRecord(id: F.smallObjectID, name: "", size: .smallMedium, status: .processed, imageCount: 20,
                                      modelFile: PhotogrammetryStore.modelFileName)
             let out = folder.appendingPathComponent("objectcopy", isDirectory: true)
@@ -161,7 +163,8 @@ extension ExportUISelfTest {
             log.expect("b5.object.copyAsProduced", (try? Data(contentsOf: copied)) == F.fakeModelBytes)
             var missing = small
             missing.id = F.uuid(917)
-            log.expect("b5.object.noModel", !ExportObject.hasModel(package, object: missing) && ExportObject.hasModel(package, object: small))
+            let smallHasModel = ExportObject.hasModel(package, object: small)
+            log.expect("b5.object.noModel", !ExportObject.hasModel(package, object: missing) && smallHasModel)
         } catch {
             log.fail("b5.run.object", error)
         }
@@ -173,13 +176,16 @@ extension ExportUISelfTest {
     private static func b5QuickChecks(_ log: inout ExportUISelfTestLog, package: ProjectPackage, manifest: ProjectManifest) {
         let inputs = ExportCatalog.inputs(package: package, manifest: manifest)
         let options = ExportCatalog.options(for: inputs)
-        log.expect("b5.quick.inputs", inputs.measurementCount == 2 && options.map { $0.id } == ["data.json"]
-                   && options.first?.isAvailable == true, "\(inputs.measurementCount)")
+        let ids = options.map { $0.id }
+        let available: Bool = options.first?.isAvailable == true
+        log.expect("b5.quick.inputs", inputs.measurementCount == 2 && ids == ["data.json"] && available,
+                   "\(inputs.measurementCount)")
         do {
             let json = try b5Export(package, manifest: manifest, .data, .json)
             let parsed = (try? JSONSerialization.jsonObject(with: Data(contentsOf: json))) as? [String: Any]
             let entries = parsed?["measurements"] as? [[String: Any]] ?? []
-            log.expect("b5.run.quickJSON", entries.count == 2 && entries.first?["name"] as? String == "Couch")
+            let firstName = entries.first?["name"] as? String
+            log.expect("b5.run.quickJSON", entries.count == 2 && firstName == "Couch")
             let kept = Array(ExportUISelfTestFixtures.measurements().prefix(1))
             try ProjectStore.writeJSON(kept, to: package.measurementsURL, createParents: false)
             log.expect("b5.quick.editsSupersedeRaw", ExportObject.effectiveMeasurements(package).count == 1)

@@ -137,7 +137,7 @@ enum ExportCatalog {
 
     /// The formats a project kind offers: Room, Advanced Space and House use `layout`, Object
     /// and Advanced Object `objectLayout`, Quick Measure `quickMeasureLayout`.
-    static func layout(for kind: ScanMode) -> [(representation: ExportRepresentation, formats: [ExportFileFormat])] {
+    static func sheetLayout(for kind: ScanMode) -> [(representation: ExportRepresentation, formats: [ExportFileFormat])] {
         switch kind {
         case .room, .advancedSpace, .house: return layout
         case .object, .advancedObject: return objectLayout
@@ -156,7 +156,7 @@ enum ExportCatalog {
     /// no measurement).
     static func options(for inputs: ExportInputs) -> [ExportOption] {
         var result: [ExportOption] = []
-        for entry in layout(for: inputs.kind) {
+        for entry in sheetLayout(for: inputs.kind) {
             let reason = unavailableReason(entry.representation, inputs: inputs)
             for format in entry.formats {
                 result.append(ExportOption(representation: entry.representation, format: format,

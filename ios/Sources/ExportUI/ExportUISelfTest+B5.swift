@@ -120,8 +120,9 @@ extension ExportUISelfTest {
         log.expect("b5.transformed.positions", positionsOK, "\(String(describing: result?.positions))")
         let turned = result?.normals?.first ?? SIMD3<Float>(repeating: .nan)
         let expectedNormal = StructureAlignment.rotateWorld(normal, yaw: record.yaw)
-        log.expect("b5.transformed.normals", simd_distance(turned, expectedNormal) < 1e-4 && abs(simd_length(turned) - 1) < 1e-4,
-                   "\(turned)")
+        let normalDistance: Float = simd_distance(turned, expectedNormal)
+        let normalLength: Float = simd_length(turned)
+        log.expect("b5.transformed.normals", normalDistance < 1e-4 && abs(normalLength - 1) < 1e-4, "\(turned)")
         log.expect("b5.transformed.texcoords", result?.texcoords == uvs && result?.indices == mesh.indices)
         let same = ExportHouse.transformed(ExportScene(meshes: [mesh]), by: matrix_identity_float4x4)
         log.expect("b5.transformed.identity", same.meshes.first?.positions == points)

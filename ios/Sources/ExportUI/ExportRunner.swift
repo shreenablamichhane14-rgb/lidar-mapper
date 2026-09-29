@@ -121,9 +121,9 @@ enum ExportRunner {
     static func write(_ job: Job) throws -> URL {
         let house = job.manifest.kind == .house
         switch job.option.representation {
-        case .realistic: return house ? try writeHouseRealistic(job) : try writeRealistic(job)
+        case .realistic: return try house ? writeHouseRealistic(job) : writeRealistic(job)
         case .clean: return try writeClean(job)
-        case .raw: return house ? try writeHouseRaw(job) : try writeRaw(job)
+        case .raw: return try house ? writeHouseRaw(job) : writeRaw(job)
         case .floorPlan: return try writePlan(job)
         case .data: return try writeData(job)
         case .object: return try writeObject(job)
@@ -264,7 +264,8 @@ enum ExportRunner {
         return url
     }
 
-    /// Throws `CancellationError` when the running task was cancelled.
+    /// Throws `CancellationError` when the running task was cancelled (build 4 helper; the
+    /// writers use `Job.checkCancelled`, which a test can drive).
     static func checkCancelled() throws {
         if Task.isCancelled { throw CancellationError() }
     }

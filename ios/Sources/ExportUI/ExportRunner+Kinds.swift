@@ -42,21 +42,21 @@ extension ExportRunner {
     static func writePlan(_ job: Job) throws -> URL {
         let toggles = ExportAdapters.planToggles(viewState: job.viewState, settings: job.settings)
         let prefs = ExportAdapters.planPrefs(job.prefs, settings: job.settings)
-        let set = try ExportHouse.planExport(job.package, prefs: prefs, toggles: toggles,
+        let levels = try ExportHouse.planExport(job.package, prefs: prefs, toggles: toggles,
                                              includeHidden: job.settings.includeHidden)
         try job.checkCancelled()
         job.progress(0.1)
-        if set.drawings.count == 1, let only = set.drawings.first {
-            let data = try planData(only.plan, northAngle: set.northAngle, prefs: prefs, job: job)
+        if levels.drawings.count == 1, let only = levels.drawings.first {
+            let data = try planData(only.plan, northAngle: levels.northAngle, prefs: prefs, job: job)
             job.progress(0.8)
             return try save(data, name: job.fileName, job: job)
         }
         var pages: [Data] = []
         var entries: [(name: String, data: Data)] = []
-        for (n, drawing) in set.drawings.enumerated() {
+        for (n, drawing) in levels.drawings.enumerated() {
             try job.checkCancelled()
-            job.buildProgress(n, of: set.drawings.count)
-            let data = try planData(drawing.plan, northAngle: set.northAngle, prefs: prefs, job: job)
+            job.buildProgress(n, of: levels.drawings.count)
+            let data = try planData(drawing.plan, northAngle: levels.northAngle, prefs: prefs, job: job)
             if job.option.format == .pdf {
                 pages.append(data)
             } else {
