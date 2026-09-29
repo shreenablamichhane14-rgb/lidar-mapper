@@ -125,6 +125,7 @@ extension Viewer3DSelfTest {
     /// of a regular file (the check behind `ViewerModelError.missingFile`).
     static func modelFileCases(_ r: Recorder) {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("viewer3d-selftest-models", isDirectory: true)
+        try? FileManager.default.removeItem(at: folder)
         defer { try? FileManager.default.removeItem(at: folder) }
         let file = folder.appendingPathComponent("model.usdz")
         r.check("modelFile.missingNil", ViewerLoadedModels.fileSize(of: file) == nil)

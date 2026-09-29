@@ -270,7 +270,7 @@ import simd
         frame(bounds)
     }
 
-    /// Returns to the home view: default yaw and pitch, framed on the content (Reset View).
+    /// Returns to the home view: default yaw and pitch, framed on content and models (Reset View).
     func resetView() {
         orbitState.yaw = ViewerOrbitMath.defaultYaw
         orbitState.pitch = ViewerOrbitMath.defaultPitch
