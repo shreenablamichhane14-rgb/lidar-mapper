@@ -185,6 +185,20 @@ extension ObjectScanModel {
         ObjectCaptureSignals.log("object \(object): session started, \(settings), \(device)")
     }
 
+    // MARK: Failure choices
+
+    /// After `.failed` with enough images: seal what exists (same path as completion).
+    func useCapturedPhotos() {
+        guard case .failed(let failure, let count) = phase, count >= ObjectScanFolders.minimumImages else { return }
+        finalizeCapture(failure: failure)
+    }
+
+    /// After `.failed`: discard as `cancel()` does.
+    func discardAfterFailure() {
+        guard case .failed = phase else { return }
+        finishDiscard()
+    }
+
     // MARK: Start helpers
 
     /// `InProgressScans.create` with `InProgressScanInfo(scanID: objectID, projectID:, sessionID: nil,

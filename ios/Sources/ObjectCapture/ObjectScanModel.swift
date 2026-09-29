@@ -253,18 +253,6 @@ import SwiftUI
         }
     }
 
-    /// After `.failed` with enough images: seal what exists (same path as completion).
-    func useCapturedPhotos() {
-        guard case .failed(let failure, let count) = phase, count >= ObjectScanFolders.minimumImages else { return }
-        finalizeCapture(failure: failure)
-    }
-
-    /// After `.failed`: discard as `cancel()` does.
-    func discardAfterFailure() {
-        guard case .failed = phase else { return }
-        finishDiscard()
-    }
-
     /// Idempotent: cancels the update tasks, releases the session (`ObjectCaptureActivity.captureReleased()`
     /// once). Called on every terminal phase.
     func teardown() {
@@ -297,11 +285,13 @@ import SwiftUI
         switch mapped {
         case .detecting:
             if detectionFailed { detectionFailed = false }
+        case .capturing:
+            refreshShotLimit()
         case .finishing:
             if phase == .capturing || phase == .reviewing { phase = .finishing }
         case .completed:
             handleCompleted()
-        case .initializing, .ready, .capturing, .failed:
+        case .initializing, .ready, .failed:
             break
         }
     }
@@ -339,9 +329,17 @@ import SwiftUI
         openReview()
     }
 
-    /// `numberOfShotsTaken` changed.
+    /// `numberOfShotsTaken` changed; the limit is read again too.
     func handleShots(_ count: Int) {
         if count != shotCount { shotCount = count }
+        refreshShotLimit()
+    }
+
+    /// Reads `maximumNumberOfInputImages` again (in case it was not known right after `start`).
+    private func refreshShotLimit() {
+        guard let limit = session?.maximumNumberOfInputImages, limit > 0, limit != shotLimit else { return }
+        shotLimit = limit
+        diagnostics.maximumNumberOfInputImages = limit
     }
 
     /// `isPaused` changed.
@@ -398,7 +396,7 @@ import SwiftUI
 
     /// Writes `objectlog.json`, flushes and closes the writer, seals off main, then `.done` and
     /// `onComplete`; a failure shows `.failed(.other)` and keeps the folder for recovery.
-    private func finalizeCapture(failure: ObjectScanFailure?) {
+    func finalizeCapture(failure: ObjectScanFailure?) {
         guard !finalizing, !discardStarted, let folder, let writer else { return }
         finalizing = true
         phase = .sealing
@@ -446,7 +444,7 @@ import SwiftUI
 
     /// Releases the session, closes the writer, removes the InProgress folder, then `.cancelled`
     /// and `onEnded` once.
-    private func finishDiscard() {
+    func finishDiscard() {
         guard !discardStarted else { return }
         discardStarted = true
         if reviewPresented { reviewPresented = false }
