@@ -1,4 +1,5 @@
 import Foundation
+import ARKit
 import Combine
 import simd
 import UIKit
@@ -284,6 +285,31 @@ enum MissingAreasPhase: Equatable {
     func stopRefresh() {
         refreshTask?.cancel()
         refreshTask = nil
+    }
+
+    // MARK: - State changes for MissingAreasModel+Pass.swift (private(set) members are set in this file only)
+
+    /// Leaves the tour for `newPhase`: the refresh loop stops, the arrow and the confirmation hide.
+    func leaveTour(for newPhase: MissingAreasPhase) {
+        stopRefresh()
+        arrow = nil
+        showsCancelConfirmation = false
+        phase = newPhase
+    }
+
+    /// The pass ended with a system stop or a session failure.
+    func noteSystemStop() {
+        stoppedBySystem = true
+    }
+
+    /// Sets or clears the cancelling flag.
+    func setCancelling(_ value: Bool) {
+        isCancelling = value
+    }
+
+    /// Keeps the evaluation after the tour.
+    func keep(newEvaluation evaluation: QualityEvaluation) {
+        newEvaluation = evaluation
     }
 
     /// One refresh: orders the tour once a camera pose exists, then updates it with the watched

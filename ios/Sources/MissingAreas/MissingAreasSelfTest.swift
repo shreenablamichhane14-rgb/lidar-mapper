@@ -313,12 +313,12 @@ enum MissingAreasSelfTest {
         let afterFill = tour.remainingCount
         _ = tour.next()
         let afterPass = tour.remainingCount
-        let final = tour.next()
+        let lastEvents = tour.next()
         let statuses = tour.stops.map { $0.status }
         c.check("finish.remainingCountsPending", afterFill == 2 && afterPass == 1 && tour.remainingCount == 0,
                 "\(afterFill) \(afterPass) \(tour.remainingCount)")
-        c.check("finish.whenAllResolved", tour.isFinished && tour.currentIndex == nil && final.contains(.finished)
-                && !statuses.contains(.pending), "\(final)")
+        c.check("finish.whenAllResolved", tour.isFinished && tour.currentIndex == nil && lastEvents.contains(.finished)
+                && !statuses.contains(.pending), "\(lastEvents)")
         c.check("finish.nextAfterFinishIsEmpty", tour.next().isEmpty
                 && tour.update(fractions: [:], cameraToWorld: far, seconds: 0.1, trackingNormal: true).isEmpty)
 

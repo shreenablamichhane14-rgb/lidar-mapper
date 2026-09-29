@@ -60,7 +60,7 @@ extension MissingAreasModel {
     func passFinished(_ result: MeshScanResult) {
         guard passResult == nil else { return }
         passResult = result
-        if result.stoppedBySystem { stoppedBySystem = true }
+        if result.stoppedBySystem { noteSystemStop() }
         MissingAreasLog.write("pass \(result.passID) sealed: \(result.meshFaceCount) faces, \(result.keyframeCount) "
                               + "keyframes, system stop \(result.stoppedBySystem), degraded \(result.log.degraded.rawValue)")
         let record = recordPass()
@@ -69,10 +69,7 @@ extension MissingAreasModel {
             return
         }
         guard !phase.isTerminal, !tornDown else { return }
-        stopRefresh()
-        arrow = nil
-        showsCancelConfirmation = false
-        phase = .rechecking
+        leaveTour(for: .rechecking)
         reevaluate(record)
     }
 
@@ -83,8 +80,8 @@ extension MissingAreasModel {
             return
         }
         scan.teardown()
-        isCancelling = false
-        phase = .cancelled
+        setCancelling(false)
+        leaveTour(for: .cancelled)
         MissingAreasLog.write("tour cancelled; the room's session keeps running")
         scheduleDelivery(nil)
     }
@@ -94,7 +91,7 @@ extension MissingAreasModel {
     func scanFailed(_ error: MapperError) {
         MissingAreasLog.write("pass reported \(error.copyKey) in phase \(MissingAreasModel.phaseName(phase))")
         if passResult != nil {
-            stoppedBySystem = true
+            noteSystemStop()
             alert = ScanErrorCopy.notice(for: error)
             return
         }
@@ -110,12 +107,9 @@ extension MissingAreasModel {
     /// recovery), phase `.failed`, and the room's evaluation at Done once the alert is dismissed.
     func fail(_ error: MapperError, reason: String) {
         MissingAreasLog.write("tour failed: \(reason) (\(error.copyKey))")
-        stopRefresh()
-        arrow = nil
-        showsCancelConfirmation = false
-        isCancelling = false
+        setCancelling(false)
         let shown = ScanErrorCopy.notice(for: error)
-        phase = .failed(shown.body)
+        leaveTour(for: .failed(shown.body))
         scan.teardown()
         alert = shown
         scheduleDelivery(target.evaluation)
@@ -169,7 +163,7 @@ extension MissingAreasModel {
     /// (`scan.teardown()`), phase `.done`, then `onFinished`.
     func reevaluationFinished(_ evaluation: QualityEvaluation?, failure: String?) {
         if let evaluation {
-            newEvaluation = evaluation
+            keep(newEvaluation: evaluation)
             MissingAreasLog.write("evaluation after the tour: \(target.evaluation.missingAreas.count) -> "
                                   + "\(evaluation.missingAreas.count) missing areas")
         } else {
@@ -177,7 +171,7 @@ extension MissingAreasModel {
         }
         scan.teardown()
         guard phase == .rechecking, !tornDown else { return }
-        phase = .done
+        leaveTour(for: .done)
         scheduleDelivery(newEvaluation ?? target.evaluation)
     }
 

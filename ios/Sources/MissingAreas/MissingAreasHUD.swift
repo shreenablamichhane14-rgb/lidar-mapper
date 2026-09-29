@@ -81,6 +81,12 @@ private struct MissingAreasHUDContent: View {
     /// Size of the arrow symbol.
     @ScaledMetric(relativeTo: .largeTitle) private var arrowSize: CGFloat = 84
 
+    /// Creates the content for the tour and its pass.
+    init(model: MissingAreasModel, scan: MeshScanModel) {
+        self.model = model
+        self.scan = scan
+    }
+
     /// Top bar, arrow or rechecking card, and the tour card.
     var body: some View {
         VStack(spacing: 12) {
@@ -108,9 +114,10 @@ private struct MissingAreasHUDContent: View {
         scan.state == .scanning && !scan.isPaused
     }
 
-    /// The tour card is shown while the tour runs.
+    /// The tour card is shown while touring or all done (not while preparing or saving).
     private var showsTourCard: Bool {
-        model.phase.isActive && !model.isCancelling && scan.state != .starting
+        let touring = model.phase == .touring || model.phase == .allDone
+        return touring && !model.isCancelling && scan.state != .starting
     }
 
     /// The arrow while touring, or the rechecking card after Done.
