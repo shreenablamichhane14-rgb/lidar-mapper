@@ -6,8 +6,9 @@ extension Copy {
     /// `Copy.Errors` do not already hold (Results, docs/MODULES.md 3.26; docs/UX_COPY.md
     /// sections 7 to 9). Status lines have no final period; longer help text does.
     enum Results {
-        /// Object card title: an honest guess, since build 4 cannot correct the category yet.
-        static func objectGuess(_ category: String) -> String { "Mapper thinks this is a \(category)." }
+        /// Object card title: an honest guess, since build 4 cannot correct the category yet. The
+        /// form needs no article, so every category reads right ("Oven", "Stairs", "Object").
+        static func objectGuess(_ category: String) -> String { "Mapper's guess: \(category)" }
         /// Legend button and the Show All control of the filtered measurement list.
         static let legend = "Legend", showAll = "Show All"
         /// A processing step with its progress, for example "Adding color and texture 40%".

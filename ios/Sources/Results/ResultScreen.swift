@@ -86,17 +86,27 @@ struct ResultScreen: View {
         }
     }
 
-    /// Retry banner, the tab content and the bottom bar.
+    /// Retry banner, the tab content and the bottom bar. The open measurement list takes at
+    /// most `maxListFraction` of the screen and the content keeps `minContentHeight`, so large
+    /// accessibility text sizes never collapse the model or plan.
     private var tabsView: some View {
-        VStack(spacing: 0) {
-            if model.showsRetry { retryBanner }
-            ResultTabBody(model: model, onRetry: onRetry)
-            bottomBar
+        GeometryReader { proxy in
+            VStack(spacing: 0) {
+                if model.showsRetry { retryBanner }
+                ResultTabBody(model: model, onRetry: onRetry)
+                    .frame(minHeight: ResultScreen.minContentHeight)
+                bottomBar(maxListHeight: proxy.size.height * ResultScreen.maxListFraction)
+            }
         }
     }
 
+    /// Largest share of the screen height the open measurement list may take.
+    static let maxListFraction: CGFloat = 0.35
+    /// Smallest height of the 3D view or plan above the bottom bar, points.
+    static let minContentHeight: CGFloat = 160
+
     /// Object card, measurements, view switcher and Export, on the system bar material.
-    private var bottomBar: some View {
+    private func bottomBar(maxListHeight: CGFloat) -> some View {
         VStack(spacing: 10) {
             if let object = model.selectedObject {
                 ResultObjectCard(object: object, rows: model.objectRows, prefs: model.prefs,
@@ -104,7 +114,8 @@ struct ResultScreen: View {
             }
             ResultDimensionsPanel(rows: model.visibleRows, isFiltered: model.selectedElement != nil, prefs: model.prefs,
                                   emptyText: dimensionsEmptyText, note: ResultAvailability.degradedNote(model.degraded),
-                                  isExpanded: $isPanelExpanded, onShowAll: { model.clearSelection() })
+                                  isExpanded: $isPanelExpanded, maxListHeight: maxListHeight,
+                                  onShowAll: { model.clearSelection() })
             HStack(spacing: 12) {
                 ResultTabPicker(model: model)
                 Button {
@@ -137,7 +148,7 @@ struct ResultScreen: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
-            Text(ResultAvailability.retryMessage(processing: model.processing))
+            Text(ResultAvailability.retryMessage(processing: model.processing, availability: model.availability))
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)

@@ -4,9 +4,12 @@ import Foundation
 /// value in the user's units, the accuracy line, the one low-confidence rule and the VoiceOver
 /// phrase. All number formatting goes through `ios/Sources/Units/`.
 ///
-/// Provenance rules: measured and estimated values show value plus accuracy text; inferred
-/// values show value plus `Copy.Measure.notMeasured` and no plus-minus; user values show no
-/// plus-minus. The accuracy is 2 sigma, floored at 1 cm (RESEARCH section 1) and rounded up to
+/// Provenance rules: measured values show value plus accuracy text; estimated values show value
+/// plus `Copy.MeasureCore.estimatedAccuracy` (not measured directly, with the plus-minus), so they
+/// never read like measured ones (SPEC FURNITURE REMOVAL, ARCHITECTURE 8.3); inferred values show
+/// value plus `Copy.Measure.notMeasured` and no plus-minus; user values show no plus-minus. A
+/// low-confidence value shows `Copy.Measure.lowConfidence` instead. A `DimensionRow` carries its
+/// own flag (products take theirs from their factors), so rows use the row overloads. The accuracy is 2 sigma, floored at 1 cm (RESEARCH section 1) and rounded up to
 /// the display step (0.5 cm, 0.1 in under an inch, the preferred inch fraction above), so the
 /// shown figure is never smaller than the computed one.
 enum MeasureDisplay {
@@ -74,40 +77,74 @@ enum MeasureDisplay {
     }
 
     /// "Estimated accuracy ±0.6\"" (Copy.Measure.accuracy with Tolerance.plusMinus minus its leading
-    /// "±", because Copy adds the sign), Copy.Measure.lowConfidence, Copy.Measure.notMeasured for
-    /// inferred values, or nil when there is no sigma.
+    /// "±", because Copy adds the sign), Copy.MeasureCore.estimatedAccuracy for estimated values,
+    /// Copy.Measure.lowConfidence, Copy.Measure.notMeasured for inferred values (and estimated
+    /// values without a sigma), or nil when there is no sigma. The flag is the value's own rule.
     static func accuracyText(_ value: MeasuredValue, kind: MeasurementKind, prefs: UnitPreferences) -> String? {
+        accuracyText(value, kind: kind, prefs: prefs, lowConfidence: isLowConfidence(value, kind: kind))
+    }
+
+    /// `accuracyText` of a dimension row with the row's own low-confidence flag.
+    static func accuracyText(_ row: DimensionRow, prefs: UnitPreferences) -> String? {
+        accuracyText(row.value, kind: row.kind, prefs: prefs, lowConfidence: row.isLowConfidence)
+    }
+
+    /// `accuracyText` with the low-confidence flag given.
+    static func accuracyText(_ value: MeasuredValue, kind: MeasurementKind, prefs: UnitPreferences,
+                             lowConfidence: Bool) -> String? {
         switch value.provenance {
         case .inferred: return Copy.Measure.notMeasured
         case .user: return nil
         case .measured, .estimated: break
         }
-        guard let sigma = value.sigma, sigma.isFinite else { return nil }
-        if isLowConfidence(value, kind: kind) { return Copy.Measure.lowConfidence }
+        guard let sigma = value.sigma, sigma.isFinite else {
+            return value.provenance == .estimated ? Copy.Measure.notMeasured : nil
+        }
+        if lowConfidence { return Copy.Measure.lowConfidence }
         guard let body = toleranceText(sigma: sigma, kind: kind, prefs: prefs) else { return nil }
-        return Copy.Measure.accuracy(body)
+        return value.provenance == .estimated ? Copy.MeasureCore.estimatedAccuracy(body) : Copy.Measure.accuracy(body)
     }
 
     /// VoiceOver text: "Wall length, 12 feet 7 and 3 eighths inches, Estimated accuracy plus or
     /// minus 1.2 inches" (Copy.A11y.measurement, Copy.Measure.accuracySpoken, units spoken in full).
     static func accessibilityText(label: String, value: MeasuredValue, kind: MeasurementKind, prefs: UnitPreferences) -> String {
+        accessibilityText(label: label, value: value, kind: kind, prefs: prefs,
+                          lowConfidence: isLowConfidence(value, kind: kind))
+    }
+
+    /// `accessibilityText` with the low-confidence flag given (a row's own flag).
+    static func accessibilityText(label: String, value: MeasuredValue, kind: MeasurementKind, prefs: UnitPreferences,
+                                  lowConfidence: Bool) -> String {
         let spokenValue = MeasureSpoken.text(valueText(value, kind: kind, prefs: prefs))
         let measurement = Copy.A11y.measurement(label, value: spokenValue)
-        guard let accuracy = spokenAccuracy(value, kind: kind, prefs: prefs) else { return measurement }
+        guard let accuracy = spokenAccuracy(value, kind: kind, prefs: prefs, lowConfidence: lowConfidence) else {
+            return measurement
+        }
         return Copy.MeasureCore.spokenWithAccuracy(measurement, accuracy: accuracy)
     }
 
     /// The accuracy part of `accessibilityText`, or nil when nothing is said about accuracy.
     static func spokenAccuracy(_ value: MeasuredValue, kind: MeasurementKind, prefs: UnitPreferences) -> String? {
+        spokenAccuracy(value, kind: kind, prefs: prefs, lowConfidence: isLowConfidence(value, kind: kind))
+    }
+
+    /// `spokenAccuracy` with the low-confidence flag given; estimated values say they were not
+    /// measured directly (Copy.MeasureCore.estimatedAccuracySpoken).
+    static func spokenAccuracy(_ value: MeasuredValue, kind: MeasurementKind, prefs: UnitPreferences,
+                               lowConfidence: Bool) -> String? {
         switch value.provenance {
         case .inferred: return Copy.Measure.notMeasured
         case .user: return nil
         case .measured, .estimated: break
         }
-        guard let sigma = value.sigma, sigma.isFinite else { return nil }
-        if isLowConfidence(value, kind: kind) { return Copy.Measure.lowConfidence }
+        guard let sigma = value.sigma, sigma.isFinite else {
+            return value.provenance == .estimated ? Copy.Measure.notMeasured : nil
+        }
+        if lowConfidence { return Copy.Measure.lowConfidence }
         guard let body = toleranceText(sigma: sigma, kind: kind, prefs: prefs) else { return nil }
-        return Copy.Measure.accuracySpoken(MeasureSpoken.text(body))
+        let spoken = MeasureSpoken.text(body)
+        return value.provenance == .estimated ? Copy.MeasureCore.estimatedAccuracySpoken(spoken)
+                                              : Copy.Measure.accuracySpoken(spoken)
     }
 
     /// The shown accuracy without the plus-minus sign ("0.6\"", "30 mm", "1.2 sq ft"): 2 sigma,

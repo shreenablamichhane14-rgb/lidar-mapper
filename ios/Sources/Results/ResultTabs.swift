@@ -69,7 +69,7 @@ struct ResultTabBody: View {
         if current == .floorPlan {
             if model.tabState(.floorPlan).isReady, let drawing = model.planDrawing {
                 PlanCanvasView(drawing: drawing, selection: .constant(model.selectedElement ?? model.selectedObject?.id),
-                               onTap: { hit in model.selectPlanHit(hit) })
+                               onTap: { hit in model.selectPlanHit(hit) }, resetCount: model.planResetCount)
             } else if model.tabState(.floorPlan).isReady {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -284,6 +284,8 @@ struct ResultToolButtons: View {
             }
             if viewer {
                 roundButton(Copy.Viewer.resetView, systemImage: "arrow.counterclockwise") { model.viewer.resetView() }
+            } else if hasPlan {
+                roundButton(Copy.Viewer.resetView, systemImage: "arrow.counterclockwise") { model.resetPlanView() }
             }
         }
     }

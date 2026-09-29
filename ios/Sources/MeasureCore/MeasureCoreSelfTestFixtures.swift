@@ -105,6 +105,34 @@ enum MeasureCoreSelfTestFixtures {
         return RoomEvidence(trackingNormalFraction: 1, relocalizations: 0, walls: evidence)
     }
 
+    /// A well scanned 0.8 x 1.5 x 2.4 m closet (id 60, walls 61 to 64, no openings): every side
+    /// has the RoomPlan sigma floor, so its small areas must not read as low confidence.
+    static func closet() -> CleanRoom {
+        let size: [SIMD3<Float>] = [
+            SIMD3<Float>(0, 0, 0), SIMD3<Float>(0.8, 0, 0), SIMD3<Float>(0.8, 0, -1.5), SIMD3<Float>(0, 0, -1.5),
+        ]
+        var closetWalls: [CleanWall] = []
+        for i in 0..<4 {
+            closetWalls.append(CleanWall(id: id(UInt8(61 + i)), start: Vec3(size[i]), end: Vec3(size[(i + 1) % 4]),
+                                         height: 2.4, normal: Vec3(normals[i]), thickness: 0.1, thicknessSource: .estimated,
+                                         arc: nil, confidence: .high, completedEdges: 4, occludedSpans: [],
+                                         provenance: .measured))
+        }
+        let metrics = RoomMetrics(floorArea: 1.2, perimeter: 4.6, ceilingHeight: 2.4, ceilingProvenance: .measured,
+                                  wallArea: 2 * (0.8 + 1.5) * 2.4, length: 1.5, width: 0.8, volume: 2.88,
+                                  volumeProvenance: .measured)
+        return CleanRoom(id: id(60), recordID: uuid(60), name: "", sectionLabel: nil, floorIndex: 0, walls: closetWalls,
+                         openings: [], floor: CleanFloor(outline: size.map { PlanAxes.toPlan(Vec3($0)) }, elevation: 0,
+                                                         occludedArea: 0, provenance: .measured),
+                         ceiling: CleanCeiling(height: 2.4, provenance: .measured), objects: [], metrics: metrics)
+    }
+
+    /// Good evidence for the closet: every wall seen from 1 m with 5 observations.
+    static func closetEvidence() -> RoomEvidence {
+        let walls = (61...64).map { WallEvidence(wallID: id(UInt8($0)), medianDistance: 1, observations: 5) }
+        return RoomEvidence(trackingNormalFraction: 1, relocalizations: 0, walls: walls)
+    }
+
     /// The expected row ids of `room()` in order.
     static func expectedRowIDs() -> [String] {
         var ids = ["room.length", "room.width", "room.floorArea", "room.perimeter", "room.ceilingHeight",

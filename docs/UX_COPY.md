@@ -372,9 +372,18 @@ ceiling, door, window, object edge. Snapping toggle: **Snap to corners and edges
 | lowConfidence | Low confidence, rescan this section |
 | rescan | Rescan This Section |
 | notMeasured | Estimated, not measured |
+| estimatedAccuracy (`Copy.MeasureCore`) | Not measured directly, estimated ±{value} |
+| estimatedAccuracySpoken (`Copy.MeasureCore`) | Not measured directly, estimated plus or minus {value} |
 | disclaimer | Measurements are estimates from your iPhone's sensors. Check critical dimensions with a tape measure. |
 
 The spec writes this with a dash; Mapper uses a comma instead.
+
+Display rules: a measured value shows `accuracy`; an estimated value (for example a ceiling
+height taken from RoomPlan because the ceiling was barely scanned) shows `estimatedAccuracy` with
+a dashed circle icon, so it never reads like a measured one, in text, color or VoiceOver; an
+inferred value shows `notMeasured` with the same icon; low confidence wins over all of them. An
+area or volume shows `lowConfidence` only when one of its sides (or the floor area and ceiling
+height of a volume) is low confidence, so small, well scanned walls and closets are not flagged.
 
 ### Measured vs estimated geometry
 
@@ -523,12 +532,14 @@ Title: **Export**. Subtitle: **Choose a file type**. Button: **Export**. In prog
 | gltf | glTF | 3D model for websites, games and Blender. |
 | pdf | PDF Floor Plan | Printable floor plan with measurements. |
 | svg | SVG | Floor plan drawing you can edit in design apps. |
-| dxf | DXF | Floor plan for AutoCAD and other CAD programs. |
+| dxf | DXF | Floor plan for AutoCAD and other CAD programs. Drawn in millimeters. (`Copy.ExportUI.dxfDetail`) |
 | json | JSON | Room sizes and measurements as data, for developers. |
 | images | Images | Pictures of the model and floor plan, saved as PNG. |
 
 Options: **Include textures**, **Include hidden objects**, **Include measurements**,
-**Units: Feet and inches / Metric**. Not available for this scan: **Not available: this scan has
+**Units: Feet and inches / Metric** (for DXF the picker is titled **Label units**, because a DXF
+drawing is always in millimeters and the choice only changes its text labels; the PDF scale and
+scale bar follow the chosen units, and the paper starts at A4 for metric). Not available for this scan: **Not available: this scan has
 no floor plan** (object scans), **Not available: color wasn't captured**.
 
 ## 15. Settings

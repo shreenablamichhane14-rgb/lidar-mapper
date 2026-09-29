@@ -53,8 +53,16 @@ enum ExportUISelfTest {
 
         var pending = noColor
         pending.hasKeyframes = true
+        pending.isProcessing = true
         let notReady = ExportCatalog.options(for: pending).filter { $0.representation == .realistic }
         log.expect("catalog.colorNotReady", notReady.allSatisfy { !$0.isAvailable && $0.reason == Copy.ExportUI.colorNotReady })
+        var ended = pending
+        ended.isProcessing = false
+        let missing = ExportCatalog.options(for: ended).filter { $0.representation == .realistic }
+        log.expect("catalog.colorMissingAfterProcessing",
+                   missing.allSatisfy { !$0.isAvailable && $0.reason == Copy.ExportUI.colorMissing })
+        log.expect("settings.paperFollowsUnits", ExportSettings.defaultPaper(for: .metric) == .a4
+                   && ExportSettings.defaultPaper(for: .imperial) == .usLetter)
 
         var noPlan = F.demoInputs()
         noPlan.hasPlan = false
@@ -90,6 +98,8 @@ enum ExportUISelfTest {
         log.expect("label.json", ExportCatalog.label(for: .json).label == "JSON", ExportCatalog.label(for: .json).label)
         log.expect("label.glbIsGLTF", ExportCatalog.label(for: .glb).label == "glTF")
         log.expect("label.plyDetail", ExportCatalog.label(for: .ply).detail == Copy.ExportUI.plyDetail)
+        log.expect("label.dxfMillimeters", ExportCatalog.label(for: .dxf).detail == Copy.ExportUI.dxfDetail
+                   && ExportCatalog.label(for: .dxf).label == "DXF")
 
         let dxfName = ExportCatalog.fileName(project: "Kitchen", option: option(.floorPlan, .dxf), date: F.date)
         log.expect("name.dxfMillimeters", dxfName.hasSuffix("_mm.dxf") && dxfName.hasPrefix("Kitchen_Floor_Plan_"), dxfName)

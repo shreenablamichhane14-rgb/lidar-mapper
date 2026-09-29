@@ -18,6 +18,9 @@ struct PipelineJobQueue<Entry> {
     private(set) var running: Item? = nil
     /// True between `suspend` and `resume`.
     private(set) var isSuspended = false
+    /// Projects whose jobs were put at the front while another job ran (a scan the user just
+    /// finished, ARCHITECTURE 5.1). An interrupted running job is requeued behind them.
+    private(set) var frontPinned: Set<UUID> = []
 
     /// An empty queue.
     init() {}
@@ -34,8 +37,9 @@ struct PipelineJobQueue<Entry> {
     }
 
     /// Adds a job. A waiting job for the same project is replaced (returned so its completion
-    /// can be reported); `atFront` puts the job before the waiting ones. A running job for
-    /// the project is not touched: the new job runs after it and its stamped steps skip.
+    /// can be reported); `atFront` puts the job before the waiting ones, and while a job runs it
+    /// also stays ahead of that job if it is interrupted and requeued. A running job for the
+    /// project is not touched: the new job runs after it and its stamped steps skip.
     @discardableResult
     mutating func enqueue(_ entry: Entry, projectID: UUID, atFront: Bool) -> Entry? {
         var replaced: Entry? = nil
@@ -45,8 +49,10 @@ struct PipelineJobQueue<Entry> {
         let item = Item(projectID: projectID, entry: entry)
         if atFront {
             waiting.insert(item, at: 0)
+            if running != nil { frontPinned.insert(projectID) }
         } else {
             waiting.append(item)
+            frontPinned.remove(projectID)
         }
         return replaced
     }
@@ -54,6 +60,7 @@ struct PipelineJobQueue<Entry> {
     /// Removes the waiting job of a project and returns it.
     mutating func removeWaiting(projectID: UUID) -> Entry? {
         guard let index = waiting.firstIndex(where: { $0.projectID == projectID }) else { return nil }
+        frontPinned.remove(projectID)
         return waiting.remove(at: index).entry
     }
 
@@ -63,17 +70,22 @@ struct PipelineJobQueue<Entry> {
         guard !isSuspended, running == nil, !waiting.isEmpty else { return nil }
         let item = waiting.removeFirst()
         running = item
+        frontPinned = []
         return item
     }
 
     /// Ends the running job. With `requeue` (the job was interrupted by `suspend`) it goes back
-    /// to the front, keeping its place, unless a newer job for the same project waits. Returns
-    /// the entry when it was not requeued, so the caller reports its outcome.
+    /// to the front, keeping its place, but behind the jobs put at the front while it ran, unless
+    /// a newer job for the same project waits. Returns the entry when it was not requeued, so the
+    /// caller reports its outcome.
     mutating func finishRunning(requeue: Bool) -> Entry? {
         guard let item = running else { return nil }
         running = nil
+        let pinned = frontPinned
+        frontPinned = []
         if requeue && !hasWaiting(item.projectID) {
-            waiting.insert(item, at: 0)
+            let index = waiting.prefix(while: { pinned.contains($0.projectID) }).count
+            waiting.insert(item, at: index)
             return nil
         }
         return item.entry

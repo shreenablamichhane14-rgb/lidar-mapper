@@ -81,8 +81,11 @@ final class BuildRoomStep: ProcessingStep {
 }
 
 /// Builds derived/clean.json for every room with status captured or processed. A room with no
-/// loadable CapturedRoom (RoomPlan failed) is left out of the model and logged; an empty model is
-/// still written so FloorPlanStep and Results can report "no walls".
+/// loadable CapturedRoom, or whose roomlog.json says RoomPlan failed (`.roomPlanFailed`, even when
+/// the provisional capturedroom-live.json exists), is left out of the model and logged; an empty
+/// model is still written so FloorPlanStep and Results can report "no walls" (ARCHITECTURE 4.2:
+/// a RoomPlan failure gives Raw Scan and Realistic only). Recovered scans have no roomlog.json and
+/// still use the live file.
 final class CleanModelStep: ProcessingStep {
     /// Which step this is.
     let id: PipelineStepID = .cleanModel
@@ -101,6 +104,12 @@ final class CleanModelStep: ProcessingStep {
     /// Rooms the clean model includes: status captured or processed, manifest order.
     static func eligibleRooms(_ manifest: ProjectManifest) -> [RoomRecord] {
         manifest.rooms.filter { $0.status == .captured || $0.status == .processed }
+    }
+
+    /// True when the room's raw roomlog.json records a RoomPlan failure (`.roomPlanFailed`). A
+    /// missing or unreadable log (a recovered scan) is not a failure. Reads one small file.
+    static func roomPlanFailed(_ package: ProjectPackage, room: RoomRecord) -> Bool {
+        RawScanReader(folder: CapturedRoomStore.rawFolder(package, room: room)).roomLog()?.degraded == .roomPlanFailed
     }
 
     /// Room seals, room ids, names and floors, `findFurniture`, the rules version, and each
@@ -133,6 +142,11 @@ final class CleanModelStep: ProcessingStep {
         var rooms: [CleanRoom] = []
         for (i, record) in records.enumerated() {
             try ctx.checkCancelled()
+            if CleanModelStep.roomPlanFailed(ctx.package, room: record) {
+                LogStore.shared.write("cleanModel: room \(record.id) left out, RoomPlan failed during capture",
+                                      category: RoomOutline.logCategory)
+                continue
+            }
             let input: RoomInput
             do {
                 input = try CapturedRoomStore.loadInput(ctx.package, room: record)

@@ -192,10 +192,21 @@ enum PipelineSelfTest {
         do {
             let data = try ProjectStore.encoder.encode(twice)
             let decoded = try ProjectStore.decoder.decode(PipelineAttempt.self, from: data)
-            r.check("attempt.jsonRoundTrip", decoded == twice)
+            r.check("attempt.jsonRoundTrip", decoded == twice && !decoded.endedOutsideForeground)
+            var away = twice
+            away.backgroundedAt = fixedDate
+            let awayDecoded = try ProjectStore.decoder.decode(PipelineAttempt.self, from: try ProjectStore.encoder.encode(away))
+            r.check("attempt.backgroundedRoundTrip", awayDecoded == away && awayDecoded.endedOutsideForeground)
         } catch {
             r.check("attempt.jsonRoundTrip", false, "\(error)")
         }
+        let foreground = PipelineForeground()
+        let left = foreground.leave(at: fixedDate)
+        let leftAgain = foreground.leave(at: fixedDate.addingTimeInterval(5))
+        let keepsFirst: Bool = foreground.leftAt == fixedDate
+        r.check("foreground.leaveOnce", left && !leftAgain && keepsFirst)
+        let entered = foreground.enter()
+        r.check("foreground.enter", entered && foreground.leftAt == nil && !foreground.enter())
     }
 
     // MARK: - Queue
@@ -228,6 +239,18 @@ enum PipelineSelfTest {
         r.check("queue.newerJobKept", queue.waitingProjectIDs == [projectA, projectC, projectB])
         r.check("queue.removeWaiting", queue.removeWaiting(projectID: projectC) == "C" && !queue.hasWaiting(projectC))
         r.check("queue.suspendedKeepsWaiting", queue.startNext() == nil && !queue.isEmpty)
+
+        // A job interrupted by a capture goes back behind the job the capture's Finish enqueued.
+        var order = PipelineJobQueue<String>()
+        order.enqueue("A", projectID: projectA, atFront: false)
+        order.enqueue("C", projectID: projectC, atFront: false)
+        _ = order.startNext()
+        order.suspend()
+        order.enqueue("B", projectID: projectB, atFront: true)
+        let requeued = order.finishRunning(requeue: true) == nil
+        r.check("queue.interruptedBehindFinished", requeued && order.waitingProjectIDs == [projectB, projectA, projectC],
+                "\(order.waitingProjectIDs)")
+        r.check("queue.pinsCleared", order.frontPinned.isEmpty)
     }
 
     // MARK: - Flag and ledger

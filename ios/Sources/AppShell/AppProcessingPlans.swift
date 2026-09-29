@@ -104,21 +104,38 @@ enum ProcessingPlans {
         status == .needsProcessing || status == .processing
     }
 
-    /// Pure: the status a finished job leaves (nil keeps the current one). `.cancelled` keeps
-    /// `.processing`, so the next launch or Retry resumes the project.
+    /// Optional steps whose output a result view or export needs (Raw Scan and its exports,
+    /// Realistic and its exports). Quality and the thumbnail are not listed: without them the
+    /// result is complete, so their failure does not ask the user to retry.
+    static let attentionSteps: Set<PipelineStepID> = [.consolidateMesh, .textureLow, .textureHigh]
+
+    /// Pure: the status a finished job leaves (nil keeps the current one). A job that completed
+    /// without the output of an `attentionSteps` step leaves `.needsAttention`, so the failure
+    /// outlives the runner's in-memory state: after a relaunch Results still offers Retry, which
+    /// reruns only the steps without a fresh stamp. `.cancelled` keeps `.processing`, so the next
+    /// launch or Retry resumes the project.
     static func statusAfter(_ outcome: ProcessingOutcome) -> ProjectStatus? {
         switch outcome {
-        case .completed: return .ready
+        case .completed(let skipped):
+            return skipped.contains(where: { attentionSteps.contains($0) }) ? .needsAttention : .ready
         case .failed: return .needsAttention
         case .cancelled: return nil
         }
     }
 
+    /// Pure: whether a finished job marks the project's captured rooms `.processed`: every
+    /// completed job does, including one that completed without an optional step's output.
+    static func marksRoomsProcessed(_ outcome: ProcessingOutcome) -> Bool {
+        if case .completed = outcome { return true }
+        return false
+    }
+
     // MARK: - Enqueue (main actor)
 
     /// Enqueues a project (atFront when the user just finished it). On `.completed` sets rooms
-    /// .processed and project .ready; on `.failed` sets .needsAttention; on `.cancelled` leaves
-    /// `.processing` (never `.ready`), so the next launch or Retry resumes it.
+    /// .processed and project .ready (.needsAttention when an `attentionSteps` step failed);
+    /// on `.failed` sets .needsAttention; on `.cancelled` leaves `.processing` (never `.ready`),
+    /// so the next launch or Retry resumes it.
     ///
     /// Reads the manifest and the few small files of `roomSteps` on main (small JSON, as Store's
     /// own `update`). A `.ready` or `.capturing` project is not enqueued; a project without steps
@@ -185,7 +202,8 @@ enum ProcessingPlans {
         }
     }
 
-    /// Maps a job's outcome to the project: rooms `.processed` and `.ready` on completion,
+    /// Maps a job's outcome to the project: rooms `.processed` on completion, the project
+    /// `.ready` (or `.needsAttention` when an `attentionSteps` step failed) on completion,
     /// `.needsAttention` on failure, unchanged on cancel.
     @MainActor static func jobFinished(projectID: UUID, outcome: ProcessingOutcome) {
         switch outcome {
@@ -198,9 +216,10 @@ enum ProcessingPlans {
             log("job cancelled \(short(projectID)); status kept for the next launch or Retry")
         }
         guard let status = statusAfter(outcome) else { return }
+        let marksProcessed = marksRoomsProcessed(outcome)
         do {
             try ProjectLibrary.shared.update(projectID) { manifest in
-                if status == .ready {
+                if marksProcessed {
                     for index in manifest.rooms.indices where manifest.rooms[index].status == .captured {
                         manifest.rooms[index].status = .processed
                     }

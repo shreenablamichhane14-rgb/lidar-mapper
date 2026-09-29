@@ -160,7 +160,22 @@ enum PipelineStepExecutor {
         case failure(MapperError, detail: String, seconds: Double, memoryAfter: UInt64)
     }
 
+    /// Suffix added to the stamped input hash of a reduced run chosen for memory or heat, so
+    /// that result is never fresh: the next job for the project (Retry, a resume) runs the step
+    /// again, full when memory allows, and the steps that hash this stamp follow.
+    static let reducedStampSuffix = "+reduced"
+
+    /// The hash to stamp for a run of `variant`: the input hash, plus `reducedStampSuffix` for
+    /// a reduced run. `afterDeath` (the run followed a death in this step, attempt 2 or more)
+    /// keeps the plain hash: the full variant already killed the app once, so a Retry must not
+    /// try it again.
+    static func stampHash(_ inputHash: String, variant: StepVariant, afterDeath: Bool = false) -> String {
+        variant == .reduced && !afterDeath ? inputHash + reducedStampSuffix : inputHash
+    }
+
     /// Reads the manifest, computes the input hash, checks the stamp and the crash-loop marker.
+    /// A marker that ended outside the foreground (`PipelineAttempt.endedOutsideForeground`)
+    /// is removed and not counted as a death.
     static func prepare(box: PipelineStepBox, stepID: PipelineStepID, subject: UUID?,
                         package: ProjectPackage, flag: PipelineCancelFlag) -> Preparation {
         guard packageExists(package) else { return .projectMissing }
@@ -178,7 +193,13 @@ enum PipelineStepExecutor {
         } catch {
             return .failed(mapped(error, step: stepID))
         }
-        let marker = PipelineAttempt.load(from: package)
+        var marker = PipelineAttempt.load(from: package)
+        if let left = marker, left.endedOutsideForeground {
+            LogStore.shared.write("attempt marker of \(left.step.rawValue) ended outside the foreground; not counted as a death",
+                                  category: "pipeline")
+            PipelineAttempt.remove(from: package)
+            marker = nil
+        }
         let markerMatches = marker?.matches(step: stepID, subject: subject) ?? false
         let index = readIndex(package)
         if ProcessingGuards.shouldSkip(index: index, step: stepID, subject: subject, inputHash: hash) {
@@ -199,7 +220,8 @@ enum PipelineStepExecutor {
     }
 
     /// Applies the memory gate (D17), forces the reduced variant after a death or at thermal
-    /// `.serious`, and writes the attempt marker (count + 1) right before the run.
+    /// `.serious`, and writes the attempt marker (count + 1, with the current foreground state)
+    /// right before the run.
     static func gate(box: PipelineStepBox, stepID: PipelineStepID, subject: UUID?, package: ProjectPackage,
                      plan: Plan, flag: PipelineCancelFlag) -> Gate {
         guard packageExists(package) else { return .projectMissing }
@@ -221,7 +243,7 @@ enum PipelineStepExecutor {
         let attempt = PipelineAttempt.next(after: plan.previous, step: stepID, subject: subject,
                                            variant: variant, now: Date())
         do {
-            try PipelineAttempt.save(attempt, to: package)
+            try PipelineAttempt.begin(attempt, in: package)
         } catch {
             guard packageExists(package) else { return .projectMissing }
             LogStore.shared.write("attempt marker not written for \(stepID.rawValue): \(error)", category: "pipeline")
@@ -271,6 +293,13 @@ enum PipelineStepExecutor {
     /// After a failure or an interruption: ends the attempt (the app did not die).
     static func recordFailure(package: ProjectPackage, restoring foreign: PipelineAttempt? = nil) {
         endAttempt(package: package, restoring: foreign)
+    }
+
+    /// The app left or re-entered the foreground while `stepID` of `subject` runs: its marker
+    /// takes the current `PipelineForeground` state (`PipelineAttempt.syncForeground`).
+    static func syncForeground(package: ProjectPackage, stepID: PipelineStepID, subject: UUID?) {
+        guard packageExists(package) else { return }
+        PipelineAttempt.syncForeground(package: package, step: stepID, subject: subject)
     }
 
     /// Deletes the marker of the step that just ended, or puts back `foreign` (the marker of

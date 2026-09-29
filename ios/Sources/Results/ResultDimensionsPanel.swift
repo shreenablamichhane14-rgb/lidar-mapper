@@ -47,19 +47,22 @@ struct ResultDimensionsPanel: View {
     @Binding var isExpanded: Bool
     /// Clears the selection.
     let onShowAll: () -> Void
+    /// Cap of the open list's height, from the screen (the list never pushes the content away).
+    let maxListHeight: CGFloat
     /// Height of the open list, following the text size.
     @ScaledMetric(relativeTo: .body) private var listHeight: CGFloat = 240
 
     /// Creates the panel (explicit, because the private scaled metric would make the
     /// memberwise initializer private).
     init(rows: [DimensionRow], isFiltered: Bool, prefs: UnitPreferences, emptyText: String, note: String?,
-         isExpanded: Binding<Bool>, onShowAll: @escaping () -> Void) {
+         isExpanded: Binding<Bool>, maxListHeight: CGFloat = .infinity, onShowAll: @escaping () -> Void) {
         self.rows = rows
         self.isFiltered = isFiltered
         self.prefs = prefs
         self.emptyText = emptyText
         self.note = note
         self._isExpanded = isExpanded
+        self.maxListHeight = maxListHeight
         self.onShowAll = onShowAll
     }
 
@@ -72,7 +75,7 @@ struct ResultDimensionsPanel: View {
                     list
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxHeight: listHeight)
+                .frame(maxHeight: Swift.max(88, Swift.min(listHeight, maxListHeight)))
             }
         }
     }
@@ -145,8 +148,10 @@ struct ResultDimensionsPanel: View {
 }
 
 /// One measurement: its name (and element name above the first row of an element), the value in
-/// the user's units and its confidence text (accuracy, low confidence or "Estimated, not
-/// measured"). VoiceOver reads the whole row with units spoken in full.
+/// the user's units and its confidence text (accuracy, low confidence, "Not measured directly,
+/// estimated" or "Estimated, not measured"), with the row's own low-confidence flag. A value that
+/// was not measured directly also shows a dashed circle, so it reads differently without color.
+/// VoiceOver reads the whole row with units spoken in full.
 struct ResultDimensionRowView: View {
     /// The row.
     let row: DimensionRow
@@ -203,10 +208,16 @@ struct ResultDimensionRowView: View {
         VStack(alignment: alignment, spacing: 2) {
             Text(MeasureDisplay.valueText(row.value, kind: row.kind, prefs: prefs))
                 .font(.body.weight(.semibold).monospacedDigit())
-            if let accuracy = MeasureDisplay.accuracyText(row.value, kind: row.kind, prefs: prefs) {
-                Text(accuracy)
-                    .font(.caption)
-                    .foregroundStyle(row.isLowConfidence ? Color.orange : Color.secondary)
+            if let accuracy = MeasureDisplay.accuracyText(row, prefs: prefs) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    if row.isNotMeasured && !row.isLowConfidence {
+                        Image(systemName: "circle.dashed")
+                            .accessibilityHidden(true)
+                    }
+                    Text(accuracy)
+                }
+                .font(.caption)
+                .foregroundStyle(row.isLowConfidence ? Color.orange : Color.secondary)
             }
         }
     }

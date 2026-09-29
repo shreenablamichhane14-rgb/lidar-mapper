@@ -42,7 +42,9 @@ struct DimensionRow: Identifiable, Equatable, Sendable {
     var value: MeasuredValue
     /// The room, wall, door, window, opening or object the row belongs to.
     var element: ElementID?
-    /// `MeasureDisplay.isLowConfidence` of the value (false for inferred and user values).
+    /// Low confidence: `MeasureDisplay.isLowConfidence` of the value for lengths; for areas and
+    /// volumes (products) true when a factor is flagged, because the RoomPlan sigma floor alone
+    /// would flag every small, well-scanned area. False for inferred and user values.
     var isLowConfidence: Bool
 
     /// Element and measurement read as one phrase: "Wall 3, Wall length".
@@ -50,9 +52,15 @@ struct DimensionRow: Identifiable, Equatable, Sendable {
         Copy.MeasureCore.rowName(element: label, measure: title)
     }
 
-    /// Full VoiceOver text of the row (`MeasureDisplay.accessibilityText`).
+    /// True when the value was not measured directly (estimated or inferred provenance).
+    var isNotMeasured: Bool {
+        value.provenance == .estimated || value.provenance == .inferred
+    }
+
+    /// Full VoiceOver text of the row (`MeasureDisplay.accessibilityText` with the row's flag).
     func accessibilityText(prefs: UnitPreferences) -> String {
-        MeasureDisplay.accessibilityText(label: spokenName, value: value, kind: kind, prefs: prefs)
+        MeasureDisplay.accessibilityText(label: spokenName, value: value, kind: kind, prefs: prefs,
+                                         lowConfidence: isLowConfidence)
     }
 }
 
@@ -62,7 +70,10 @@ enum RoomDimensions {
     /// per wall (length, height, area), per door (width, height), per window (width, height).
     /// Wall area row: id "wall.<uuid>.area", kind .area, value length x height minus that wall's
     /// openings, sigma from `ConfidenceAdapter.area(_:sideA:sideB:)` of the wall's length and height
-    /// rows; the Walls group carries `Copy.MeasureCore.wallAreaNote`. Every row has `element` set
+    /// rows; the Walls group carries `Copy.MeasureCore.wallAreaNote`. Products are flagged low
+    /// confidence from their factors: a wall area when its length or height is, the floor area when
+    /// the room length or width is, the wall area total when any wall area is, the volume when the
+    /// floor area or the ceiling height is. Every row has `element` set
     /// (walls, doors and windows to their ElementID) so Results can filter by selection.
     /// Open passages (`OpeningKind.opening`) follow the doors in the Doors group as "Opening n".
     static func rows(for room: CleanRoom, evidence: RoomEvidence) -> [DimensionRow] {
@@ -147,10 +158,25 @@ enum RoomDimensions {
             ("wallArea", Copy.Measure.wallArea, .area, wallArea),
             ("volume", Copy.Measure.volume, .volume, volume),
         ]
+        let lengthLow = isLow(length, .distance), widthLow = isLow(width, .distance)
+        let floorLow = isFlagged(floorArea) && (lengthLow || widthLow)
+        let wallAreaLow = isFlagged(wallArea) && walls.contains { $0.area.isLowConfidence }
+        let volumeLow = isFlagged(volume) && (floorLow || isLow(ceiling, .height))
+        let products: [String: Bool] = ["floorArea": floorLow, "wallArea": wallAreaLow, "volume": volumeLow]
         return entries.map { entry in
             makeRow(id: "room.\(entry.suffix)", group: .room, title: entry.title, label: label,
-                    kind: entry.kind, value: entry.value, element: room.id)
+                    kind: entry.kind, value: entry.value, element: room.id, lowConfidence: products[entry.suffix])
         }
+    }
+
+    /// The one rule (CR-2) for a length value.
+    private static func isLow(_ value: MeasuredValue, _ kind: MeasurementKind) -> Bool {
+        MeasureDisplay.isLowConfidence(value, kind: kind)
+    }
+
+    /// True when a value can carry a flag at all (measured or estimated with a sigma).
+    private static func isFlagged(_ value: MeasuredValue) -> Bool {
+        ConfidenceAdapter.carriesSigma(value.provenance) && value.sigma != nil
     }
 
     /// Ceiling height by provenance: measured uses the depth model at the typical camera
@@ -209,13 +235,14 @@ enum RoomDimensions {
                                                           provenance: wall.provenance)
             let netArea = MeasureRoomSizes.wallArea(wall, length: meters, openings: room.openings)
             let area = ConfidenceAdapter.area(netArea, sideA: length, sideB: height)
+            let areaLow = isFlagged(area) && (isLow(length, .wallLength) || isLow(height, .height))
             sets.append(WallRowSet(
                 length: makeRow(id: "\(key).length", group: .walls, title: Copy.Measure.wallLength, label: label,
                                 kind: .wallLength, value: length, element: wall.id),
                 height: makeRow(id: "\(key).height", group: .walls, title: Copy.Measure.wallHeight, label: label,
                                 kind: .height, value: height, element: wall.id),
                 area: makeRow(id: "\(key).area", group: .walls, title: Copy.Measure.wallArea, label: label,
-                              kind: .area, value: area, element: wall.id)))
+                              kind: .area, value: area, element: wall.id, lowConfidence: areaLow)))
         }
         return sets
     }
@@ -279,10 +306,12 @@ enum RoomDimensions {
 
     // MARK: - Helpers
 
-    /// A row with its low-confidence flag from `MeasureDisplay` (the one rule).
+    /// A row with its low-confidence flag: `lowConfidence` for products (from their factors),
+    /// else `MeasureDisplay.isLowConfidence` (the one rule).
     private static func makeRow(id: String, group: DimensionGroup, title: String, label: String,
-                                kind: MeasurementKind, value: MeasuredValue, element: ElementID?) -> DimensionRow {
-        DimensionRow(id: id, group: group, title: title, label: label, kind: kind, value: value,
-                     element: element, isLowConfidence: MeasureDisplay.isLowConfidence(value, kind: kind))
+                                kind: MeasurementKind, value: MeasuredValue, element: ElementID?,
+                                lowConfidence: Bool? = nil) -> DimensionRow {
+        DimensionRow(id: id, group: group, title: title, label: label, kind: kind, value: value, element: element,
+                     isLowConfidence: lowConfidence ?? MeasureDisplay.isLowConfidence(value, kind: kind))
     }
 }

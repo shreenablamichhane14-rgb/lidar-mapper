@@ -21,6 +21,7 @@ extension PipelineSelfTest {
         checkStampFlow(r, package: package, flag: flag)
         checkMarkerFlow(r, package: package, flag: flag)
         checkForeignMarker(r, package: package, flag: flag)
+        checkForegroundAndVariant(r, package: package, flag: flag)
         checkMissingPackage(r, folder: folder, flag: flag)
     }
 
@@ -116,6 +117,40 @@ extension PipelineSelfTest {
         r.check("files.foreignMarkerRestored", stamped && restored == died)
         PipelineStepExecutor.recordFailure(package: package)
         r.check("files.endWithoutForeignRemoves", PipelineAttempt.load(from: package) == nil)
+    }
+
+    /// A marker left while the app was out of the foreground is not a death; the foreground
+    /// sync touches only the running step's marker; a reduced run's stamp is never fresh.
+    static func checkForegroundAndVariant(_ r: Recorder, package: ProjectPackage, flag: PipelineCancelFlag) {
+        let textureBox = PipelineStepBox(PipelineSelfTestStep(.textureLow, budget: 600_000_000, reduced: 350_000_000, hash: "tex"))
+        let away = PipelineAttempt(step: .textureLow, subject: roomA, variant: PipelineAttempt.fullVariant, count: 1,
+                                   startedAt: fixedDate, backgroundedAt: fixedDate)
+        save(away, package, r)
+        let afterAway = PipelineStepExecutor.prepare(box: textureBox, stepID: .textureLow, subject: roomA, package: package, flag: flag)
+        let awayDecision: AttemptDecision? = plan(of: afterAway)?.decision
+        let awayRemoved: Bool = PipelineAttempt.load(from: package) == nil
+        r.check("files.backgroundEndNotADeath", awayDecision == AttemptDecision.run && awayRemoved, describe(afterAway))
+
+        let running = PipelineAttempt(step: .textureLow, subject: roomB, variant: PipelineAttempt.fullVariant, count: 1,
+                                      startedAt: fixedDate)
+        save(running, package, r)
+        let synced = PipelineAttempt.syncForeground(package: package, step: .quality, subject: roomB)
+        r.check("files.syncLeavesOtherMarkers", !synced && PipelineAttempt.load(from: package) == running)
+        PipelineAttempt.remove(from: package)
+        let nothing = PipelineAttempt.syncForeground(package: package, step: .textureLow, subject: roomB)
+        r.check("files.syncNeverRecreates", !nothing && PipelineAttempt.load(from: package) == nil)
+
+        let reducedHash = PipelineStepExecutor.stampHash("tex", variant: .reduced)
+        let afterDeathHash = PipelineStepExecutor.stampHash("tex", variant: .reduced, afterDeath: true)
+        r.check("files.fullStampUnchanged", PipelineStepExecutor.stampHash("tex", variant: .full) == "tex" && reducedHash != "tex"
+                && afterDeathHash == "tex")
+        _ = PipelineStepExecutor.recordSuccess(stepID: .textureLow, subject: roomA, inputHash: reducedHash, package: package,
+                                               now: fixedDate)
+        let afterReduced = PipelineStepExecutor.prepare(box: textureBox, stepID: .textureLow, subject: roomA, package: package, flag: flag)
+        r.check("files.reducedStampNotFresh", plan(of: afterReduced)?.inputHash == "tex", describe(afterReduced))
+        _ = PipelineStepExecutor.recordSuccess(stepID: .textureLow, subject: roomA, inputHash: "tex", package: package, now: fixedDate)
+        let afterFull = PipelineStepExecutor.prepare(box: textureBox, stepID: .textureLow, subject: roomA, package: package, flag: flag)
+        r.check("files.fullStampFresh", isFresh(afterFull), describe(afterFull))
     }
 
     /// A deleted package is reported and never recreated.

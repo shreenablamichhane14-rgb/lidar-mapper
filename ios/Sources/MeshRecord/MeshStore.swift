@@ -221,6 +221,11 @@ final class MeshStore: ScanRecorder {
         locked { anchorOrder.compactMap { chunkStore[$0] } }
     }
 
+    /// `ScanRecorder.releaseMemory()`: `evict()` once the recording finished.
+    func releaseMemory() {
+        evict()
+    }
+
     /// D17: after finish, drop geometry from RAM; keep the index. Ignored (and logged) while
     /// recording, because unwritten versions would be lost.
     func evict() {

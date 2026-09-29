@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The read-only object card of build 4 (SPEC AUTOMATIC OBJECT RECOGNITION: labels are shown
-/// as guesses): "Mapper thinks this is a Sofa." with width, height and depth and their
+/// as guesses): "Mapper's guess: Sofa" with width, height and depth and their
 /// confidence (MeasureCore `objectRows`). Change Category arrives in build 5, the full object
 /// menu in build 7.
 struct ResultObjectCard: View {

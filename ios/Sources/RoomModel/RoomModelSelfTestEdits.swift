@@ -271,5 +271,21 @@ extension RoomModelSelfTest {
         let buildHash = try buildStep.inputHash(context)
         let buildHashAgain = try buildStep.inputHash(context)
         c.check("steps.buildHash", buildHash.count == 16 && buildHash == buildHashAgain)
+        try roomPlanFailedChecks(&c, package: package, record: record)
+    }
+
+    /// A room whose roomlog.json says RoomPlan failed is left out of the clean model; no log
+    /// (a recovered scan) or another degraded mode keeps it.
+    static func roomPlanFailedChecks(_ c: inout Checker, package: ProjectPackage, record: RoomRecord) throws {
+        c.check("steps.noLogNotFailed", !CleanModelStep.roomPlanFailed(package, room: record))
+        let logURL = CapturedRoomStore.rawFolder(package, room: record).roomLogURL
+        var log = RoomCaptureLog(seconds: 60, instructionSeconds: [:], error: "internalError", relocalizations: 0,
+                                 limitedTrackingFraction: 0, degraded: .roomPlanFailed)
+        try ProjectStore.writeJSON(log, to: logURL)
+        c.check("steps.roomPlanFailedLeftOut", CleanModelStep.roomPlanFailed(package, room: record))
+        log.degraded = .depthStripped
+        log.error = nil
+        try ProjectStore.writeJSON(log, to: logURL)
+        c.check("steps.otherDegradedKept", !CleanModelStep.roomPlanFailed(package, room: record))
     }
 }

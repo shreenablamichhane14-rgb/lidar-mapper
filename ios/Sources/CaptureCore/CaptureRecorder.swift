@@ -49,6 +49,9 @@ protocol ScanRecorder: AnyObject {
     func finishRecording(completion: @escaping () -> Void)
     /// Writes buffered data now without finishing (memory pressure). Hub queue.
     func flushNow()
+    /// After `finishRecording` completed: drops data kept in RAM that is already on disk (D17,
+    /// `MeshStore.evict()`); `stats` stay valid. Hub queue.
+    func releaseMemory()
     /// Live counters, read on the hub queue.
     var stats: RecorderStats { get }
 }
@@ -65,4 +68,6 @@ extension ScanRecorder {
     func hub(_ hub: ARSessionHub, didRemove anchors: [ARAnchor]) {}
     /// Default: nothing is buffered, so there is nothing to flush.
     func flushNow() {}
+    /// Default: nothing is kept in RAM after finishing.
+    func releaseMemory() {}
 }

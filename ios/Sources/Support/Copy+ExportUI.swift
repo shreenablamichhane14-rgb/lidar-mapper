@@ -23,11 +23,21 @@ extension Copy {
         /// Text note written into every DXF floor plan (D23: the file has no units header).
         static let dxfUnitsNote = "Units: millimeters"
 
+        /// Explanation of DXF on the sheet: the drawing is always in millimeters.
+        static let dxfDetail = "Floor plan for AutoCAD and other CAD programs. Drawn in millimeters."
+
+        /// Units option of DXF: it changes only the text labels, not the drawing units.
+        static let labelUnits = "Label units"
+
         /// Explanation of PLY in build 4 (class colors, not photo color).
         static let plyDetail = "The raw scan shape for 3D and research software."
 
-        /// Reason shown while color is still being added, or when adding it failed.
+        /// Reason shown while color is still being added.
         static let colorNotReady = "Not available yet: color is still being added"
+
+        /// Reason shown when processing ended without color although color was captured
+        /// (Results offers Try Again).
+        static let colorMissing = "Not available: color couldn't be added. Try again from the result screen."
 
         /// Units option: follow the app's unit setting.
         static let unitsApp = "Same as the app"

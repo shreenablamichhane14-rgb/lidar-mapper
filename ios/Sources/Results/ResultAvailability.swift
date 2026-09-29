@@ -59,6 +59,8 @@ struct ResultFiles: Equatable, Sendable {
     var hasClean = false, hasPlan = false, hasMeshView = false, hasTexture = false, hasCapturedRoom = false, isDemo = false
     /// `clean.json` exists but holds no wall (added by Results; see the type comment).
     var hasEmptyClean = false
+    /// At least one room recorded keyframes (`RoomRecord.keyframeCount > 0`), so color was captured.
+    var hasKeyframes = false
 
     /// Nothing on disk.
     init() {}
@@ -75,13 +77,25 @@ enum ResultAvailability {
     /// `degraded` comes from `RawScanReader.roomLog()?.degraded` (raw truth), overridden to
     /// `.roomPlanFailed` only when `CapturedRoomStore.loadInput` fails after the job finished; never
     /// from `QualityEvaluation.degraded`.
-    static func compute(_ tab: ResultTab, files: ResultFiles, processing: ProjectProcessingState, degraded: DegradedMode) -> TabAvailability {
+    ///
+    /// `status` is the manifest's. A `.needsAttention` project with no job and no failure in
+    /// memory (the app was relaunched after a job that ended without some output) shows the
+    /// missing color and raw mesh as failed, next to Retry, instead of "not ready yet".
+    static func compute(_ tab: ResultTab, files: ResultFiles, processing: ProjectProcessingState, degraded: DegradedMode,
+                        status: ProjectStatus = .ready) -> TabAvailability {
+        let settled = isSettledFailure(status: status, processing: processing)
         switch tab {
-        case .realistic: return realistic(files: files, processing: processing)
+        case .realistic: return realistic(files: files, processing: processing, settledFailure: settled)
         case .clean: return clean(files: files, processing: processing, degraded: degraded)
         case .floorPlan: return floorPlan(files: files, processing: processing, degraded: degraded)
-        case .raw: return raw(files: files, processing: processing, degraded: degraded)
+        case .raw: return raw(files: files, processing: processing, degraded: degraded, settledFailure: settled)
         }
+    }
+
+    /// Pure. True for a `.needsAttention` project with no active job and no failure in memory:
+    /// the failure was recorded in an earlier run of the app, so only the status remembers it.
+    static func isSettledFailure(status: ProjectStatus, processing: ProjectProcessingState) -> Bool {
+        status == .needsAttention && !isActive(processing) && processing.failed.isEmpty
     }
 
     /// Pure. The processing view shows only while `(processing.isQueued || processing.isRunning) && !files.hasPlan`.
@@ -124,12 +138,20 @@ enum ResultAvailability {
     }
 
     /// The message of the Retry banner: color only when every failed step is a texture step,
-    /// else the model.
-    static func retryMessage(processing: ProjectProcessingState) -> String {
+    /// else the model. With no failure in memory (after a relaunch) it reads the tabs: color
+    /// only when Realistic is the one failed tab.
+    static func retryMessage(processing: ProjectProcessingState, availability: [ResultTab: TabAvailability] = [:]) -> String {
         let textureSteps: Set<PipelineStepID> = [.textureLow, .textureHigh]
         let failed = Set(processing.failed.keys)
         if !failed.isEmpty && failed.isSubset(of: textureSteps) {
             return Copy.Errors.textureFailed.title
+        }
+        if failed.isEmpty {
+            let failedTabs = availability.filter { entry in
+                if case .failed = entry.value { return true }
+                return false
+            }.map { $0.key }
+            if failedTabs == [.realistic] { return Copy.Errors.textureFailed.title }
         }
         return Copy.Errors.processingFailed.title
     }
@@ -212,14 +234,16 @@ enum ResultAvailability {
         .preparing(text: text ?? stepText(step), percent: percent(step, processing))
     }
 
-    /// Realistic tab.
-    private static func realistic(files: ResultFiles, processing: ProjectProcessingState) -> TabAvailability {
+    /// Realistic tab. `settledFailure`: see `isSettledFailure`; color that was captured but is
+    /// missing then reads as failed.
+    private static func realistic(files: ResultFiles, processing: ProjectProcessingState, settledFailure: Bool) -> TabAvailability {
         if files.hasTexture { return .ready }
         if files.isDemo { return .unavailable(reason: Copy.Results.noColor) }
         if isPending(.textureLow, processing) {
             return preparing(.textureLow, processing, text: Copy.Results.colorPreparing)
         }
         if processing.failed[.textureLow] != nil { return .failed(reason: Copy.Errors.textureFailed.title) }
+        if settledFailure && files.hasKeyframes { return .failed(reason: Copy.Errors.textureFailed.title) }
         if files.hasCapturedRoom { return .unavailable(reason: Copy.Results.simpleModelNote) }
         return .unavailable(reason: Copy.Results.noColor)
     }
@@ -246,12 +270,15 @@ enum ResultAvailability {
         return .unavailable(reason: Copy.Results.notReady)
     }
 
-    /// Raw Scan tab.
-    private static func raw(files: ResultFiles, processing: ProjectProcessingState, degraded: DegradedMode) -> TabAvailability {
+    /// Raw Scan tab. `settledFailure`: see `isSettledFailure`; a missing view mesh of a scan
+    /// that recorded one then reads as failed.
+    private static func raw(files: ResultFiles, processing: ProjectProcessingState, degraded: DegradedMode,
+                            settledFailure: Bool) -> TabAvailability {
         if files.hasMeshView { return .ready }
         if processing.failed[.consolidateMesh] != nil { return .failed(reason: Copy.Errors.processingFailed.title) }
         if isPending(.consolidateMesh, processing) { return preparing(.consolidateMesh, processing) }
         if degraded == .meshStripped { return .unavailable(reason: Copy.Results.noDetailedScan) }
+        if settledFailure && !files.isDemo { return .failed(reason: Copy.Errors.processingFailed.title) }
         return .unavailable(reason: Copy.Results.notReady)
     }
 }
