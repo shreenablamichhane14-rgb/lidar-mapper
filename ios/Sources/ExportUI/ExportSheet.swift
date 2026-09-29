@@ -264,9 +264,11 @@ struct ExportSheet: View {
         !isPreparing && selectedOption?.isAvailable == true
     }
 
-    /// Reads what the project has (off main) and picks the first available option.
+    /// Reads what the project has (off main) and picks the first available option. The PDF
+    /// paper starts at A4 when the app's units are metric (US Letter otherwise).
     private func loadInputs() async {
         guard inputs == nil else { return }
+        settings.paper = ExportSettings.defaultPaper(for: UnitPreferences.load().system)
         let id = projectID
         let loaded = await Task.detached(priority: .userInitiated) {
             ExportCatalog.loadInputs(projectID: id)

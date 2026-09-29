@@ -79,6 +79,11 @@ struct ExportSettings: Equatable, Sendable {
 
     /// Defaults: textures on, hidden objects off, measurements on, US Letter, app units.
     init() {}
+
+    /// The paper the sheet starts with for a unit system: A4 for metric, US Letter for feet.
+    static func defaultPaper(for system: UnitSystem) -> PDFPlanWriter.Paper {
+        system == .metric ? .a4 : .usLetter
+    }
 }
 
 /// The formats per representation, their availability, labels and file names. Pure and

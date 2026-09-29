@@ -193,7 +193,7 @@ enum ExportRunner {
         case .pdf:
             let north: Double = Double.pi / 2 + Double(drawing.northAngle)
             let options = PDFPlanWriter.Options(paper: job.settings.paper, date: job.now, northAngle: north,
-                                                scaleCaption: Copy.ExportUI.scaleCaption)
+                                                scaleCaption: Copy.ExportUI.scaleCaption, metric: prefs.system == .metric)
             data = try PDFPlanWriter.data(for: drawing.plan, options: options)
         case .svg:
             data = try SVGWriter.data(for: drawing.plan)

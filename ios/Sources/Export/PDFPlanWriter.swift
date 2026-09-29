@@ -35,6 +35,8 @@ enum PDFPlanWriter {
         static let quarterInch = Scale(label: "1/4\" = 1'-0\"", ratio: 48, imperial: true)
         /// 1/8" = 1'-0" (1:96).
         static let eighthInch = Scale(label: "1/8\" = 1'-0\"", ratio: 96, imperial: true)
+        /// 1/16" = 1'-0" (1:192), for large plans in feet.
+        static let sixteenthInch = Scale(label: "1/16\" = 1'-0\"", ratio: 192, imperial: true)
         /// 1:50.
         static let oneToFifty = Scale(label: "1:50", ratio: 50, imperial: false)
         /// 1:100.
@@ -57,15 +59,20 @@ enum PDFPlanWriter {
         var lineWidth: CGFloat
         /// Title block caption before the scale.
         var scaleCaption: String
+        /// Units of the drawing scale and scale bar: true for metric (1:50, 1:100), false for
+        /// feet (1/4", 1/8", 1/16" = 1'-0"), nil to follow the paper (Letter imperial, A4 metric).
+        /// Exports pass the unit setting, so a metric user never gets a feet scale.
+        var metric: Bool?
 
-        /// Letter, today, north up, 0.6 pt lines.
+        /// Letter, today, north up, 0.6 pt lines, scale units from the paper.
         init(paper: Paper = .usLetter, date: Date = Date(), northAngle: Double = Double.pi / 2,
-             lineWidth: CGFloat = 0.6, scaleCaption: String = "Scale") {
+             lineWidth: CGFloat = 0.6, scaleCaption: String = "Scale", metric: Bool? = nil) {
             self.paper = paper
             self.date = date
             self.northAngle = northAngle
             self.lineWidth = lineWidth
             self.scaleCaption = scaleCaption
+            self.metric = metric
         }
     }
 
@@ -82,6 +89,13 @@ enum PDFPlanWriter {
         }
     }
 
+    /// Scales tried in order for a unit choice, whatever the paper: metric 1:50 and 1:100, feet
+    /// 1/4", 1/8" and 1/16" = 1'-0"; nil follows the paper (`candidateScales(for:)`).
+    static func candidateScales(for paper: Paper, metric: Bool?) -> [Scale] {
+        guard let metric else { return candidateScales(for: paper) }
+        return metric ? [.oneToFifty, .oneToHundred] : [.quarterInch, .eighthInch, .sixteenthInch]
+    }
+
     /// Area available for the drawing on a page of `paper`.
     static func drawingArea(for paper: Paper) -> CGRect {
         let size = paper.size
@@ -89,16 +103,32 @@ enum PDFPlanWriter {
                       height: size.height - 2 * margin - titleBlockHeight - 8)
     }
 
-    /// The first candidate scale at which a plan of `extent` meters fits `area`; when
-    /// none fits, 1:N with N rounded up to a multiple of 50.
-    static func chooseScale(extent: SIMD2<Double>, area: CGSize, paper: Paper) -> Scale {
-        for scale in candidateScales(for: paper) {
+    /// The first candidate scale (`candidateScales(for:metric:)`) at which a plan of `extent`
+    /// meters fits `area`; when none fits, 1:N with N rounded up to a multiple of 50 (its scale
+    /// bar in feet when `metric` is false).
+    static func chooseScale(extent: SIMD2<Double>, area: CGSize, paper: Paper, metric: Bool? = nil) -> Scale {
+        for scale in candidateScales(for: paper, metric: metric) {
             let k = scale.pointsPerMeter
             if extent.x * k <= Double(area.width) && extent.y * k <= Double(area.height) { return scale }
         }
         let needed = max(extent.x * 72 / 0.0254 / Double(area.width), extent.y * 72 / 0.0254 / Double(area.height))
         let ratio = max(150, (needed / 50).rounded(.up) * 50)
-        return Scale(label: "1:\(Int(ratio))", ratio: ratio, imperial: false)
+        return Scale(label: "1:\(Int(ratio))", ratio: ratio, imperial: metric == false)
+    }
+
+    /// Length of one of the four scale bar segments, meters: in feet 2 ft up to 1:48, 4 ft up
+    /// to 1:96, then 8 ft per 1:192; in metric 1 m per 1:50.
+    static func scaleBarSegmentMeters(_ scale: Scale) -> Double {
+        guard scale.imperial else { return max(1, (scale.ratio / 50).rounded(.up)) }
+        let feet: Double
+        if scale.ratio <= 48 {
+            feet = 2
+        } else if scale.ratio <= 96 {
+            feet = 4
+        } else {
+            feet = 8 * max(1, (scale.ratio / 192).rounded(.up))
+        }
+        return feet * LengthFormat.metersPerFoot
     }
 
     /// Renders the plan as PDF data (starts with "%PDF").
@@ -107,7 +137,7 @@ enum PDFPlanWriter {
         let pageSize = options.paper.size
         let area = drawingArea(for: options.paper)
         let extent = bounds.max - bounds.min
-        let scale = chooseScale(extent: extent, area: area.size, paper: options.paper)
+        let scale = chooseScale(extent: extent, area: area.size, paper: options.paper, metric: options.metric)
         let k = scale.pointsPerMeter
         let origin = CGPoint(x: Double(area.midX) - extent.x * k / 2, y: Double(area.midY) - extent.y * k / 2)
         func page(_ p: SIMD2<Double>) -> CGPoint {
@@ -205,12 +235,7 @@ enum PDFPlanWriter {
                  centered: false, color: .darkGray, in: cg)
 
         // Scale bar: four alternating segments.
-        let segmentMeters: Double
-        if scale.imperial {
-            segmentMeters = (scale.ratio <= 48 ? 2 : 4) * LengthFormat.metersPerFoot
-        } else {
-            segmentMeters = max(1, (scale.ratio / 50).rounded(.up))
-        }
+        let segmentMeters = scaleBarSegmentMeters(scale)
         let segment = CGFloat(segmentMeters * scale.pointsPerMeter)
         let barOrigin = CGPoint(x: box.midX - 2 * segment, y: box.minY + 30)
         for i in 0..<4 {

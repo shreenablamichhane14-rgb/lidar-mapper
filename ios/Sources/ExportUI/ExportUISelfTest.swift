@@ -61,6 +61,8 @@ enum ExportUISelfTest {
         let missing = ExportCatalog.options(for: ended).filter { $0.representation == .realistic }
         log.expect("catalog.colorMissingAfterProcessing",
                    missing.allSatisfy { !$0.isAvailable && $0.reason == Copy.ExportUI.colorMissing })
+        log.expect("settings.paperFollowsUnits", ExportSettings.defaultPaper(for: .metric) == .a4
+                   && ExportSettings.defaultPaper(for: .imperial) == .usLetter)
 
         var noPlan = F.demoInputs()
         noPlan.hasPlan = false

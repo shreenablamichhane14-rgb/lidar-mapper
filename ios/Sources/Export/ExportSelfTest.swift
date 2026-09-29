@@ -439,5 +439,23 @@ enum ExportSelfTest {
         c.check("pdf.scaleMetric", PDFPlanWriter.chooseScale(extent: SIMD2(7, 3), area: a4Area, paper: .a4) == .oneToFifty)
         let fallback = PDFPlanWriter.chooseScale(extent: SIMD2(40, 20), area: area, paper: .usLetter)
         c.check("pdf.scaleFallback", fallback.ratio == 200 && fallback.label == "1:200", fallback.label)
+        let metricLetter = PDFPlanWriter.chooseScale(extent: SIMD2(7, 3), area: area, paper: .usLetter, metric: true)
+        c.check("pdf.metricOnLetter", metricLetter == .oneToFifty && !metricLetter.imperial, metricLetter.label)
+        let feetOnA4 = PDFPlanWriter.chooseScale(extent: SIMD2(7, 3), area: a4Area, paper: .a4, metric: false)
+        c.check("pdf.feetOnA4", feetOnA4 == .quarterInch, feetOnA4.label)
+        let bigFeet = PDFPlanWriter.chooseScale(extent: SIMD2(40, 20), area: area, paper: .usLetter, metric: false)
+        c.check("pdf.feetLargePlan", bigFeet == .sixteenthInch, bigFeet.label)
+        let hugeMetric = PDFPlanWriter.chooseScale(extent: SIMD2(40, 20), area: area, paper: .usLetter, metric: true)
+        c.check("pdf.metricFallback", !hugeMetric.imperial && hugeMetric.ratio == 200, hugeMetric.label)
+        let quarterBar = PDFPlanWriter.scaleBarSegmentMeters(.quarterInch)
+        let metricBar = PDFPlanWriter.scaleBarSegmentMeters(.oneToFifty)
+        c.check("pdf.scaleBars", abs(quarterBar - 2 * LengthFormat.metersPerFoot) < 1e-9 && metricBar == 1,
+                "\(quarterBar) / \(metricBar)")
+        do {
+            let metricPDF = try PDFPlanWriter.data(for: plan, options: PDFPlanWriter.Options(paper: .usLetter, metric: true))
+            c.check("pdf.metricOption", metricPDF.prefix(4) == Data("%PDF".utf8))
+        } catch {
+            c.fail("pdf.metricOption", error)
+        }
     }
 }
