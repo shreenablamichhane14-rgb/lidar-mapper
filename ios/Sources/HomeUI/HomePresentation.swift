@@ -282,7 +282,7 @@ extension HomePresentation {
         let otherAdvanced: ScanMode = onlyAdvancedObject ? .advancedSpace : .advancedObject
         let advancedEnabled = availableModes.contains(.advancedSpace) || availableModes.contains(.advancedObject)
         let plainModes: [ScanMode] = [.room, .house, .object, .quickMeasure]
-        var entries: [HomeModeEntry] = plainModes.map { mode in
+        var entries: [HomeModeEntry] = plainModes.map { (mode: ScanMode) -> HomeModeEntry in
             let enabled = availableModes.contains(mode)
             let note = modeNote(isEnabled: enabled, reasons: [unavailableReasons[mode]])
             return HomeModeEntry(mode: mode, title: typeText(for: mode), detail: modeDetail(for: mode),

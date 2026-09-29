@@ -82,7 +82,9 @@ extension HomeUISelfTest {
         check(&failures, "b5.note.enabledHasNone", enabledNotes.isEmpty, "got \(enabledNotes)")
 
         let measure = entry(.quickMeasure, in: entries)
-        let measureOK: Bool = measure?.isEnabled == true && measure?.note == nil
+        let measureEnabled: Bool = measure?.isEnabled == true
+        let measureNote: String? = measure?.note
+        let measureOK: Bool = measureEnabled && measureNote == nil
         check(&failures, "b5.note.enabledIgnoresReason", measureOK, "got \(String(describing: measure))")
 
         let blank = HomePresentation.modeEntries(availableModes: [.room], unavailableReasons: [.house: "  \n"])
@@ -96,7 +98,9 @@ extension HomeUISelfTest {
 
         let build4 = HomePresentation.modeEntries(availableModes: [.room])
         let build4Notes: [String?] = build4.filter { !$0.isEnabled }.map { $0.note }
-        let build4OK: Bool = build4Notes.count == 4 && build4Notes.allSatisfy { $0 == Copy.HomeUI.comingLater }
+        let comingLater: String = Copy.HomeUI.comingLater
+        let build4AllLater: Bool = build4Notes.allSatisfy { (note: String?) -> Bool in note == comingLater }
+        let build4OK: Bool = build4Notes.count == 4 && build4AllLater
         check(&failures, "b5.note.build4ComingLater", build4OK, "got \(build4Notes)")
 
         let mixed: [String?] = [nil, "  ", "Second"]
