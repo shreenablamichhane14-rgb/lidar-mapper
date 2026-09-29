@@ -23,17 +23,50 @@ This file is the lead session's handoff. It says what is on the `integration` br
 | `impl/viewer3d` | wave 4a: RealityKit viewer, render mesh packing, orbit camera, picking; 79 checks; merged | green, run 36490322971 |
 | `impl/guidanceui` | wave 4a: guidance banner, coaching filter, announcer; 54 checks; merged | green, run 36488457971 |
 | `impl/export-dxf` | wave 4a: DXF in millimeters with a units note; 21 new checks; merged | green, run 36487700322 |
-| `impl/meshrecord`, `impl/keyframes`, `impl/roomcapture`, `impl/quality`, `impl/texturejob`, `impl/homeui` | build 4 wave 4b (in progress) | pending |
+| `impl/meshrecord`, `impl/keyframes`, `impl/roomcapture`, `impl/quality`, `impl/texturejob`, `impl/homeui` | build 4 wave 4b, merged | green, runs 36493342975, 36494443298, 36495914817, 36496342489, 36494186747, 36493553196 |
+| `impl/scanui`, `impl/qualityui`, `impl/results`, `impl/exportui` | build 4 wave 4c, merged | green, runs 36501518279, 36498756414, 36501407751, 36500269139 |
+| `impl/appshell` | build 4 wave 4d, merged; version 0.4 (build 4) | green, run 36505491410 |
+| `impl/b4-e2e` | build 4 end-to-end review fixes (in progress) | pending |
+| `impl/build5-spec` | build 5 module contracts (in progress) | docs only |
 
 The stopped routine sessions' branches (`design/architecture`, `docs/research-md`, `feat/texturing`, `feat/coverage`, `feat/meshproc`) were finished on the `impl/*` branches above and are fully contained in `integration`.
 
-## What the current integration build does on the phone
+## Build 4 (0.4): room MVP
 
-Still the build 3 app shell (version 0.3): the capability probe and the on-device self-tests, now 16 suites: Units, Geometry, Export, Core, Texturing, Coverage, Mesh processing, Guidance UI, Pipeline, Mesh model, Store, Measure core, Viewer3D, Capture core, Room model and Floor plan. None of the new suites has run on a device yet. The build 4 screens arrive with waves 4c and 4d.
+### What it does
 
-To test: install the IPA from the latest green `integration` run, open the app, wait for all suites, then pull the log with `python tools/phone_log.py usb` and report every line containing `self-test FAIL` and the per-suite timings (targets: Texturing under 3 s, Coverage under 2 s, Mesh processing under 3 s).
+- Home lists projects (thumbnail, subtitle, processing and needs-work badges, search, rename, delete). New Scan opens the mode picker; Room is enabled, the other modes say "Coming in a later version".
+- Room scan: preflight (free space, camera permission with Open Settings on denial), tips, Apple's RoomCaptureView with live coaching and outlines on Mapper's own ARSession, which records the LiDAR mesh (anchor-local chunks every 3 s), texture keyframes with depth, a pose track and photos at the same time. Mapper's guidance banner adds messages RoomPlan does not give. Pause, Resume, Cancel (Keep Scanning or Discard) and Done.
+- Done shows the scan quality sheet over the camera (Shape, Walls, Floor, Ceiling, Color and texture, missing areas count, a plain verdict), then Finish, Finish Anyway or Discard.
+- Finish seals the raw scan (never modified afterwards) and processing runs in order: room model, clean model, floor plan (the result screen opens here), mesh consolidation, quality, thumbnail, textures.
+- Result screen: Realistic (photo textured mesh), 3D Clean, Floor Plan and Raw Scan, room dimensions (length, width, floor area, perimeter, ceiling height, wall, door and window sizes) with plus or minus confidence in the chosen units, estimated and inferred values labeled, Hide Furniture, legend, read-only object card.
+- Export: USDZ, OBJ, PLY, STL, GLB, PDF floor plan, SVG, DXF (millimeters, units note), PNG and JSON; exports follow the result screen's view state.
+- Settings: units, inch fractions, both units, guidance vibration, keep scan photos, tips reset, storage used, wireless debug log (session only, off at every launch, stops in the background), Diagnostics.
+- Diagnostics: capability probe, memory, 27 self-test suites (they also run once automatically after each new install and log to the phone log), Demo Mode (the whole flow with a sample room, no camera), snapshot recording, texture orientation check, Share Log.
+- Launch: unfinished scans are offered for recovery; interrupted processing resumes.
+
+### What to test first on the phone
+
+1. Install the IPA from the latest green `integration` run and open the app. Wait about a minute, then pull the log (`python tools/phone_log.py usb`) and report every `self-test FAIL` line and each suite's time. None of the 27 suites has run on a device yet.
+2. Settings > Diagnostics > Demo Mode on, then run New Scan > Room through to the result screen and an export. This checks every screen without the camera.
+3. Demo Mode off. Scan one real room (TEST_PLAN ROOM-01 to ROOM-05), finish, and wait for the result screen. The log answers the open device questions: whether scene depth and the LiDAR mesh keep arriving under RoomCaptureView (lines from the capture watchdog and `degraded` mode), mesh anchor counts, keyframe counts and skips, memory, and the RoomPlan callback thread.
+4. Then the build 4 acceptance list in `docs/TEST_PLAN.md` section 0.3 ("Build 4 (0.4) notes"). TextureLowStep made it into build 4, so TEX-01 and EXP-02 run with textures. PROJ-02 (rename) also works in build 4.
+5. Measurement accuracy protocol (TEST_PLAN section 3) on the tape-measured room, and the smoke list (section 5) except #6, #8, #9 and the Show Missing Areas button.
+
+### Stubbed or not in build 4
+
+- House, Object, Quick Measure and Advanced modes (build 5 and 6); measuring inside the model and plan editing (build 5); Show Missing Areas (build 5); Photo Realistic density (build 6); project duplicate, archive, backup and restore (build 6).
+- Label correction for detected objects (build 7).
+
+### Known risks for the first device run
+
+- RoomCaptureView may still drop scene depth or the mesh on iOS 18.3; the watchdog re-applies the configuration once and the degraded mode is logged and shown (meshStripped falls back to the room shell for coverage).
+- Memory during texturing and mesh consolidation on 6 GB is estimated, not measured; steps pick a reduced variant under memory pressure and log the peak.
+- `CapturedRoom.export` is called off the main thread; if it throws, export falls back to Mapper's own USDZ writer (logged).
+- Texture orientation and UV conventions are verified by self-tests and the Diagnostics texture check, not yet by eye on a real scan.
 
 ## Next
 
-1. Build 4 (0.4), room MVP, in waves 4a, 4b, 4c, 4d as listed in docs/MODULES.md section 2.1.
-2. Builds 5 and 6, then hardening, security and polish.
+1. Merge the build 4 end-to-end review fixes and compile green.
+2. Build 5 (0.5): House, Object and Quick Measure modes, measuring in the model, plan editing, live coverage and Show Missing Areas, from the expanded contracts in docs/MODULES.md.
+3. Build 6, then hardening, security and polish.
