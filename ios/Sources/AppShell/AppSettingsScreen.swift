@@ -4,6 +4,10 @@ import SwiftUI
 /// every launch and never starts the server itself; turning it on removes the old token first
 /// so a new one is made; the listener stops when Mapper goes to the background. Main actor.
 @MainActor enum AppWirelessDebug {
+    /// True between `enable` and `disable` in this session, so the Settings toggle's own
+    /// change callback after a background stop does not stop and log a second time.
+    private static var isEnabled = false
+
     /// Launch: the setting never survives a relaunch (any thread; `UserDefaults` is thread-safe).
     nonisolated static func resetAtLaunch(_ defaults: UserDefaults = .standard) {
         defaults.set(false, forKey: SettingsKey.wirelessDebug)
@@ -13,13 +17,17 @@ import SwiftUI
     static func enable(_ defaults: UserDefaults = .standard) {
         defaults.removeObject(forKey: SettingsKey.debugToken)
         defaults.set(true, forKey: SettingsKey.wirelessDebug)
+        isEnabled = true
         DebugServer.shared.start()
         LogStore.shared.write("wireless debug turned on in Settings (new token)", category: AppRouter.logCategory)
     }
 
-    /// The user turned the toggle off, or Mapper went to the background.
+    /// The user turned the toggle off, or Mapper went to the background. The setting is always
+    /// cleared; the listener is stopped and the change logged only once per session.
     static func disable(reason: String, _ defaults: UserDefaults = .standard) {
         defaults.set(false, forKey: SettingsKey.wirelessDebug)
+        guard isEnabled else { return }
+        isEnabled = false
         DebugServer.shared.stop()
         LogStore.shared.write("wireless debug turned off: \(reason)", category: AppRouter.logCategory)
     }

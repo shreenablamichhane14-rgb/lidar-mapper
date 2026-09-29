@@ -3,8 +3,8 @@ import UIKit
 import Combine
 
 extension SettingsKey {
-    /// String: the app version whose self-tests already ran automatically at launch
-    /// (`AppInfo.buildTag`); a new build runs them once more (AppShell).
+    /// String: the installed binary whose self-tests already ran automatically at launch
+    /// (`AppInfo.installStamp`); a new install runs them once more (AppShell).
     static let selfTestsBuild = "selfTestsBuild"
 }
 
@@ -16,6 +16,23 @@ enum AppInfo {
         let version = info["CFBundleShortVersionString"] as? String ?? "?"
         let build = info["CFBundleVersion"] as? String ?? "?"
         return "\(version) (\(build))"
+    }
+
+    /// Identity of the installed binary for the once-per-install self-test run: `buildTag` plus
+    /// the main executable's size and modification time. CI does not bump the build number, so
+    /// `buildTag` alone would skip the launch run after every install but the first of a version.
+    static var installStamp: String {
+        var stamp = buildTag
+        guard let url = Bundle.main.executableURL,
+              let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else { return stamp }
+        if let size = attributes[.size] as? NSNumber {
+            stamp += " " + size.stringValue
+        }
+        if let date = attributes[.modificationDate] as? Date {
+            let seconds: Double = date.timeIntervalSince1970
+            stamp += " " + String(Int64(seconds))
+        }
+        return stamp
     }
 }
 

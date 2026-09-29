@@ -6,15 +6,21 @@ import RealityKit
 
 /// One module's on-device self-test: a name and a function returning failing assertions.
 struct SelfTestSuite {
+    /// Module name as shown and logged ("Units" logs as "units self-test: ...").
     let name: String
+    /// The module's `<Module>SelfTest.run`: one line per failing check, empty when all pass.
     let run: () -> [String]
 }
 
 /// Result of running one suite on this device.
 struct SelfTestResult: Identifiable {
+    /// Identity of this result row.
     let id = UUID()
+    /// The suite's name.
     let name: String
+    /// Failing checks as "name: detail"; empty when the suite passed.
     let failures: [String]
+    /// Wall time of the suite in seconds.
     let seconds: Double
 }
 

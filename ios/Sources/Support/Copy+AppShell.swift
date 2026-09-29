@@ -94,7 +94,5 @@ extension Copy {
         static let deviceModel = "Model"
         /// iOS version.
         static let systemVersion = "iOS version"
-        /// Battery, heat and Low Power Mode.
-        static let power = "Battery and heat"
     }
 }
