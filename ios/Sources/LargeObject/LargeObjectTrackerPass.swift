@@ -91,8 +91,9 @@ enum LargeObjectPass {
             existing.updateBox(currentBox, floorY: boxFloor)
             sectors = existing
         } else {
-            let firstCamera = input.front ?? input.poses.first?.position
-                ?? (currentBox.center + SIMD3<Float>(0, 0, 1))
+            let fallbackCamera: SIMD3<Float> = currentBox.center + SIMD3<Float>(0, 0, 1)
+            let posedCamera: SIMD3<Float>? = input.front ?? input.poses.first?.position
+            let firstCamera: SIMD3<Float> = posedCamera ?? fallbackCamera
             sectors = SectorCoverage(box: currentBox, floorY: boxFloor, firstCamera: firstCamera)
         }
         for pose in input.poses {

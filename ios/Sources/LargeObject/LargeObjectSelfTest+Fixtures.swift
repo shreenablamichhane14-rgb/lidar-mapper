@@ -24,7 +24,9 @@ extension LargeObjectSelfTest {
     /// = +X), at the center's height, looking at the center.
     static func orbitCamera(azimuth: Float, distance: Float, center: SIMD3<Float> = SIMD3<Float>(0, 0.5, 0)) -> simd_float4x4 {
         let radians = azimuth * Float.pi / 180
-        let eye = center + SIMD3<Float>(sin(radians), 0, cos(radians)) * distance
+        let direction = SIMD3<Float>(sin(radians), 0, cos(radians))
+        let offset: SIMD3<Float> = direction * distance
+        let eye: SIMD3<Float> = center + offset
         return lookAt(eye: eye, target: center)
     }
 
@@ -71,7 +73,10 @@ extension LargeObjectSelfTest {
                 for j in 0..<4 {
                     let a = (Float(i) + 0.5) * 0.25 - 0.5
                     let b = (Float(j) + 0.5) * 0.25 - 0.5
-                    let centroid = center + normal * 0.5 + u * a + v * b
+                    let onFace: SIMD3<Float> = center + normal * Float(0.5)
+                    let alongU: SIMD3<Float> = u * a
+                    let alongV: SIMD3<Float> = v * b
+                    let centroid: SIMD3<Float> = onFace + alongU + alongV
                     out.append(SectorFace(centroid: centroid, normal: inward ? -normal : normal, area: 0.0625, state: state))
                 }
             }
@@ -164,7 +169,9 @@ extension LargeObjectSelfTest {
             let cross = simd_cross(b - a, c - a)
             let length = simd_length(cross)
             let normal = length > 0 ? cross / length : SIMD3<Float>(0, 0, 1)
-            faces.append(CoverageFace(centroid: (a + b + c) / 3, normal: normal, area: 0.5 * length, surface: surface))
+            let sum: SIMD3<Float> = a + b + c
+            let centroid: SIMD3<Float> = sum / Float(3)
+            faces.append(CoverageFace(centroid: centroid, normal: normal, area: 0.5 * length, surface: surface))
         }
         var low = SIMD3<Float>(repeating: Float.greatestFiniteMagnitude)
         var high = SIMD3<Float>(repeating: -Float.greatestFiniteMagnitude)

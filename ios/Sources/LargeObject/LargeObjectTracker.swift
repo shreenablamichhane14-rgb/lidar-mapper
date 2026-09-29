@@ -123,8 +123,11 @@ final class LargeObjectTracker: ScanRecorder {
         let normal = TrackingMonitor.summary(camera.trackingState) == .normal
         let schedule = locked { () -> Bool in
             guard recording else { return false }
-            let seconds = lastPoseTimestamp.map { min(max(timestamp - $0, 0), LargeObjectTracker.maxPoseSeconds) }
-                ?? LargeObjectTracker.poseInterval
+            var seconds: Double = LargeObjectTracker.poseInterval
+            if let previous = lastPoseTimestamp {
+                let gap: Double = max(timestamp - previous, 0)
+                seconds = min(gap, LargeObjectTracker.maxPoseSeconds)
+            }
             lastPoseTimestamp = timestamp
             latestCamera = transform
             guard seed != nil else { return false }
