@@ -94,7 +94,9 @@ enum CaptureCoreSelfTest {
             let profile = ScanProfile(mode: mode, settings: ScanSettings.defaults(for: mode))
             let plain = ScanConfigurationFactory.make(profile)
             let noMap = ScanConfigurationFactory.make(profile, initialWorldMap: nil)
-            expect(&f, "reloc.nilMap.\(mode.rawValue)", noMap.initialWorldMap == nil && plain.initialWorldMap == nil)
+            let noMapIsNil: Bool = noMap.initialWorldMap == nil
+            let plainIsNil: Bool = plain.initialWorldMap == nil
+            expect(&f, "reloc.nilMap.\(mode.rawValue)", noMapIsNil && plainIsNil)
             let sameReconstruction = noMap.sceneReconstruction == plain.sceneReconstruction
             let sameSemantics = noMap.frameSemantics == plain.frameSemantics
             let samePlanes = noMap.planeDetection == plain.planeDetection
