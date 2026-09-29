@@ -213,8 +213,9 @@ enum ExportCatalog {
     }
 
     /// The (label, detail) of an option: the object USDZ explains itself with
-    /// Copy.ExportUI.objectDetail, everything else uses `label(for:)` of its format.
-    static func label(for option: ExportOption) -> (label: String, detail: String) {
+    /// Copy.ExportUI.objectDetail, everything else uses `label(for:)` of its format. Named apart
+    /// from `label(for:)` so calls like `label(for: .usdz)` never weigh two overloads.
+    static func optionLabel(_ option: ExportOption) -> (label: String, detail: String) {
         let base = label(for: option.format)
         guard option.representation == .object else { return base }
         return (base.label, Copy.ExportUI.objectDetail)

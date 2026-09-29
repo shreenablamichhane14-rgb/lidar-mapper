@@ -25,14 +25,18 @@ extension ExportUISelfTest {
         let house = ExportCatalog.options(for: F.houseInputs())
         let planOptions = house.filter { $0.representation == .floorPlan }
         let planFormats = planOptions.map { $0.format }
-        log.expect("b5.house.planFormats", planFormats == [.pdf, .svg, .dxf, .png] && planOptions.allSatisfy { $0.isAvailable },
-                   "\(planFormats)")
-        log.expect("b5.house.layout", house.count == 16 && !house.contains { $0.representation == .object })
+        let expectedPlan: [ExportFileFormat] = [.pdf, .svg, .dxf, .png]
+        let planSame: Bool = planFormats == expectedPlan
+        let planAvailable: Bool = planOptions.allSatisfy { $0.isAvailable }
+        log.expect("b5.house.planFormats", planSame && planAvailable, "\(planFormats)")
+        let hasObjectRow: Bool = house.contains { $0.representation == .object }
+        log.expect("b5.house.layout", house.count == 16 && !hasObjectRow)
         var pending = F.houseInputs()
         pending.allRoomsTextured = false
         pending.isProcessing = true
         let realistic = ExportCatalog.options(for: pending).filter { $0.representation == .realistic }
-        let waits: Bool = realistic.count == 3 && realistic.allSatisfy { !$0.isAvailable && $0.reason == Copy.ExportUI.colorNotReady }
+        let waitsForColor: Bool = realistic.allSatisfy { !$0.isAvailable && $0.reason == Copy.ExportUI.colorNotReady }
+        let waits: Bool = realistic.count == 3 && waitsForColor
         let textured: Bool = house.filter { $0.representation == .realistic }.allSatisfy { $0.isAvailable }
         log.expect("b5.house.realisticNeedsEveryRoom", waits && textured)
 
@@ -52,14 +56,15 @@ extension ExportUISelfTest {
         quick.kind = .quickMeasure
         let empty = ExportCatalog.options(for: quick)
         log.expect("b5.quick.jsonOnly", empty.map { $0.id } == ["data.json"], empty.map { $0.id }.joined(separator: ","))
-        log.expect("b5.quick.noMeasurements", empty.first?.isAvailable == false
-                   && empty.first?.reason == Copy.Empty.noMeasurements.title)
+        let quickUnavailable: Bool = empty.first?.isAvailable == false
+        let quickReason: String? = empty.first?.reason
+        log.expect("b5.quick.noMeasurements", quickUnavailable && quickReason == Copy.Empty.noMeasurements.title)
         quick.measurementCount = 2
         log.expect("b5.quick.available", ExportCatalog.options(for: quick).first?.isAvailable == true)
 
         log.expect("b5.sectionTitle.object", ExportCatalog.sectionTitle(.object) == Copy.Modes.object)
-        let objectLabel = ExportCatalog.label(for: option(.object, .usdz))
-        let rawLabel = ExportCatalog.label(for: option(.raw, .usdz))
+        let objectLabel = ExportCatalog.optionLabel(option(.object, .usdz))
+        let rawLabel = ExportCatalog.optionLabel(option(.raw, .usdz))
         let usdzLabel = ExportCatalog.label(for: .usdz)
         let labelsOK: Bool = objectLabel.detail == Copy.ExportUI.objectDetail && objectLabel.label == usdzLabel.label
         log.expect("b5.label.object", labelsOK && rawLabel.detail == usdzLabel.detail)
@@ -123,7 +128,9 @@ extension ExportUISelfTest {
         let normalDistance: Float = simd_distance(turned, expectedNormal)
         let normalLength: Float = simd_length(turned)
         log.expect("b5.transformed.normals", normalDistance < 1e-4 && abs(normalLength - 1) < 1e-4, "\(turned)")
-        log.expect("b5.transformed.texcoords", result?.texcoords == uvs && result?.indices == mesh.indices)
+        let texcoordsKept: Bool = result?.texcoords == uvs
+        let indicesKept: Bool = result?.indices == mesh.indices
+        log.expect("b5.transformed.texcoords", texcoordsKept && indicesKept)
         let same = ExportHouse.transformed(ExportScene(meshes: [mesh]), by: matrix_identity_float4x4)
         log.expect("b5.transformed.identity", same.meshes.first?.positions == points)
 

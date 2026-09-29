@@ -119,7 +119,7 @@ struct ExportSheet: View {
 
     /// One format: label, explanation, and the reason or the simplified note; a checkmark when chosen.
     private func optionRow(_ option: ExportOption, inputs: ExportInputs) -> some View {
-        let text = ExportCatalog.label(for: option)
+        let text = ExportCatalog.optionLabel(option)
         let isSelected = option.id == selectedID
         let simplified = ExportCatalog.isSimplified(option, inputs: inputs)
         return Button {
