@@ -195,7 +195,8 @@ extension CoverageLiveRecorder {
             if previousFaces == nil, s.trackedFaces + chunk.faceCount > options.maxTrackedFaces {
                 if !s.faceCapLogged {
                     s.faceCapLogged = true
-                    CoverageLiveRecorder.log("face cap \(options.maxTrackedFaces) reached at \(s.trackedFaces) faces; new anchors are left out")
+                    CoverageLiveRecorder.log("face cap \(options.maxTrackedFaces) reached at \(s.trackedFaces) faces; "
+                                             + "new anchors are left out")
                 }
                 continue
             }
