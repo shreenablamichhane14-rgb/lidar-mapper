@@ -4,6 +4,8 @@ import simd
 
 /// Files read when the editor opens (off main).
 struct PlanEditorLoadResult: Sendable {
+    /// The project package; nil when the projects folder cannot be resolved.
+    var package: ProjectPackage?
     /// The base plan (`derived/plan.json`); nil when it is missing or unreadable.
     var plan: PlanModel?
     /// The base clean model (`derived/clean.json`), when readable.
@@ -130,19 +132,12 @@ struct PlanEditorLoadResult: Sendable {
     /// `UnitPreferences.load()`; keeps the bases and the log; edited plan = `log.applied(to: basePlan)`,
     /// edited clean = `baseClean.applyingEdits(log)`; `lockedWalls`. A missing plan sets `loadFailed`.
     func load() async {
-        let found: ProjectPackage
-        do {
-            found = try ProjectLibrary.shared.package(for: projectID)
-        } catch {
-            record("load failed: no package (\(error))")
-            loadFailed = true
-            return
-        }
+        let id = projectID
         let loaded = await Task.detached(priority: .userInitiated) { () -> PlanEditorLoadResult in
-            PlanEditorModel.readFiles(found)
+            PlanEditorModel.readFiles(projectID: id)
         }.value
         prefs = loaded.prefs
-        guard let base = loaded.plan else {
+        guard let found = loaded.package, let base = loaded.plan else {
             record("load failed: \(loaded.failure ?? "no plan")")
             loadFailed = true
             isLoaded = false
@@ -160,9 +155,18 @@ struct PlanEditorLoadResult: Sendable {
                + "clean model \(loaded.clean == nil ? "missing" : "loaded"), \(lockedWalls.count) locked walls")
     }
 
-    /// Reads the plan, the clean model, the log and the unit preferences. Safe off main.
-    nonisolated static func readFiles(_ package: ProjectPackage) -> PlanEditorLoadResult {
+    /// Resolves the package (`ProjectStore.package(for:)`, which `ProjectLibrary.package(for:)`
+    /// wraps, called here so the folder check stays off main) and reads the plan, the clean
+    /// model, the log and the unit preferences. Safe off main.
+    nonisolated static func readFiles(projectID: UUID) -> PlanEditorLoadResult {
         let prefs = UnitPreferences.load()
+        let package: ProjectPackage
+        do {
+            package = try ProjectStore.package(for: projectID)
+        } catch {
+            return PlanEditorLoadResult(package: nil, plan: nil, clean: nil, log: EditLog(), prefs: prefs,
+                                        failure: "no package (\(error))")
+        }
         let log = EditStore.load(package)
         var clean: CleanModel?
         do {
@@ -172,9 +176,10 @@ struct PlanEditorLoadResult: Sendable {
         }
         do {
             let plan = try PlanModelStore.loadBase(package)
-            return PlanEditorLoadResult(plan: plan, clean: clean, log: log, prefs: prefs, failure: nil)
+            return PlanEditorLoadResult(package: package, plan: plan, clean: clean, log: log, prefs: prefs, failure: nil)
         } catch {
-            return PlanEditorLoadResult(plan: nil, clean: clean, log: log, prefs: prefs, failure: "\(error)")
+            return PlanEditorLoadResult(package: package, plan: nil, clean: clean, log: log, prefs: prefs,
+                                        failure: "\(error)")
         }
     }
 

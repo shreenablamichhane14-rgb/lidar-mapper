@@ -64,8 +64,10 @@ enum PlanEditorSelfTest {
             return
         }
         let joined = PlanEditorOps.joined(F.w1, atStart: false, in: level)
-        log.expect("1 joined W1 end is W2 start", joined.count == 1 && joined.first?.wall == F.w2 && joined.first?.atStart == true,
-                   "\(joined.count) ends")
+        let joinedWall: ElementID? = joined.first?.wall
+        let joinedAtStart: Bool? = joined.first?.atStart
+        let joinedRight = joined.count == 1 && joinedWall == F.w2 && joinedAtStart == true
+        log.expect("1 joined W1 end is W2 start", joinedRight, "\(joined.count) ends")
         let baseArea = F.planRoom(F.roomA, plan)?.area ?? 0
         guard let moved = both(.moveWall(F.w3, by: -0.3), context, clean, "2 moveWall W3", &log) else { return }
         log.expect("2 moveWall is one batch of 4", F.operationCount(moved.op) == 4 && isBatch(moved.op),
