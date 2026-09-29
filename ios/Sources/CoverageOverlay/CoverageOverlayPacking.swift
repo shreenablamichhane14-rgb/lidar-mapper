@@ -207,7 +207,7 @@ enum CoverageOverlayPacking {
         var floats = [Float](repeating: 0, count: vertexCount * floatsPerVertex)
         var low = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
         var high = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)
-        var any = false
+        var sawFinite = false
         for v in 0..<vertexCount {
             let base = v * floatsPerVertex
             let ok = v < finite.count ? finite[v] : isFinite(positions[v])
@@ -227,11 +227,11 @@ enum CoverageOverlayPacking {
             if ok {
                 low = simd_min(low, p)
                 high = simd_max(high, p)
-                any = true
+                sawFinite = true
             }
         }
         let data = floats.withUnsafeBufferPointer { Data(buffer: $0) }
-        if any { return (data: data, low: low, high: high) }
+        if sawFinite { return (data: data, low: low, high: high) }
         return (data: data, low: .zero, high: .zero)
     }
 
@@ -298,10 +298,12 @@ enum CoverageOverlayPacking {
         let backLength = simd_length(back)
         guard backLength.isFinite, backLength > 1e-6 else { return false }
         let forward = -back / backLength
-        let cosine = min(max(simd_dot(d, forward) / distance, -1), 1)
-        let angle = acos(cosine)
-        let angularRadius = asin(min(radius / distance, 1))
-        let halfAngle = halfAngleDegrees * Float.pi / 180
+        let rawCosine: Float = simd_dot(d, forward) / distance
+        let cosine: Float = Swift.min(Swift.max(rawCosine, -1), 1)
+        let angle: Float = acos(cosine)
+        let sine: Float = Swift.min(radius / distance, 1)
+        let angularRadius: Float = asin(sine)
+        let halfAngle: Float = halfAngleDegrees * Float.pi / 180
         return angle - angularRadius <= halfAngle
     }
 

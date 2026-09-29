@@ -240,8 +240,8 @@ import simd
         lastRevision = fetched.revision
     }
 
-    /// Removes the entities and pending entries of anchors CoverageLive no longer publishes (its
-    /// recording finished or a new one began).
+    /// Removes the entities, pending and in-flight entries of anchors CoverageLive no longer
+    /// publishes (its recording finished or a new one began).
     private func reconcile() {
         let all = source.anchorFaces(changedSince: 0)
         var live = Set<UUID>()
@@ -251,6 +251,8 @@ import simd
         for id in gone { removeSlot(id) }
         let stale = pending.keys.filter { !live.contains($0) }
         for id in stale { pending[id] = nil }
+        let leaving = inFlight.keys.filter { !live.contains($0) }
+        for id in leaving { inFlight[id] = nil }
         anchorEntityCount = slots.count
         if !gone.isEmpty { CoverageOverlayPacking.log("dropped \(gone.count) anchors the source no longer has") }
     }
@@ -279,8 +281,9 @@ import simd
         }
     }
 
-    /// Back on main: uploads every packed anchor. A pack from before `detach()` is dropped; one
-    /// that lands while frozen or hidden goes back to pending (unless a newer version waits).
+    /// Back on main: uploads every packed anchor still in flight (a reconcile may have dropped
+    /// some). A pack from before `detach()` is dropped; one that lands while frozen or hidden goes
+    /// back to pending (unless a newer version waits).
     private func finishPack(_ result: CoverageOverlayPackResult, generation gen: Int) {
         guard gen == generation else { return }
         packInFlight = false
@@ -293,7 +296,7 @@ import simd
             return
         }
         let started = DispatchTime.now().uptimeNanoseconds
-        for buffers in result.buffers { upload(buffers) }
+        for buffers in result.buffers where anchors[buffers.anchorID] != nil { upload(buffers) }
         anchorEntityCount = slots.count
         let milliseconds = Double(DispatchTime.now().uptimeNanoseconds &- started) / 1_000_000
         stats.lastUploadMilliseconds = milliseconds
@@ -422,11 +425,12 @@ import simd
         let upload = CoverageOverlayRenderer.rounded(stats.lastUploadMilliseconds)
         let maxUpload = CoverageOverlayRenderer.rounded(stats.maxUploadMilliseconds)
         let pack = CoverageOverlayRenderer.rounded(stats.lastPackMilliseconds)
-        CoverageOverlayPacking.log("\(slots.count) entities, \(pending.count) pending, last tick \(tick) ms "
-                                   + "(max \(maxTick)), last upload \(upload) ms (max \(maxUpload)), pack \(pack) ms, "
-                                   + "\(stats.uploads) uploads, \(stats.rebuilds) rebuilds, "
-                                   + "\(stats.packFailures + stats.meshFailures) failures, frozen \(isFrozen), "
-                                   + "visible \(isVisible)")
+        let failures = stats.packFailures + stats.meshFailures
+        var line = "\(slots.count) entities, \(pending.count) pending, last tick \(tick) ms (max \(maxTick)), "
+        line += "last upload \(upload) ms (max \(maxUpload)), pack \(pack) ms, "
+        line += "\(stats.uploads) uploads, \(stats.rebuilds) rebuilds, \(failures) failures, "
+        line += "frozen \(isFrozen), visible \(isVisible)"
+        CoverageOverlayPacking.log(line)
         stats.maxTickMilliseconds = 0
         stats.maxUploadMilliseconds = 0
     }

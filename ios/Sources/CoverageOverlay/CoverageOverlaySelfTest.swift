@@ -37,8 +37,10 @@ enum CoverageOverlaySelfTest {
         c.check(g.counts == [6, 3, 3, 3], "grouped.counts", "\(g.counts)")
         c.check(tripleCounts(g.indices) == tripleCounts(indices), "grouped.triples", "triples changed")
         let short = CoverageOverlayPacking.grouped(indices: [0, 1, 2, 3, 4, 5, 6], states: [.green])
-        c.check(short.counts == [3, 0, 0, 3] && short.indices == [0, 1, 2, 3, 4, 5], "grouped.missingStates",
-                "\(short.counts) \(short.indices)")
+        let shortCounts: [Int] = [3, 0, 0, 3]
+        let shortIndices: [UInt32] = [0, 1, 2, 3, 4, 5]
+        let shortOK: Bool = short.counts == shortCounts && short.indices == shortIndices
+        c.check(shortOK, "grouped.missingStates", "\(short.counts) \(short.indices)")
         var ordered = true
         for (i, state) in CoverageOverlayPacking.stateOrder.enumerated()
         where CoverageOverlayPacking.slot(of: state) != i {
@@ -77,7 +79,7 @@ enum CoverageOverlaySelfTest {
         let up = SIMD3<Float>(0, 1, 0)
         let positionOK: Bool = vector(floats, at: 8) == SIMD3<Float>(1, 2, -3)
         let normalOK: Bool = vector(floats, at: 11) == SIMD3<Float>(1, 0, 0)
-        let uvOK: Bool = vector(floats, at: 13) == SIMD3<Float>(0, 0, 0)
+        let uvOK: Bool = floats.count >= 16 && floats[14] == 0 && floats[15] == 0
         c.check(positionOK && normalOK && uvOK, "pack.layout", "vertex 1 floats \(Array(floats.prefix(16)))")
         let missingOK: Bool = vector(floats, at: 19) == up
         let bare = anchor(positions: positions, normals: [], indices: [0, 1, 2], states: [.gray])
@@ -91,11 +93,14 @@ enum CoverageOverlaySelfTest {
         let lowOK = packed.boundsMin == SIMD3<Float>(-1, -1, -3)
         let highOK = packed.boundsMax == SIMD3<Float>(2, 2, 4)
         c.check(lowOK && highOK, "pack.bounds", "\(packed.boundsMin) \(packed.boundsMax)")
-        c.check(packed.indices == [1, 3, 2, 0, 1, 2] && packed.groupCounts == [3, 0, 3, 0], "pack.grouped",
-                "\(packed.indices) \(packed.groupCounts)")
-        let sameID = packed.anchorID == base.anchorID && packed.revision == base.revision
-        let sameTransform = packed.transform.columns.3 == base.transform.columns.3
-            && packed.transform.columns.0 == base.transform.columns.0
+        let groupedIndices: [UInt32] = [1, 3, 2, 0, 1, 2]
+        let groupedCounts: [Int] = [3, 0, 3, 0]
+        let groupedOK: Bool = packed.indices == groupedIndices && packed.groupCounts == groupedCounts
+        c.check(groupedOK, "pack.grouped", "\(packed.indices) \(packed.groupCounts)")
+        let sameID: Bool = packed.anchorID == base.anchorID && packed.revision == base.revision
+        let sameTranslation: Bool = packed.transform.columns.3 == base.transform.columns.3
+        let sameAxis: Bool = packed.transform.columns.0 == base.transform.columns.0
+        let sameTransform: Bool = sameTranslation && sameAxis
         c.check(sameID && sameTransform, "pack.identity", "id, revision or transform changed")
         var broken = positions
         broken[3] = SIMD3<Float>(Float.nan, 0, 0)
@@ -104,7 +109,9 @@ enum CoverageOverlaySelfTest {
         let keptIndices: [UInt32] = kept?.indices ?? []
         let keptCounts: [Int] = kept?.groupCounts ?? []
         let keptHigh: SIMD3<Float> = kept?.boundsMax ?? SIMD3<Float>(repeating: Float.nan)
-        let keptOK = keptIndices == [0, 1, 2] && keptCounts == [0, 0, 3, 0]
+        let expectedKept: [UInt32] = [0, 1, 2]
+        let expectedKeptCounts: [Int] = [0, 0, 3, 0]
+        let keptOK: Bool = keptIndices == expectedKept && keptCounts == expectedKeptCounts
         c.check(keptOK && keptHigh == SIMD3<Float>(1, 2, 4), "pack.nonFinite", "\(keptIndices) \(keptCounts) \(keptHigh)")
     }
 
@@ -133,9 +140,13 @@ enum CoverageOverlaySelfTest {
 
     /// The floats of little-endian packed data.
     static func floatsOf(_ data: Data) -> [Float] {
-        var floats = [Float](repeating: 0, count: data.count / 4)
-        _ = floats.withUnsafeMutableBufferPointer { buffer in data.copyBytes(to: buffer) }
-        return floats
+        let count = data.count / 4
+        return data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) -> [Float] in
+            var floats: [Float] = []
+            floats.reserveCapacity(count)
+            for i in 0..<count { floats.append(raw.load(fromByteOffset: i * 4, as: Float.self)) }
+            return floats
+        }
     }
 
     // MARK: Parts and capacity
@@ -146,8 +157,12 @@ enum CoverageOverlaySelfTest {
         let offsets = parts.map { $0.byteOffset }
         let counts = parts.map { $0.indexCount }
         let materials = parts.map { $0.materialIndex }
-        c.check(parts.count == 3 && offsets == [0, 24, 36], "parts.offsets", "\(offsets)")
-        c.check(counts == [6, 3, 3] && materials == [0, 2, 3], "parts.counts", "\(counts) \(materials)")
+        let expectedOffsets: [Int] = [0, 24, 36]
+        let expectedCounts: [Int] = [6, 3, 3]
+        let expectedMaterials: [Int] = [0, 2, 3]
+        c.check(parts.count == 3 && offsets == expectedOffsets, "parts.offsets", "\(offsets)")
+        let countsOK: Bool = counts == expectedCounts && materials == expectedMaterials
+        c.check(countsOK, "parts.counts", "\(counts) \(materials)")
         let none = CoverageOverlayPacking.parts(groupCounts: [0, 0, 0, 0])
         let odd = CoverageOverlayPacking.parts(groupCounts: [0, -3, 3, 0, 9])
         let firstOdd = odd.first ?? CoverageOverlayPart(byteOffset: -1, indexCount: 0, materialIndex: -1)
@@ -258,7 +273,8 @@ enum CoverageOverlaySelfTest {
         c.check(emptyColor == nil && greenOK && yellowOK && redOK, "minimap.color", "cell colors differ from the style")
         let percents = [CoverageMinimapLayout.percent(0.943), CoverageMinimapLayout.percent(1.2),
                         CoverageMinimapLayout.percent(-0.1), CoverageMinimapLayout.percent(Float.nan)]
-        c.check(percents == [94, 100, 0, 0], "minimap.percent", "\(percents)")
+        let expectedPercents: [Int] = [94, 100, 0, 0]
+        c.check(percents == expectedPercents, "minimap.percent", "\(percents)")
 
         let texts = CoverageOverlayPacking.stateOrder.map { CoverageLegendContent.text(for: $0) }
         let textsOK = Set(texts).count == 4 && texts.first == Copy.Scanning.legendGreen
