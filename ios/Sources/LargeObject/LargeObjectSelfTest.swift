@@ -62,16 +62,16 @@ enum LargeObjectSelfTest {
         check(&f, "observe.front", abs(front.viewSeconds[0] - 2) < 1e-6, "\(front.viewSeconds[0])")
         check(&f, "observe.frontDistance", near(front.meanViewDistance[0] ?? -1, 1, 1e-3), "\(String(describing: front.meanViewDistance[0]))")
 
-        var none = freshSectors()
+        var idle = freshSectors()
         let away = lookAt(eye: SIMD3<Float>(0, 0.5, 2), target: SIMD3<Float>(0, 0.5, 5))
-        observe(&none, away, count: 10)
-        observe(&none, orbitCamera(azimuth: 0, distance: 5.5), count: 10)
+        observe(&idle, away, count: 10)
+        observe(&idle, orbitCamera(azimuth: 0, distance: 5.5), count: 10)
         for _ in 0..<10 {
-            none.observe(cameraToWorld: orbitCamera(azimuth: 0, distance: 1.5), seconds: 0.1, trackingNormal: false)
+            idle.observe(cameraToWorld: orbitCamera(azimuth: 0, distance: 1.5), seconds: 0.1, trackingNormal: false)
         }
-        let total = none.viewSeconds.reduce(0, +)
+        let total = idle.viewSeconds.reduce(0, +)
         check(&f, "observe.nothing", total == 0, "\(total) s")
-        check(&f, "observe.elapsed", abs(none.elapsed - 3) < 1e-6, "\(none.elapsed)")
+        check(&f, "observe.elapsed", abs(idle.elapsed - 3) < 1e-6, "\(idle.elapsed)")
 
         var top = freshSectors()
         observe(&top, lookAt(eye: SIMD3<Float>(0, 2, 0.01), target: SIMD3<Float>(0, 1, 0)), count: 10)

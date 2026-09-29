@@ -112,10 +112,10 @@ enum LargeObjectSeed {
     /// height is the highest sample above the floor, so a wall partly hidden behind the object still
     /// counts as a wall.
     static func growDetailed(seed: SIMD3<Float>, samples: [LargeObjectSample], floorY: Float) -> LargeObjectGrowth {
-        let none = LargeObjectGrowth(points: [], seedInWallColumn: false, voxelCount: 0)
-        guard isFinite(seed), floorY.isFinite else { return none }
+        let nothing = LargeObjectGrowth(points: [], seedInWallColumn: false, voxelCount: 0)
+        guard isFinite(seed), floorY.isFinite else { return nothing }
         let grid = LargeObjectVoxels.build(seed: seed, samples: samples, floorY: floorY)
-        guard !grid.keys.isEmpty else { return none }
+        guard !grid.keys.isEmpty else { return nothing }
         let seedKey = voxelKey(seed)
         var start: Int?
         if let index = grid.index[seedKey] {
@@ -123,7 +123,7 @@ enum LargeObjectSeed {
         } else if let nearest = grid.nearestToSeed {
             start = nearest
         }
-        guard let first = start else { return none }
+        guard let first = start else { return nothing }
         if grid.isWall[first] || grid.columnIsWall(seedKey) {
             return LargeObjectGrowth(points: [], seedInWallColumn: true, voxelCount: 0)
         }

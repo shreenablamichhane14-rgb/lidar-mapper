@@ -52,7 +52,7 @@ extension LargeObjectSelfTest {
                                      halfExtents: SIMD3<Float>(0.5, 0.5, 0.5))
 
     /// Fresh sectors of `unitBox` with the first camera at +Z.
-    static func freshSectors(_ box: OrientedBox = unitBox) -> SectorCoverage {
+    static func freshSectors(_ box: OrientedBox = LargeObjectSelfTest.unitBox) -> SectorCoverage {
         SectorCoverage(box: box, floorY: 0, firstCamera: SIMD3<Float>(0, 0.5, 3))
     }
 
