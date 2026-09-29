@@ -151,16 +151,22 @@ extension QualitySelfTest {
 
         let alone = QualitySealedInputs.load(room: roomFolder, roomID: roomID, passes: [])
         let joined = QualitySealedInputs.load(room: roomFolder, roomID: roomID, passes: [passA])
-        let times = joined.poses.map { $0.timestamp }
-        let firstTime = times.first ?? -1
-        let lastTime = times.last ?? -1
-        c.check("passes.posesRoomFirst", times.count == hidden.count + looks.count && firstTime == 0 && lastTime >= 100,
-                "count \(times.count) first \(firstTime) last \(lastTime)")
-        c.check("passes.keyframesJoined", joined.keyframes.count == hidden.count + looks.count
-                && alone.keyframes.count == hidden.count, "\(joined.keyframes.count) \(alone.keyframes.count)")
+        let total: Int = hidden.count + looks.count
+        let times: [Double] = joined.poses.map { $0.timestamp }
+        let firstTime: Double = times.first ?? -1
+        let lastTime: Double = times.last ?? -1
+        let poseCountOK: Bool = times.count == total
+        let roomFirst: Bool = firstTime == 0 && lastTime >= 100
+        c.check("passes.posesRoomFirst", poseCountOK && roomFirst, "count \(times.count) first \(firstTime) last \(lastTime)")
+        let joinedFrames: Int = joined.keyframes.count
+        let aloneFrames: Int = alone.keyframes.count
+        c.check("passes.keyframesJoined", joinedFrames == total && aloneFrames == hidden.count, "\(joinedFrames) \(aloneFrames)")
+        let expectedFolders: [RawScanFolder] = [roomFolder, passA]
         let expectedSeals: [SealFile?] = [roomSeal, passSeal]
-        c.check("passes.foldersSealsAndRoomLog", joined.folders == [roomFolder, passA] && joined.seals == expectedSeals
-                && joined.room.log != nil && joined.passes.count == 1 && joined.passes.first?.log == nil)
+        let foldersOK: Bool = joined.folders == expectedFolders
+        let sealsOK: Bool = joined.seals == expectedSeals
+        let logsOK: Bool = joined.room.log != nil && joined.passes.count == 1 && joined.passes.first?.log == nil
+        c.check("passes.foldersSealsAndRoomLog", foldersOK && sealsOK && logsOK)
 
         let sealedCount = { (list: [RawScanFolder]) -> Int in
             QualityPassFolders.sealed(list, roomFolder: roomFolder, roomID: roomID, logSkips: false).count
@@ -178,7 +184,8 @@ extension QualitySelfTest {
         let joinedRun = evaluateInputs(joined, room: box)
         let aloneWalls = aloneRun.evaluation.summary.walls
         let joinedWalls = joinedRun.evaluation.summary.walls
-        c.check("passes.wallsRaisedByPass", joinedWalls > aloneWalls + 0.1 && joinedWalls >= 0.9, "\(aloneWalls) -> \(joinedWalls)")
+        let raised: Bool = joinedWalls > aloneWalls + 0.1
+        c.check("passes.wallsRaisedByPass", raised && joinedWalls >= 0.9, "\(aloneWalls) -> \(joinedWalls)")
         let aloneGap = wall2MissingArea(aloneRun.evaluation)
         let joinedGap = wall2MissingArea(joinedRun.evaluation)
         c.check("passes.wall2MissingAreaFilled", aloneGap > 3 && joinedGap == 0, "\(aloneGap) -> \(joinedGap)")
@@ -187,12 +194,13 @@ extension QualitySelfTest {
         let empty = try QualityEvaluator.evaluateSealedRoom(package: package, record: record, passes: [], now: Fx.fixedDate)
         c.check("passes.emptyEqualsRoomOnly", empty == before)
         let roomOnlySeals: [SealFile?] = [roomSeal]
-        c.check("passes.emptyKeepsDoneHash", before.inputHash == QualityEvaluator.doneInputHash(seal: roomSeal)
-                && before.inputHash == QualityEvaluator.doneInputHash(seals: roomOnlySeals))
+        let singleHash = QualityEvaluator.doneInputHash(seal: roomSeal)
+        let listHash = QualityEvaluator.doneInputHash(seals: roomOnlySeals)
+        c.check("passes.emptyKeepsDoneHash", before.inputHash == singleHash && before.inputHash == listHash)
         let withPass = try QualityEvaluator.evaluateSealedRoom(package: package, record: record, passes: [passA],
                                                                now: Fx.fixedDate)
-        c.check("passes.doneHashDiffers", withPass.inputHash != before.inputHash
-                && withPass.inputHash == QualityEvaluator.doneInputHash(seals: expectedSeals))
+        let passDoneHash = QualityEvaluator.doneInputHash(seals: expectedSeals)
+        c.check("passes.doneHashDiffers", withPass.inputHash != before.inputHash && withPass.inputHash == passDoneHash)
         let beforeShape = Float(before.summary.shape)
         let passShape = Float(withPass.summary.shape)
         c.check("passes.doneShapeRises", passShape > beforeShape + 0.02, "\(beforeShape) -> \(passShape)")
@@ -204,8 +212,9 @@ extension QualitySelfTest {
         c.check("passes.skippedPassesChangeNothing", skipped == before)
         let nilFirst: [SealFile?] = [nil, roomSeal]
         let noSeals: [SealFile?] = []
-        c.check("passes.doneHashSkipsNil", QualityEvaluator.doneInputHash(seals: nilFirst) == before.inputHash
-                && QualityEvaluator.doneInputHash(seals: noSeals) == QualityEvaluator.doneInputHash(seal: nil))
+        let nilSkipped: Bool = QualityEvaluator.doneInputHash(seals: nilFirst) == before.inputHash
+        let emptyIsNoSeal: Bool = QualityEvaluator.doneInputHash(seals: noSeals) == QualityEvaluator.doneInputHash(seal: nil)
+        c.check("passes.doneHashSkipsNil", nilSkipped && emptyIsNoSeal)
 
         let ctx = StepContext(package: package, manifest: manifest, availableMemory: 2_000_000_000,
                               isCancelled: { false }, progress: { _ in })
@@ -214,10 +223,10 @@ extension QualitySelfTest {
         c.check("passes.stepDefaultsToNoPasses", plain.passes.isEmpty && passStep.passes.count == 3)
         let plainHash = try plain.inputHash(ctx)
         let passHash = try passStep.inputHash(ctx)
-        c.check("passes.stepRoomOnlyHashUnchanged",
-                plainHash == QualityStep.inputHash(seal: roomSeal, buildRoomStamp: nil, consolidateMeshStamp: nil))
-        c.check("passes.stepHashAddsSealedPassOnly", passHash != plainHash
-                && passHash == QualityStep.inputHash(seals: expectedSeals, buildRoomStamp: nil, consolidateMeshStamp: nil))
+        let roomOnlyStepHash = QualityStep.inputHash(seal: roomSeal, buildRoomStamp: nil, consolidateMeshStamp: nil)
+        let passStepHash = QualityStep.inputHash(seals: expectedSeals, buildRoomStamp: nil, consolidateMeshStamp: nil)
+        c.check("passes.stepRoomOnlyHashUnchanged", plainHash == roomOnlyStepHash)
+        c.check("passes.stepHashAddsSealedPassOnly", passHash != plainHash && passHash == passStepHash)
         c.check("passes.stepHashDiffersFromDone", passHash != withPass.inputHash)
         try passStep.evaluateAndSave(ctx)
         let stepped = QualityStore.load(package, room: roomID)
