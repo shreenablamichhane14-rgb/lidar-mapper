@@ -79,9 +79,18 @@ struct LiveMeshContainer: UIViewRepresentable {
         return arView
     }
 
-    /// Keeps the tap closure current (the view and its session stay as they are).
+    /// Keeps the tap closure current. When SwiftUI reuses the view for another hub (a new pass in
+    /// the same place of the view tree), the view and the coaching overlay move to the new hub's
+    /// session and the new hub re-asserts its delegate; otherwise the session stays as it is.
     func updateUIView(_ uiView: ARView, context: Context) {
-        context.coordinator.onTap = onTap
+        let coordinator = context.coordinator
+        coordinator.onTap = onTap
+        guard coordinator.hub !== hub else { return }
+        uiView.session = hub.session
+        hub.install()
+        coordinator.coachingOverlay?.session = hub.session
+        coordinator.hub = hub
+        LiveMeshContainer.logIdentity("live mesh view moved to another hub", hub: hub)
     }
 
     /// Removes the recognizer and the coaching overlay, hands the view a fresh idle session and

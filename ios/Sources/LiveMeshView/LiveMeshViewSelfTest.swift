@@ -225,9 +225,9 @@ enum LiveMeshViewSelfTest {
 
         let safe = MeshScanStats.isSafeAttachmentName
         check(&f, "attachment.safe", safe("largeobject.json"), "refused")
-        let unsafe = ["../x", "a/b.json", "", "SEAL.json", "roomlog.json", "scan.json", "events.jsonl",
+        let refusedNames = ["../x", "a/b.json", "", "SEAL.json", "roomlog.json", "scan.json", "events.jsonl",
                       "keyframes.jsonl", "photos.jsonl", "poses.ptrk", "seal.json", ".hidden"]
-        let accepted = unsafe.filter { safe($0) }
+        let accepted = refusedNames.filter { safe($0) }
         check(&f, "attachment.unsafe", accepted.isEmpty, "\(accepted)")
 
         let log = MeshScanStats.log(seconds: 83.5, relocalizations: 2, limitedFraction: 0.25, degraded: .depthStripped,

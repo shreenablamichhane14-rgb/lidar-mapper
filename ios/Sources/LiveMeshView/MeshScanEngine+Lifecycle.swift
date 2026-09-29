@@ -83,6 +83,8 @@ extension MeshScanEngine {
         let stats = recorders.reduce(RecorderStats()) { $0 + $1.stats }
         var snapshot = MeshScanStats.snapshot(timestamp: q.latestFrameTimestamp ?? 0, status: status,
                                               recorders: stats, guidance: output.message)
+        // Before the pass's first frame a borrowed hub still counts the room's time.
+        if q.scanStartTimestamp == nil { snapshot.elapsed = 0 }
         if let augment = snapshotAugmenter { augment(&snapshot) }
         publish(state: nil, events: [.snapshot(snapshot)])
     }
