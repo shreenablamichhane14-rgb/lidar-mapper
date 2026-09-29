@@ -67,6 +67,8 @@ struct ExportRequest: Identifiable, Equatable {
 
     /// The project to open once the scan cover has closed (set by a finished scan).
     private var pendingResult: UUID?
+    /// A Keep Scan or Discard failed; the error alert waits for the recovery sheet to close.
+    private var recoveryFailed = false
     /// True once the launch sequence ran (the root view's task can run again after the cover).
     private(set) var hasLaunched = false
 
@@ -155,10 +157,19 @@ struct ExportRequest: Identifiable, Equatable {
         if !infos.isEmpty { log("recovery offered for \(infos.count) unfinished scans") }
     }
 
-    /// Drops the scan on screen from the recovery queue; `failed` shows the error alert.
+    /// Drops the scan on screen from the recovery queue; `failed` shows the error alert once the
+    /// recovery sheet has closed (an alert presented from the root while its sheet is still up
+    /// or closing would never appear).
     func recoveryHandled(_ info: InProgressScanInfo, failed: Bool) {
         recoveryQueue.removeAll { $0.scanID == info.scanID }
-        if failed { showsRecoveryError = true }
+        if failed { recoveryFailed = true }
+    }
+
+    /// The recovery sheet closed: shows the error alert when a Keep Scan or Discard failed.
+    func recoverySheetDismissed() {
+        guard recoveryFailed else { return }
+        recoveryFailed = false
+        showsRecoveryError = true
     }
 
     // MARK: - Log

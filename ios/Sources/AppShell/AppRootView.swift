@@ -45,7 +45,9 @@ struct AppRootView: View {
                 appRouter.scanFlowEnded(projectID)
             }
         }
-        .sheet(isPresented: $router.showsRecoverySheet) {
+        .sheet(isPresented: $router.showsRecoverySheet, onDismiss: {
+            appRouter.recoverySheetDismissed()
+        }) {
             recoverySheet
         }
         .alert(Copy.Errors.noLidar.title, isPresented: $router.showsNoLidarAlert) {
@@ -119,10 +121,10 @@ struct AppRootView: View {
     }
 
     /// Runs every self-test once after a new build was installed, in the background, pausing
-    /// while a scan cover is up. The build is recorded first, so a crashing suite cannot loop.
+    /// while a scan cover is up. The install is recorded first, so a crashing suite cannot loop.
     private func startLaunchSelfTests() {
         let defaults = UserDefaults.standard
-        let current = AppInfo.buildTag
+        let current = AppInfo.installStamp
         guard AppSelfTestRunner.launchRunDue(recorded: defaults.string(forKey: SettingsKey.selfTestsBuild),
                                              current: current) else { return }
         defaults.set(current, forKey: SettingsKey.selfTestsBuild)
