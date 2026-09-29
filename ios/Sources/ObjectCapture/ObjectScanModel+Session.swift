@@ -251,15 +251,19 @@ extension ObjectScanModel {
     // MARK: Quiet guidance
 
     /// The announcer's defaults: the `quietGuidanceSuite` suite with `SettingsKey.guidanceHaptics`
-    /// registered as false (the registration domain is in memory; nothing is written), so the
-    /// announcer speaks but never vibrates. Falls back to `.standard` (the user's setting) only
-    /// when the suite cannot be opened (logged).
+    /// set to false in the suite's own domain, so the announcer speaks but never vibrates. Not
+    /// `register(defaults:)`: the registration domain is shared by every `UserDefaults` in the
+    /// process, so it would turn the user's "vibrate for warnings" off in `.standard` too. Falls
+    /// back to `.standard` (the user's setting) only when the suite cannot be opened (logged).
     nonisolated static func quietGuidanceDefaults() -> UserDefaults {
         guard let suite = UserDefaults(suiteName: quietGuidanceSuite) else {
             ObjectCaptureSignals.log("quiet guidance suite unavailable; using standard defaults")
             return .standard
         }
-        suite.register(defaults: [SettingsKey.guidanceHaptics: false])
+        let stored = suite.object(forKey: SettingsKey.guidanceHaptics) as? Bool
+        if stored != false {
+            suite.set(false, forKey: SettingsKey.guidanceHaptics)
+        }
         return suite
     }
 
