@@ -254,7 +254,9 @@ struct Polygon2D: Equatable {
         var previousSide = sides[points.count - 1]
         for (i, current) in points.enumerated() {
             let currentSide = sides[i]
-            let crosses = (previousSide > 0 && currentSide < 0) || (previousSide < 0 && currentSide > 0)
+            let entering: Bool = previousSide < 0 && currentSide > 0
+            let leaving: Bool = previousSide > 0 && currentSide < 0
+            let crosses: Bool = entering || leaving
             if crosses {
                 let t: Float = previousSide / (previousSide - currentSide)
                 let crossing: SIMD2<Float> = previous + (current - previous) * t

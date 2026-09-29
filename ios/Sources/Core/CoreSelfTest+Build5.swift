@@ -225,7 +225,9 @@ extension CoreSelfTest {
         r.check("cr7.encodesValue", jsonText(replaced).contains(expectedKey), "")
         let build4: ProjectManifest? = decodedWithout("supersededBy", from: replaced)
         let build4Room: RoomRecord? = build4?.rooms.first
-        r.check("cr7.build4ManifestDecodes", build4 == manifest && build4Room != nil && build4Room?.supersededBy == nil, "")
+        let build4Matches: Bool = build4 == manifest
+        let build4NotSuperseded: Bool = build4Room != nil && build4Room?.supersededBy == nil
+        r.check("cr7.build4ManifestDecodes", build4Matches && build4NotSuperseded, "")
     }
 
     // MARK: - CR-8 minimap camera
@@ -245,8 +247,10 @@ extension CoreSelfTest {
         {"cellSize":0.5,"cells":[3,1],"height":1,"origin":{"x":1,"y":-2},"walls":[[{"x":0,"y":0},{"x":1,"y":0}]],"width":2}
         """
         let old: MinimapSnapshot? = try? JSONDecoder().decode(MinimapSnapshot.self, from: Data(oldLine.utf8))
-        let oldCell: MinimapCell = old?.cell(x: 0, y: 0) ?? .empty
-        r.check("cr8.oldLineDecodes", old == plain && old?.camera == nil && old?.heading == nil && oldCell == .covered, "")
+        let oldCell: MinimapCell = old?.cell(x: 0, y: 0) ?? MinimapCell.empty
+        let oldMatches: Bool = old == plain && oldCell == MinimapCell.covered
+        let oldHasNoCamera: Bool = old?.camera == nil && old?.heading == nil
+        r.check("cr8.oldLineDecodes", oldMatches && oldHasNoCamera, "")
         var recording = SnapshotRecording.synthetic(count: 2)
         recording.snapshots[1].minimap = located
         let replayed: SnapshotRecording? = try? SnapshotRecording.decodeJSONLines(recording.encodeJSONLines())

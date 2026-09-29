@@ -339,8 +339,9 @@ enum GeometrySelfTest {
         r.near("clip.rectangleRight", below.area, 8, 1e-4)
         let aboveLowest: Float = above.points.map { $0.y }.min() ?? -1
         let belowHighest: Float = below.points.map { $0.y }.max() ?? -1
-        r.check("clip.rectangleSides", abs(aboveLowest - 2) < 1e-5 && abs(belowHighest - 2) < 1e-5,
-                "\(aboveLowest) \(belowHighest)")
+        let aboveOnLine: Bool = abs(aboveLowest - Float(2)) < Float(1e-5)
+        let belowOnLine: Bool = abs(belowHighest - Float(2)) < Float(1e-5)
+        r.check("clip.rectangleSides", aboveOnLine && belowOnLine, "\(aboveLowest) \(belowHighest)")
         r.check("clip.keepsWinding", !above.isClockwise && !below.isClockwise)
 
         let missStart = SIMD2<Float>(0, 7)
