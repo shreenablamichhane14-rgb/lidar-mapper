@@ -245,7 +245,9 @@ enum LargeObjectAfterAlert: Equatable {
 
     /// Done is possible: capturing with a box while the pass runs or is paused.
     var canFinish: Bool {
-        phase == .capturing && box != nil && (scan.state == .scanning || scan.state == .paused)
+        guard phase == .capturing, box != nil else { return false }
+        let state = scan.state
+        return state == .scanning || state == .paused
     }
 
     /// Done (enabled once a box exists): the tracker's log as the `largeobject.json` attachment, the

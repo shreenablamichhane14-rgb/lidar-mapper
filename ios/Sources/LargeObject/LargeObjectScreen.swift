@@ -128,6 +128,15 @@ struct LargeObjectHUD: View {
                     flow.chooseAgain()
                 }
             }
+            // After the seal the shell's saving card is gone; the object is still being saved.
+            if model.phase == .finishing && scan.state != .stopping {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .tint(Color.white)
+                    LiveMeshPill(text: Copy.LiveMeshView.saving)
+                }
+                .accessibilityElement(children: .combine)
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: model.phase)
     }

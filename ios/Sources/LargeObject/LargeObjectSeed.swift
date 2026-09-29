@@ -283,6 +283,9 @@ struct LargeObjectVoxels {
     /// The occupied voxel whose nearest sample is closest to the seed within the snap radius.
     var nearestToSeed: Int?
 
+    /// Classes that make a column a wall when they are the majority of its samples.
+    static let wallClasses: Set<SurfaceClass> = [.wall, .door, .window]
+
     /// Column facts while building: highest sample, sample count and wall-like samples.
     private struct Column {
         var top: Float
@@ -319,7 +322,7 @@ struct LargeObjectVoxels {
             grid.samplePositions.append(p)
             grid.sampleVoxel.append(voxel)
             let columnKey = SIMD2<Int32>(key.x, key.z)
-            let wallLike = sample.surface == .wall || sample.surface == .door || sample.surface == .window
+            let wallLike = LargeObjectVoxels.wallClasses.contains(sample.surface)
             var column = columns[columnKey] ?? Column(top: p.y, count: 0, wallLike: 0)
             column.top = Swift.max(column.top, p.y)
             column.count += 1

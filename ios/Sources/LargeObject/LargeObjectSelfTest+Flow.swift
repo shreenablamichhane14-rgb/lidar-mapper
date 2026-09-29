@@ -76,20 +76,27 @@ extension LargeObjectSelfTest {
         broken.floorY = Float.nan
         broken.viewSeconds = [Double.infinity]
         let clean = broken.sanitized()
-        check(&f, "log.sanitized", clean.floorY == nil && clean.viewSeconds == [0] && broken.encoded() != nil,
+        let floorDropped: Bool = clean.floorY == nil
+        let secondsZeroed: Bool = clean.viewSeconds == [Double(0)]
+        let encodes: Bool = broken.encoded() != nil
+        check(&f, "log.sanitized", floorDropped && secondsZeroed && encodes,
               "\(String(describing: clean.floorY)) \(clean.viewSeconds)")
         checkLogFile(&f, log)
 
         let settings = LargeObjectTarget.defaultSettings()
-        check(&f, "settings.default", settings.detail == .high && settings.distance == .normal && !settings.findRooms,
-              "\(settings)")
+        let detailOK: Bool = settings.detail == DetailLevel.high
+        let distanceOK: Bool = settings.distance == ScanDistance.normal
+        check(&f, "settings.default", detailOK && distanceOK && !settings.findRooms, "\(settings)")
         let package = ProjectPackage(root: URL(fileURLWithPath: "/tmp/LargeObjectSample.mapperproj", isDirectory: true))
         let target = LargeObjectTarget(projectID: fixedID(1), package: package, sessionID: fixedID(2), objectID: fixedID(3),
                                        settings: settings)
         let pass = target.meshTarget
-        let passOK = pass.kind == .object && pass.mode == .object && pass.passID == fixedID(3)
-            && pass.destination == package.rawObjectURL(fixedID(3)) && pass.roomID == nil
-        check(&f, "target.meshTarget", passOK, "\(pass.kind) \(pass.mode) \(pass.destination.lastPathComponent)")
+        let kindOK: Bool = pass.kind == RawScanKind.object
+        let modeOK: Bool = pass.mode == ScanMode.object
+        let idOK: Bool = pass.passID == fixedID(3)
+        let destinationOK: Bool = pass.destination == package.rawObjectURL(fixedID(3))
+        let roomOK: Bool = pass.roomID == nil
+        check(&f, "target.meshTarget", kindOK && modeOK && idOK && destinationOK && roomOK, "\(pass.kind) \(pass.mode) \(pass.destination.lastPathComponent)")
     }
 
     /// `load(from:)` returns nil without the file (a pass the engine stopped) and the log with it.
@@ -123,8 +130,10 @@ extension LargeObjectSelfTest {
         input.nearbyMissing = [MissingArea(centroid: SIMD3<Float>(0, 1, 0), normal: SIMD3<Float>(0, 0, 1), area: 0.5,
                                            surface: .wall, suggestedViewpoint: SIMD3<Float>(0, 1.5, 1))]
         LargeObjectTracker.apply(decision: .objectCaptureLeft, to: &input)
-        let applied = input.extraConditions == [.objectCaptureLeft] && input.viewCoverage == nil && input.nearbyMissing.isEmpty
-        check(&f, "apply.decision", applied, "\(input.extraConditions)")
+        let expected: Set<GuidanceKind> = [GuidanceKind.objectCaptureLeft]
+        let conditionsOK: Bool = input.extraConditions == expected
+        let coverageCleared: Bool = input.viewCoverage == nil
+        check(&f, "apply.decision", conditionsOK && coverageCleared && input.nearbyMissing.isEmpty, "\(input.extraConditions)")
         LargeObjectTracker.apply(decision: nil, to: &input)
         check(&f, "apply.nil", input.extraConditions.isEmpty, "\(input.extraConditions)")
 
@@ -140,7 +149,9 @@ extension LargeObjectSelfTest {
         check(&f, "tracker.nanSeed", tracker.log().seed == nil, "\(String(describing: tracker.log().seed))")
         tracker.setSeed(SIMD3<Float>(1, 0.5, 2), floorY: 0, front: SIMD3<Float>(1, 1.5, 4))
         let seeded = tracker.log()
-        check(&f, "tracker.seed", seeded.seed == Vec3(x: 1, y: 0.5, z: 2) && seeded.floorY == 0, "\(seeded)")
+        let seedOK: Bool = seeded.seed == Vec3(x: 1, y: 0.5, z: 2)
+        let floorOK: Bool = seeded.floorY == Float(0)
+        check(&f, "tracker.seed", seedOK && floorOK, "\(seeded)")
         check(&f, "tracker.isDue", LargeObjectTracker.isDue(1.1, last: 1.0, interval: 0.1)
               && !LargeObjectTracker.isDue(1.05, last: 1.0, interval: 0.1) && LargeObjectTracker.isDue(0, last: nil, interval: 1),
               "due rule")
@@ -149,15 +160,19 @@ extension LargeObjectSelfTest {
         check(&f, "outline.threshold", !LargeObjectBoxGeometry.needsNewMesh(current: one, wanted: SIMD3<Float>(1.015, 1, 1))
               && LargeObjectBoxGeometry.needsNewMesh(current: one, wanted: SIMD3<Float>(1.03, 1, 1)), "2 cm rule")
         let matrix = LargeObjectBoxGeometry.matrix(unitBox)
-        check(&f, "outline.matrix", matrix.columns.3 == SIMD4<Float>(0, 0.5, 0, 1) && matrix.columns.1 == SIMD4<Float>(0, 1, 0, 0),
-              "\(matrix.columns.3)")
+        let translationOK: Bool = matrix.columns.3 == SIMD4<Float>(0, 0.5, 0, 1)
+        let upOK: Bool = matrix.columns.1 == SIMD4<Float>(0, 1, 0, 0)
+        check(&f, "outline.matrix", translationOK && upOK, "\(matrix.columns.3)")
 
         var manifest = ProjectManifest.new(kind: .object, name: "Test", now: Date(timeIntervalSince1970: 0))
         let record = LargeObjectModel.objectRecord(id: fixedID(4), keyframes: 12)
         LargeObjectModel.add(record, to: &manifest)
         LargeObjectModel.add(record, to: &manifest)
-        let recordOK = record.size == .large && record.status == .captured && record.imageCount == 12 && record.modelFile == nil
-        check(&f, "manifest.add", manifest.objects.count == 1 && manifest.status == .needsProcessing && recordOK,
+        let sizeOK: Bool = record.size == ObjectSize.large
+        let statusOK: Bool = record.status == RoomStatus.captured
+        let countOK: Bool = record.imageCount == 12 && record.modelFile == nil
+        let manifestOK: Bool = manifest.objects.count == 1 && manifest.status == ProjectStatus.needsProcessing
+        check(&f, "manifest.add", sizeOK && statusOK && countOK && manifestOK,
               "\(manifest.objects.count) \(manifest.status)")
 
         let metric = UnitPreferences(system: .metric, fraction: .eighth, showBoth: false)

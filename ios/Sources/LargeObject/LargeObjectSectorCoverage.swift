@@ -153,9 +153,9 @@ struct SectorCoverage: Equatable {
                                 halfExtents: box.halfExtents + SIMD3<Float>(repeating: SectorCoverage.faceBoxGrowth))
         for face in faces {
             guard face.area.isFinite, face.area > 0, SectorCoverage.isFinite(face.centroid),
-                  grown.contains(face.centroid), let region = region(of: face) else { continue }
-            total[region] += face.area
-            weighted[region] += face.area * SectorCoverage.weight(face.state)
+                  grown.contains(face.centroid), let slot = self.region(of: face) else { continue }
+            total[slot] += face.area
+            weighted[slot] += face.area * SectorCoverage.weight(face.state)
         }
         for index in 0..<SectorCoverage.regionCount {
             faceScores[index] = total[index] >= SectorCoverage.minFaceArea ? weighted[index] / total[index] : nil
